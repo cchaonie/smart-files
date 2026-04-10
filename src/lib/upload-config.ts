@@ -7,7 +7,7 @@ export function getUploadRoot(): string {
 export function maxFileSizeBytes(): bigint {
   const raw = process.env.MAX_FILE_SIZE_BYTES;
   if (raw && /^\d+$/.test(raw)) return BigInt(raw);
-  return mb(500);
+  return mb(10 * 1024);
 }
 
 export function defaultChunkSize(): number {
