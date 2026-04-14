@@ -14,13 +14,31 @@ model User {
   name           String?
   createdAt      DateTime        @default(now())
   files          File[]
+  folders        Folder[]
   uploadSessions UploadSession[]
+}
+
+model Folder {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    Folder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Folder[] @relation("FolderTree")
+  name      String
+  createdAt DateTime @default(now())
+  files     File[]
+  uploadSessions UploadSession[]
+
+  @@index([userId, parentId])
 }
 
 model File {
   id         String   @id @default(cuid())
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderId   String?
+  folder     Folder?  @relation(fields: [folderId], references: [id], onDelete: Restrict)
   name       String
   storageKey String
   size       BigInt
@@ -28,12 +46,15 @@ model File {
   createdAt  DateTime @default(now())
 
   @@index([userId])
+  @@index([userId, folderId])
 }
 
 model UploadSession {
   id                   String   @id @default(cuid())
   userId               String
   user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderId             String?
+  folder               Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
   fileName             String
   totalSize            BigInt
   chunkSize            Int

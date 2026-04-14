@@ -111,6 +111,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ uploadId: stri
     const created = await tx.file.create({
       data: {
         userId,
+        folderId: upload.folderId ?? null,
         name: upload.fileName,
         storageKey,
         size: upload.totalSize,

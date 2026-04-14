@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { isPreviewableImage, previewImageContentType } from "@/lib/image-file";
 import { prisma } from "@/lib/prisma";
 import { streamUserFileResponse } from "@/lib/serve-user-file";
 import { storedFilePath } from "@/lib/storage-paths";
@@ -20,15 +21,19 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     return new Response("Not found", { status: 404 });
   }
 
+  if (!isPreviewableImage(file.mimeType, file.name)) {
+    return new Response("Not found", { status: 404 });
+  }
+
   const fullPath = storedFilePath(getUploadRoot(), file.userId, file.storageKey);
   let size: number;
   try {
     size = statSync(fullPath).size;
   } catch {
-    return new Response("File missing", { status: 404 });
+    return new Response("Not found", { status: 404 });
   }
 
-  const type = file.mimeType ?? "application/octet-stream";
+  const type = previewImageContentType(file.mimeType, file.name);
 
-  return streamUserFileResponse(req, fullPath, size, type, file.name, "attachment");
+  return streamUserFileResponse(req, fullPath, size, type, file.name, "inline", "private, max-age=3600");
 }

@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { getFolderOwnedByUser } from "@/lib/folder-access";
 import { prisma } from "@/lib/prisma";
 import { sanitizeFileName } from "@/lib/storage-paths";
 import { defaultChunkSize, maxChunkCount, maxFileSizeBytes } from "@/lib/upload-config";
@@ -15,11 +16,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: { fileName?: unknown; totalSize?: unknown; chunkSize?: unknown };
+  let body: { fileName?: unknown; totalSize?: unknown; chunkSize?: unknown; folderId?: unknown };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  let folderId: string | null = null;
+  if (body.folderId !== undefined && body.folderId !== null && String(body.folderId).trim() !== "") {
+    const folder = await getFolderOwnedByUser(String(body.folderId).trim(), session.user.id);
+    if (!folder) {
+      return NextResponse.json({ error: "Folder not found" }, { status: 404 });
+    }
+    folderId = folder.id;
   }
 
   const fileName = sanitizeFileName(String(body.fileName ?? ""));
@@ -46,6 +56,7 @@ export async function POST(req: Request) {
   const upload = await prisma.uploadSession.create({
     data: {
       userId: session.user.id,
+      folderId,
       fileName,
       totalSize,
       chunkSize,
