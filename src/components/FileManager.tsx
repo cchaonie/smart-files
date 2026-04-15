@@ -229,14 +229,22 @@ export function FileManager() {
 
   const [newFolderName, setNewFolderName] = useState("");
 
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  const [uploadLabel, setUploadLabel] = useState<string | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  type UploadItem = {
+    id: number;
+    name: string;
+    progress: number;
+    status: "pending" | "uploading" | "done" | "error";
+    error?: string;
+  };
+  const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
+  const uploadingRef = useRef(false);
   const pausedRef = useRef(false);
   const abortRef = useRef(false);
   const persistKeyRef = useRef<string | null>(null);
   const [previewFile, setPreviewFile] = useState<FileRow | null>(null);
   const [moveTarget, setMoveTarget] = useState<FileRow | null>(null);
+  const nextUploadId = useRef(0);
+  const filesByItemId = useRef<Map<number, File>>(new Map());
 
   const loadBrowse = useCallback(async () => {
     setListError(null);
@@ -313,12 +321,11 @@ export function FileManager() {
     }
   }
 
-  async function runUpload(file: File) {
-    setUploadError(null);
-    pausedRef.current = false;
-    abortRef.current = false;
-    setUploadLabel(file.name);
-    setUploadProgress(0);
+  async function runUpload(file: File, itemId: number) {
+    const updateItem = (patch: Partial<UploadItem>) =>
+      setUploadItems((prev) => prev.map((it) => (it.id === itemId ? { ...it, ...patch } : it)));
+
+    updateItem({ status: "uploading", progress: 0 });
 
     const totalSize = BigInt(file.size);
     const folderKey = currentParentId ?? "root";
@@ -379,9 +386,7 @@ export function FileManager() {
         sessionStorage.setItem(persistKey, uploadId);
       }
     } catch (e) {
-      setUploadError(e instanceof Error ? e.message : "Session failed");
-      setUploadProgress(null);
-      setUploadLabel(null);
+      updateItem({ status: "error", error: e instanceof Error ? e.message : "Session failed" });
       return;
     }
 
@@ -432,7 +437,7 @@ export function FileManager() {
           });
 
           doneCount += 1;
-          setUploadProgress(Math.round((doneCount / totalChunks) * 100));
+          updateItem({ progress: Math.round((doneCount / totalChunks) * 100) });
         }
       }
     };
@@ -448,23 +453,66 @@ export function FileManager() {
 
       sessionStorage.removeItem(persistKey);
       persistKeyRef.current = null;
-      setUploadProgress(100);
-      await loadBrowse();
+      updateItem({ status: "done", progress: 100 });
     } catch (e) {
       if ((e as Error).message !== "Aborted") {
-        setUploadError(e instanceof Error ? e.message : "Upload failed");
+        updateItem({ status: "error", error: e instanceof Error ? e.message : "Upload failed" });
+      } else {
+        updateItem({ status: "error", error: "Cancelled" });
       }
     } finally {
       persistKeyRef.current = null;
-      setUploadProgress(null);
-      setUploadLabel(null);
     }
   }
 
+  async function runUploadQueue(files: File[]) {
+    if (uploadingRef.current) return;
+    uploadingRef.current = true;
+    pausedRef.current = false;
+    abortRef.current = false;
+
+    const items: UploadItem[] = files.map((f) => ({
+      id: nextUploadId.current++,
+      name: f.name,
+      progress: 0,
+      status: "pending" as const,
+    }));
+    items.forEach((item, i) => filesByItemId.current.set(item.id, files[i]));
+    setUploadItems((prev) => [...prev, ...items]);
+
+    for (let i = 0; i < files.length; i++) {
+      if (abortRef.current) {
+        setUploadItems((prev) =>
+          prev.map((it) =>
+            items.slice(i).some((q) => q.id === it.id) && it.status === "pending"
+              ? { ...it, status: "error", error: "Cancelled" }
+              : it,
+          ),
+        );
+        break;
+      }
+      await runUpload(files[i], items[i].id);
+    }
+
+    uploadingRef.current = false;
+    await loadBrowse();
+  }
+
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
+    const fileList = e.target.files;
     e.target.value = "";
-    if (f) void runUpload(f);
+    if (fileList && fileList.length > 0) {
+      void runUploadQueue(Array.from(fileList));
+    }
+  }
+
+  async function retryUpload(itemId: number) {
+    const file = filesByItemId.current.get(itemId);
+    if (!file) return;
+    abortRef.current = false;
+    pausedRef.current = false;
+    await runUpload(file, itemId);
+    await loadBrowse();
   }
 
   async function removeFile(id: string) {
@@ -539,52 +587,85 @@ export function FileManager() {
         <label className="flex cursor-pointer flex-col items-center gap-2 text-center">
           <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">Upload into this folder</span>
           <span className="text-xs text-zinc-500">Chunks: {CHUNK_SIZE / (1024 * 1024)} MB · Pause/resume supported</span>
-          <input type="file" className="sr-only" onChange={onFileChange} />
+          <input type="file" multiple className="sr-only" onChange={onFileChange} />
           <span className="mt-2 rounded-full bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900">
-            Choose file
+            Choose files
           </span>
         </label>
-        {uploadLabel ? (
-          <div className="mt-4 space-y-2">
-            <div className="flex justify-between text-xs text-zinc-600 dark:text-zinc-400">
-              <span className="truncate pr-2">{uploadLabel}</span>
-              {uploadProgress !== null ? <span>{uploadProgress}%</span> : null}
-            </div>
-            {uploadProgress !== null ? (
-              <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
-                <div
-                  className="h-full bg-zinc-800 transition-all dark:bg-zinc-200"
-                  style={{ width: `${uploadProgress}%` }}
-                />
+        {uploadItems.length > 0 ? (
+          <div className="mt-4 space-y-3">
+            {uploadItems.map((item) => (
+              <div key={item.id} className="space-y-1">
+                <div className="flex justify-between text-xs text-zinc-600 dark:text-zinc-400">
+                  <span className="truncate pr-2">
+                    {item.status === "done" ? "Done" : item.status === "error" ? "Error" : item.status === "uploading" ? "Uploading" : "Pending"}
+                    {" · "}
+                    {item.name}
+                  </span>
+                  {item.status === "uploading" || item.status === "done" ? <span>{item.progress}%</span> : null}
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+                  <div
+                    className={`h-full transition-all ${
+                      item.status === "error"
+                        ? "bg-red-500 dark:bg-red-400"
+                        : item.status === "done"
+                          ? "bg-green-600 dark:bg-green-400"
+                          : "bg-zinc-800 dark:bg-zinc-200"
+                    }`}
+                    style={{ width: `${item.progress}%` }}
+                  />
+                </div>
+                {item.error ? (
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-red-600 dark:text-red-400">{item.error}</p>
+                    <button
+                      type="button"
+                      className="rounded-md border border-red-300 px-2 py-0.5 text-xs text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"
+                      onClick={() => void retryUpload(item.id)}
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : null}
               </div>
-            ) : null}
-            <div className="flex flex-wrap gap-2">
+            ))}
+            {uploadingRef.current ? (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="rounded-md border border-zinc-300 px-2 py-1 text-xs dark:border-zinc-600"
+                  onClick={() => {
+                    pausedRef.current = !pausedRef.current;
+                  }}
+                >
+                  Pause / resume
+                </button>
+                <button
+                  type="button"
+                  className="rounded-md border border-red-300 px-2 py-1 text-xs text-red-700 dark:border-red-800 dark:text-red-300"
+                  onClick={() => {
+                    abortRef.current = true;
+                    pausedRef.current = false;
+                    const k = persistKeyRef.current;
+                    if (k) sessionStorage.removeItem(k);
+                    persistKeyRef.current = null;
+                  }}
+                >
+                  Cancel all
+                </button>
+              </div>
+            ) : (
               <button
                 type="button"
                 className="rounded-md border border-zinc-300 px-2 py-1 text-xs dark:border-zinc-600"
-                onClick={() => {
-                  pausedRef.current = !pausedRef.current;
-                }}
+                onClick={() => setUploadItems([])}
               >
-                Pause / resume
+                Clear
               </button>
-              <button
-                type="button"
-                className="rounded-md border border-red-300 px-2 py-1 text-xs text-red-700 dark:border-red-800 dark:text-red-300"
-                onClick={() => {
-                  abortRef.current = true;
-                  pausedRef.current = false;
-                  const k = persistKeyRef.current;
-                  if (k) sessionStorage.removeItem(k);
-                  persistKeyRef.current = null;
-                }}
-              >
-                Cancel
-              </button>
-            </div>
+            )}
           </div>
         ) : null}
-        {uploadError ? <p className="mt-3 text-sm text-red-600 dark:text-red-400">{uploadError}</p> : null}
       </section>
 
       <section>
