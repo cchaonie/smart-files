@@ -1,6 +1,6 @@
 # Smart Files
 
-Next.js file manager with per-user storage, chunked uploads (pause/resume), HTTP Range downloads, and Docker Compose deployment.
+Next.js file manager with per-user storage, chunked uploads (pause/resume), HTTP Range downloads, and Podman Compose deployment.
 
 ## Features
 
@@ -11,7 +11,9 @@ Next.js file manager with per-user storage, chunked uploads (pause/resume), HTTP
 
 ## Local development
 
-1. Copy environment and start Postgres (or use Docker only for the database):
+### 方式一：本地 Node.js（推荐快速开发）
+
+1. Copy environment and start Postgres:
 
    ```bash
    cp .env.example .env
@@ -29,23 +31,53 @@ Next.js file manager with per-user storage, chunked uploads (pause/resume), HTTP
 
 3. Open [http://localhost:3000](http://localhost:3000), register an account, then open **Your files** at `/files`.
 
-## Docker Compose
+### 方式二：Podman 开发模式（推荐，数据可保留到生产）
+
+使用 Podman Compose 启动开发环境，支持**热重载**（修改代码立即生效）：
+
+```bash
+npm run dev:podman
+```
+
+- 应用: http://localhost:3000
+- 数据库: localhost:5432
+
+**数据持久化特性：**
+- 数据库和上传文件保存在 `./data/` 目录
+- **在 dev 环境注册的账号和上传的文件，部署到生产环境时会完全保留**
+- 支持随时在 dev 和生产环境之间切换，数据不会丢失
+
+**从本地开发迁移到 Podman：**
+
+如果你之前用 `npm run dev` 创建了账号和上传了文件，可以一键迁移：
+
+```bash
+# 先确保本地 PostgreSQL 在运行
+npm run db:migrate-to-podman
+
+# 然后启动 Podman 环境
+npm run dev:podman
+```
+
+更多详情见 [PODMAN_DEV.md](./PODMAN_DEV.md)
+
+## Podman Compose (生产部署)
 
 From the project root:
 
 ```bash
 export AUTH_SECRET="$(openssl rand -base64 32)"
-docker compose up --build
+podman-compose -f podman-compose.yml up --build
 ```
 
 - App: [http://localhost:3000](http://localhost:3000)
 - On first start the container runs `prisma migrate deploy` then `node server.js`.
-- Uploads persist in the `upload_data` volume; Postgres data in `postgres_data`.
+- 数据（数据库和上传文件）保存在 `./data/` 目录，便于备份和迁移
 
 Override the public URL if you publish behind another host:
 
 ```bash
-AUTH_URL=https://files.example.com docker compose up --build
+AUTH_URL=https://files.example.com podman-compose -f podman-compose.yml up --build
 ```
 
 ## API summary
@@ -57,7 +89,7 @@ AUTH_URL=https://files.example.com docker compose up --build
 | GET | `/api/upload/session/[uploadId]` | Resume: list received chunk indexes |
 | PUT | `/api/upload/session/[uploadId]/chunk?index=n` | Upload one chunk (raw body) |
 | POST | `/api/upload/session/[uploadId]/complete` | Merge chunks, create file record |
-| GET | `/api/files` | List current user’s files |
+| GET | `/api/files` | List current user's files |
 | DELETE | `/api/files/[id]` | Delete file |
 | GET | `/api/files/[id]/download` | Download (supports `Range`) |
 
@@ -76,4 +108,4 @@ AUTH_URL=https://files.example.com docker compose up --build
 ## Notes
 
 - Horizontal scaling would require shared storage for `UPLOAD_ROOT` (or object storage) so all app instances see the same chunks and files.
-- The default deployment is a single app replica with named volumes, which matches `docker-compose.yml`.
+- The default deployment is a single app replica with bind mounts, which matches `podman-compose.yml`.

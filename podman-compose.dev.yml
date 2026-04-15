@@ -1,0 +1,53 @@
+services:
+  db:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: smartfiles
+      # 使用当前用户 ID 运行 PostgreSQL，避免权限问题
+      PGUSER: postgres
+    volumes:
+      # 使用 bind mount 将数据保存到宿主机，dev 和生产可共享
+      # :Z 标签用于 SELinux 环境
+      - ./data/postgres:/var/lib/postgresql/data:Z
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    image: docker.io/library/node:20-alpine
+    working_dir: /app
+    command: sh -c "npm install && npx prisma generate && npm run dev"
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/smartfiles?schema=public
+      AUTH_SECRET: ${AUTH_SECRET:-dev-secret-change-me-in-production}
+      AUTH_URL: ${AUTH_URL:-http://localhost:3000}
+      UPLOAD_ROOT: /data/storage
+      MAX_FILE_SIZE_BYTES: ${MAX_FILE_SIZE_BYTES:-524288000}
+      NEXT_TELEMETRY_DISABLED: 1
+      # 启用 Next.js 快速刷新 (Fast Refresh)
+      FAST_REFRESH: "true"
+      # Watcher 轮询模式，在 Podman 中更可靠
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      # 挂载源代码，实现热重载
+      - .:/app:Z
+      # 使用命名卷保留 node_modules，避免被宿主机覆盖
+      - node_modules:/app/node_modules
+      # 上传文件使用 bind mount，dev 和生产可共享
+      - ./data/storage:/data/storage:Z
+    # Podman 会自动处理 depends_on，但不支持 condition: service_healthy
+    # 如果需要等待数据库就绪，可以使用 restart 策略
+    restart: unless-stopped
+
+volumes:
+  node_modules:
