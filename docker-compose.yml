@@ -25,7 +25,7 @@ services:
       AUTH_SECRET: ${AUTH_SECRET:-change-me-generate-a-long-random-string-for-production}
       AUTH_URL: ${AUTH_URL:-http://localhost:3000}
       UPLOAD_ROOT: /data/storage
-      MAX_FILE_SIZE_BYTES: ${MAX_FILE_SIZE_BYTES:-524288000}
+      MAX_FILE_SIZE_BYTES: ${MAX_FILE_SIZE_BYTES:-52428800000}
     volumes:
       # 上传文件使用 bind mount，便于备份和迁移
       # 使用 ./data/storage 与本地 npm run dev 保持一致
