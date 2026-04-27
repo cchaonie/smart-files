@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "db:start": "podman-compose -f podman-compose.db.yml up -d",
+    "db:stop": "podman-compose -f podman-compose.db.yml down",
     "dev:podman": "podman-compose -f podman-compose.dev.yml up --build",
     "dev:podman:down": "podman-compose -f podman-compose.dev.yml down",
     "dev:podman:clean": "podman-compose -f podman-compose.dev.yml down -v",
