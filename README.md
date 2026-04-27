@@ -61,24 +61,43 @@ npm run dev:podman
 
 更多详情见 [PODMAN_DEV.md](./PODMAN_DEV.md)
 
-## Podman Compose (生产部署)
+## GitHub Container Registry 镜像（推荐快速部署）
 
-From the project root:
+预构建镜像已发布到 GitHub Container Registry，无需本地构建，拉取后直接启动：
+
+```bash
+# 1. 登录 GitHub Container Registry（首次需要）
+echo $GITHUB_TOKEN | podman login ghcr.io -u $GITHUB_USERNAME --password-stdin
+# 或使用 docker:
+# echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_USERNAME --password-stdin
+
+# 2. 设置环境变量并启动
+export AUTH_SECRET="$(openssl rand -base64 32)"
+podman-compose -f podman-compose.yml pull
+podman-compose -f podman-compose.yml up
+```
+
+- 首次启动会自动执行数据库迁移 (`prisma migrate deploy`)，然后启动应用
+- 数据（数据库和上传文件）保存在 `./data/` 目录，便于备份和迁移
+- App: [http://localhost:3000](http://localhost:3000)
+
+Override the public URL if you publish behind another host:
+
+```bash
+AUTH_URL=https://files.example.com podman-compose -f podman-compose.yml up
+```
+
+## Podman Compose (本地构建部署)
+
+如果需要本地构建镜像（例如修改了代码）：
 
 ```bash
 export AUTH_SECRET="$(openssl rand -base64 32)"
 podman-compose -f podman-compose.yml up --build
 ```
 
-- App: [http://localhost:3000](http://localhost:3000)
-- On first start the container runs `prisma migrate deploy` then `node server.js`.
-- 数据（数据库和上传文件）保存在 `./data/` 目录，便于备份和迁移
-
-Override the public URL if you publish behind another host:
-
-```bash
-AUTH_URL=https://files.example.com podman-compose -f podman-compose.yml up --build
-```
+- 同时指定了 `image` 和 `build` 时，`--build` 会优先本地构建并标记镜像
+- 不带 `--build` 时，如果本地镜像已存在则直接使用，否则会尝试拉取远程镜像
 
 ## API summary
 

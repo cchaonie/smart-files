@@ -16,6 +16,7 @@ services:
       retries: 10
 
   app:
+    image: ghcr.io/cchaonie/smart-files:latest
     build:
       context: .
       dockerfile: Dockerfile
