@@ -6,6 +6,8 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 COPY package.json package-lock.json ./
+# prisma generate is triggered by postinstall; copy schema so it can run
+COPY prisma/schema.prisma ./prisma/schema.prisma
 RUN npm ci
 
 FROM base AS builder
