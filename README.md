@@ -61,20 +61,20 @@ npm run dev:podman
 
 更多详情见 [PODMAN_DEV.md](./PODMAN_DEV.md)
 
-## GitHub Container Registry 镜像（推荐快速部署）
+## Production Deployment
+
+### GitHub Container Registry 镜像（推荐快速部署）
 
 预构建镜像已发布到 GitHub Container Registry，无需本地构建，拉取后直接启动：
 
 ```bash
 # 1. 登录 GitHub Container Registry（首次需要）
 echo $GITHUB_TOKEN | podman login ghcr.io -u $GITHUB_USERNAME --password-stdin
-# 或使用 docker:
-# echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_USERNAME --password-stdin
 
 # 2. 设置环境变量并启动
 export AUTH_SECRET="$(openssl rand -base64 32)"
 podman-compose -f podman-compose.yml pull
-podman-compose -f podman-compose.yml up
+podman-compose -f podman-compose.yml up -d
 ```
 
 - 首次启动会自动执行数据库迁移 (`prisma migrate deploy`)，然后启动应用
@@ -84,10 +84,10 @@ podman-compose -f podman-compose.yml up
 Override the public URL if you publish behind another host:
 
 ```bash
-AUTH_URL=https://files.example.com podman-compose -f podman-compose.yml up
+AUTH_URL=https://files.example.com podman-compose -f podman-compose.yml up -d
 ```
 
-## Podman Compose (本地构建部署)
+### 本地构建部署
 
 如果需要本地构建镜像（例如修改了代码）：
 
@@ -120,9 +120,19 @@ podman-compose -f podman-compose.yml up --build
 | `AUTH_SECRET` | Secret for Auth.js (required in production) |
 | `AUTH_URL` | Origin of the app (e.g. `http://localhost:3000`) |
 | `UPLOAD_ROOT` | Directory for `tmp/` and `files/` (default `./data/storage`) |
-| `MAX_FILE_SIZE_BYTES` | Max upload size (default 500 MiB) |
+| `MAX_FILE_SIZE_BYTES` | Max upload size (default 10 GiB) |
 | `DEFAULT_CHUNK_SIZE_BYTES` | Server default chunk size (256 KiB–32 MiB) |
 | `MAX_CHUNKS` | Safety cap on chunk count (default 50000) |
+
+## Deployment Files
+
+| File | Purpose |
+|------|---------|
+| `podman-compose.yml` | 生产环境配置，使用预构建镜像或本地构建 |
+| `podman-compose.dev.yml` | 开发环境配置，支持热重载 |
+| `podman-compose.db.yml` | 仅启动数据库，用于本地开发 |
+| `Dockerfile` | 多阶段构建镜像 |
+| `docker-entrypoint.sh` | 容器启动脚本（执行数据库迁移） |
 
 ## Notes
 

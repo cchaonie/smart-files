@@ -157,7 +157,7 @@ rm -rf ./data
 |------|--------|------|
 | `AUTH_SECRET` | dev-secret-change-me-in-production | 用于 session 加密，建议本地开发也设置一个固定值 |
 | `AUTH_URL` | http://localhost:3000 | 认证回调 URL |
-| `MAX_FILE_SIZE_BYTES` | 524288000 (500MB) | 最大上传文件大小 |
+| `MAX_FILE_SIZE_BYTES` | 10737418240 (10GB) | 最大上传文件大小 |
 
 你可以在项目根目录创建 `.env.local` 文件来覆盖这些变量：
 
@@ -183,16 +183,6 @@ npx prisma migrate dev
 ```bash
 podman-compose -f podman-compose.dev.yml exec db psql -U postgres -d smartfiles
 ```
-
-## Podman 与 Docker 的差异
-
-| 特性 | Podman | Docker |
-|------|--------|--------|
-| 守护进程 | 无守护进程 | 需要 dockerd |
-| 权限 | 默认 rootless | 默认 root |
-| 命令 | `podman` | `docker` |
-| Compose | `podman-compose` | `docker-compose` |
-| SELinux | 支持 :Z 标签 | 不支持 |
 
 ### SELinux 支持
 
