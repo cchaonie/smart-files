@@ -3,13 +3,11 @@
     "allow": [
       "Bash(npx tsc *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)",
       "Bash(git push *)",
-      "Bash(chmod +x /Users/chris/Code/smart-files/scripts/migrate-to-podman.sh)",
-      "Bash(ls -la /Users/chris/Code/smart-files/*.yml /Users/chris/Code/smart-files/scripts/*.sh)",
       "Bash(ls:*)",
       "Bash(chmod +x:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }
