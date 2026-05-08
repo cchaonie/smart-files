@@ -259,10 +259,10 @@ export function FileManager() {
     error?: string;
   };
   const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
-  const uploadingRef = useRef(false);
   const pausedRef = useRef(false);
   const abortRef = useRef(false);
-  const persistKeyRef = useRef<string | null>(null);
+  const persistKeyRef = useRef<Map<number, string>>(new Map());
+  const [parallelCount, setParallelCount] = useState(5);
   const [previewFile, setPreviewFile] = useState<FileRow | null>(null);
   const [moveTarget, setMoveTarget] = useState<FileRow | null>(null);
   const nextUploadId = useRef(0);
@@ -363,7 +363,7 @@ export function FileManager() {
     const totalSize = BigInt(file.size);
     const folderKey = currentParentId ?? 'root';
     const persistKey = `smart-files-upload:${folderKey}:${file.name}:${file.size}`;
-    persistKeyRef.current = persistKey;
+    persistKeyRef.current.set(itemId, persistKey);
     let uploadId: string;
     let chunkSize = CHUNK_SIZE;
     let totalChunks: number;
@@ -496,7 +496,7 @@ export function FileManager() {
       );
 
       sessionStorage.removeItem(persistKey);
-      persistKeyRef.current = null;
+      persistKeyRef.current.delete(itemId);
       updateItem({ status: 'done', progress: 100 });
     } catch (e) {
       if ((e as Error).message !== 'Aborted') {
@@ -508,13 +508,11 @@ export function FileManager() {
         updateItem({ status: 'error', error: 'Cancelled' });
       }
     } finally {
-      persistKeyRef.current = null;
+      persistKeyRef.current.delete(itemId);
     }
   }
 
   async function runUploadQueue(files: File[]) {
-    if (uploadingRef.current) return;
-    uploadingRef.current = true;
     pausedRef.current = false;
     abortRef.current = false;
 
@@ -527,23 +525,37 @@ export function FileManager() {
     items.forEach((item, i) => filesByItemId.current.set(item.id, files[i]));
     setUploadItems(prev => [...prev, ...items]);
 
-    try {
-      for (let i = 0; i < files.length; i++) {
+    // 使用队列实现并行上传控制
+    const queue = items.map((item, index) => ({ item, file: files[index] }));
+    let index = 0;
+
+    const processNext = async () => {
+      while (index < queue.length) {
         if (abortRef.current) {
+          const remainingIndex = index;
           setUploadItems(prev =>
             prev.map(it =>
-              items.slice(i).some(q => q.id === it.id) && it.status === 'pending'
+              queue.slice(remainingIndex).some(q => q.item.id === it.id) && it.status === 'pending'
                 ? { ...it, status: 'error', error: 'Cancelled' }
                 : it,
             ),
           );
-          break;
+          return;
         }
-        await runUpload(files[i], items[i].id);
+
+        const { item, file } = queue[index++];
+        if (item.status === 'pending') {
+          await runUpload(file, item.id);
+        }
       }
-    } finally {
-      uploadingRef.current = false;
-    }
+    };
+
+    // 启动并行数量的任务
+    const workers = Array(Math.min(parallelCount, queue.length))
+      .fill(null)
+      .map(() => processNext());
+
+    await Promise.all(workers);
 
     await loadBrowse();
   }
@@ -672,6 +684,30 @@ export function FileManager() {
         </label>
         {uploadItems.length > 0 ? (
           <div className='mt-4 space-y-3'>
+            <div className='flex items-center justify-between border-b border-zinc-200 pb-2 dark:border-zinc-700'>
+              <span className='text-xs text-zinc-600 dark:text-zinc-400'>
+                Parallel uploads
+              </span>
+              <div className='flex items-center gap-2'>
+                <button
+                  type='button'
+                  className='rounded border border-zinc-300 px-2 py-0.5 text-xs hover:bg-zinc-100 dark:border-zinc-600 dark:hover:bg-zinc-800'
+                  onClick={() => setParallelCount(c => Math.max(1, c - 1))}
+                >
+                  -
+                </button>
+                <span className='min-w-[1.5rem] text-center text-xs font-medium'>
+                  {parallelCount}
+                </span>
+                <button
+                  type='button'
+                  className='rounded border border-zinc-300 px-2 py-0.5 text-xs hover:bg-zinc-100 dark:border-zinc-600 dark:hover:bg-zinc-800'
+                  onClick={() => setParallelCount(c => Math.min(10, c + 1))}
+                >
+                  +
+                </button>
+              </div>
+            </div>
             {uploadItems.map(item => (
               <div key={item.id} className='space-y-1'>
                 <div className='flex justify-between text-xs text-zinc-600 dark:text-zinc-400'>
@@ -718,40 +754,43 @@ export function FileManager() {
                 ) : null}
               </div>
             ))}
-            {uploadingRef.current ? (
-              <div className='flex flex-wrap gap-2'>
-                <button
-                  type='button'
-                  className='rounded-md border border-zinc-300 px-2 py-1 text-xs dark:border-zinc-600'
-                  onClick={() => {
-                    pausedRef.current = !pausedRef.current;
-                  }}
-                >
-                  Pause / resume
-                </button>
-                <button
-                  type='button'
-                  className='rounded-md border border-red-300 px-2 py-1 text-xs text-red-700 dark:border-red-800 dark:text-red-300'
-                  onClick={() => {
-                    abortRef.current = true;
-                    pausedRef.current = false;
-                    const k = persistKeyRef.current;
-                    if (k) sessionStorage.removeItem(k);
-                    persistKeyRef.current = null;
-                  }}
-                >
-                  Cancel all
-                </button>
-              </div>
-            ) : (
+            <div className='flex flex-wrap gap-2'>
               <button
                 type='button'
                 className='rounded-md border border-zinc-300 px-2 py-1 text-xs dark:border-zinc-600'
-                onClick={() => setUploadItems([])}
+                onClick={() => {
+                  pausedRef.current = !pausedRef.current;
+                }}
               >
-                Clear
+                Pause / resume
               </button>
-            )}
+              <button
+                type='button'
+                className='rounded-md border border-red-300 px-2 py-1 text-xs text-red-700 dark:border-red-800 dark:text-red-300'
+                onClick={() => {
+                  abortRef.current = true;
+                  pausedRef.current = false;
+                  persistKeyRef.current.forEach((key) => {
+                    sessionStorage.removeItem(key);
+                  });
+                  persistKeyRef.current.clear();
+                }}
+              >
+                Cancel all
+              </button>
+              <button
+                type='button'
+                className='rounded-md border border-zinc-300 px-2 py-1 text-xs dark:border-zinc-600'
+                onClick={() => {
+                  const allDone = uploadItems.every(
+                    it => it.status === 'done' || it.status === 'error'
+                  );
+                  if (allDone) setUploadItems([]);
+                }}
+              >
+                Clear completed
+              </button>
+            </div>
           </div>
         ) : null}
       </section>
