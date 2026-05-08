@@ -1,0 +1,11 @@
+# Test uploads
+test-uploads/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Test database
+*.db
+*.sqlite
+*.sqlite3
