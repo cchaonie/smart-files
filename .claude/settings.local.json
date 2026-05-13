@@ -8,7 +8,9 @@
       "Bash(chmod +x:*)",
       "Bash(git commit:*)",
       "Bash(git checkout:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)"
     ]
   }
 }
