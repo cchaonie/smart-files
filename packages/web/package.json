@@ -18,8 +18,8 @@
     "test:mobile": "playwright test --project=mobile-chrome --project=mobile-safari"
   },
   "dependencies": {
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
     "react-router-dom": "^7.5.0",
     "axios": "^1.8.4"
   },

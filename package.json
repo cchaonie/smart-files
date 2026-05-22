@@ -5,6 +5,12 @@
   "workspaces": [
     "packages/*"
   ],
+  "overrides": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "@types/react": "~19.1.10",
+    "@types/react-dom": "^19.1.0"
+  },
   "scripts": {
     "db:start": "podman run -d --name smart-files-db -p 5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=smartfiles -v smart-files-postgres:/var/lib/postgresql/data --replace postgres:16-alpine",
     "db:stop": "podman stop smart-files-db && podman rm smart-files-db"
