@@ -1,50 +1,39 @@
-# syntax=docker/dockerfile:1
-
-FROM node:20-alpine AS base
-
-FROM base AS deps
-RUN apk add --no-cache libc6-compat openssl
+# ---------- Build Stage ----------
+FROM node:20-alpine AS builder
 WORKDIR /app
-COPY package.json package-lock.json ./
-# prisma generate is triggered by postinstall; copy schema so it can run
-COPY prisma/schema.prisma ./prisma/schema.prisma
-RUN npm ci
 
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# Copy package files
+COPY package*.json ./
+COPY packages/backend/package*.json ./packages/backend/
+COPY packages/web/package*.json ./packages/web/
+COPY packages/shared/package*.json ./packages/shared/
+RUN npm install --prefer-offline --no-audit
+
+# Copy source and build
 COPY . .
-ENV NEXT_TELEMETRY_DISABLED=1
-ARG DATABASE_URL="postgresql://postgres:postgres@localhost:5432/smartfiles"
-ENV DATABASE_URL=$DATABASE_URL
-ARG AUTH_SECRET="docker-build-placeholder-secret-min-32-chars-long"
-ENV AUTH_SECRET=$AUTH_SECRET
-RUN npx prisma generate
-RUN npm run build
+RUN npm run build -w packages/backend
+RUN npm run build -w packages/web
+RUN npx prisma generate --schema=packages/shared/prisma/schema.prisma
 
-FROM base AS runner
+# ---------- Production Stage ----------
+FROM node:20-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN apk add --no-cache openssl su-exec
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Install production dependencies + prisma CLI for migrations
+COPY package*.json ./
+COPY packages/backend/package*.json ./packages/backend/
+COPY packages/shared/package*.json ./packages/shared/
+RUN npm ci --omit=dev && npm install prisma@6.19.3 --omit=optional && npm cache clean --force
 
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/prisma ./prisma
+# Copy built artifacts and Prisma schema
+COPY --from=builder /app/packages/backend/dist ./packages/backend/dist
+COPY --from=builder /app/packages/web/dist ./packages/web/dist
+COPY --from=builder /app/packages/shared/prisma ./packages/shared/prisma
+# Copy generated Prisma client
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
-RUN npm install prisma@6.19.3 --omit=optional
-RUN chown -R nextjs:nodejs /app
-
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
-
-EXPOSE 3000
-ENV PORT=3000
-ENV HOSTNAME=0.0.0.0
-
-ENTRYPOINT ["/docker-entrypoint.sh"]
+WORKDIR /app/packages/backend
+EXPOSE 4000
+CMD ["sh", "-c", "npx prisma migrate deploy --schema=../../packages/shared/prisma/schema.prisma && node dist/src/main"]

@@ -2,38 +2,17 @@
   "name": "smart-files",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "overrides": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "@types/react": "~19.1.10",
+    "@types/react-dom": "^19.1.0"
+  },
   "scripts": {
-    "dev": "next dev",
-    "db:start": "podman-compose -f podman-compose.db.yml up -d",
-    "db:stop": "podman-compose -f podman-compose.db.yml down",
-    "dev:podman": "podman-compose -f podman-compose.dev.yml up --build",
-    "dev:podman:down": "podman-compose -f podman-compose.dev.yml down",
-    "dev:podman:clean": "podman-compose -f podman-compose.dev.yml down -v",
-    "build": "prisma generate && next build",
-    "start": "next start",
-    "lint": "eslint",
-    "postinstall": "prisma generate",
-    "db:migrate": "prisma migrate deploy",
-    "db:push": "prisma db push",
-    "db:migrate-to-podman": "./scripts/migrate-to-podman.sh"
-  },
-  "dependencies": {
-    "@prisma/client": "^6.19.3",
-    "bcryptjs": "^3.0.3",
-    "prisma": "^6.19.3",
-    "next": "16.2.3",
-    "next-auth": "^5.0.0-beta.30",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.3",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "db:start": "podman run -d --name smart-files-db -p 5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=smartfiles -v smart-files-postgres:/var/lib/postgresql/data --replace postgres:16-alpine",
+    "db:stop": "podman stop smart-files-db && podman rm smart-files-db"
   }
 }
