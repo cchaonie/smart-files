@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+} from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { useConfig } from '../context/ConfigContext';
+import { getApiErrorMessage, isNetworkError } from '../config/api';
 
 export function RegisterScreen({ navigation }: { navigation: any }) {
   const [email, setEmail] = useState('');
@@ -8,6 +17,7 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { register } = useAuth();
+  const { apiUrl } = useConfig();
 
   const handleRegister = async () => {
     if (!email || !password) {
@@ -24,7 +34,22 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
     try {
       await register(email, password, name || undefined);
     } catch (error: any) {
-      Alert.alert('Registration Failed', error.response?.data?.error || 'An error occurred');
+      const message = getApiErrorMessage(error);
+      if (isNetworkError(error)) {
+        Alert.alert(
+          'Cannot Connect to Server',
+          `Unable to reach the backend at:\n${apiUrl}\n\n${message}\n\nTap "Configure Server" below to set the correct URL.`,
+          [
+            { text: 'OK', style: 'cancel' },
+            {
+              text: 'Configure Server',
+              onPress: () => navigation.navigate('ServerConfig'),
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Registration Failed', message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -71,6 +96,15 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
 
       <TouchableOpacity onPress={() => navigation.navigate('Login')}>
         <Text style={styles.link}>Already have an account? Sign in</Text>
+      </TouchableOpacity>
+
+      <View style={styles.divider} />
+
+      <TouchableOpacity onPress={() => navigation.navigate('ServerConfig')}>
+        <Text style={styles.configLink}>
+          Server: {apiUrl || 'loading...'}
+        </Text>
+        <Text style={styles.configSubtext}>Tap to configure</Text>
       </TouchableOpacity>
     </View>
   );
@@ -123,5 +157,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
     fontSize: 14,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#eee',
+    marginVertical: 24,
+    marginHorizontal: 40,
+  },
+  configLink: {
+    color: '#666',
+    textAlign: 'center',
+    fontSize: 13,
+  },
+  configSubtext: {
+    color: '#007AFF',
+    textAlign: 'center',
+    fontSize: 12,
+    marginTop: 4,
   },
 });

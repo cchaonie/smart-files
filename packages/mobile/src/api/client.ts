@@ -1,12 +1,18 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
+import { getPlatformDefaultApiUrl } from '../config/api';
 
 export const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: getPlatformDefaultApiUrl(),
   timeout: 30000,
 });
+
+/**
+ * Update the API base URL at runtime (e.g. after reading stored config).
+ */
+export function updateApiBaseUrl(url: string): void {
+  apiClient.defaults.baseURL = url;
+}
 
 // Request interceptor - add auth token
 apiClient.interceptors.request.use(
