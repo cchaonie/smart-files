@@ -10,7 +10,11 @@
       "Bash(git checkout:*)",
       "Bash(git stash:*)",
       "Bash(npm install:*)",
-      "Bash(npx prisma:*)"
+      "Bash(npx prisma:*)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(npx expo:*)",
+      "Bash(echo \"WEB EXIT: $?\")",
+      "Bash(echo \"MOBILE EXIT: $?\")"
     ]
   }
 }

@@ -24,6 +24,25 @@ export interface BrowseResponse {
   files: FileItem[];
 }
 
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface RegisterData extends LoginCredentials {
+  name?: string;
+}
+
+export interface AuthResponse {
+  access_token: string;
+  user: User;
+}
+
+export interface CreateFolderRequest {
+  name: string;
+  parentId?: string;
+}
+
 export interface UploadSession {
   uploadId: string;
   chunkSize: number;
@@ -32,9 +51,11 @@ export interface UploadSession {
 }
 
 export interface UploadProgress {
-  fileId: string;
-  fileName: string;
+  id: number;
+  name: string;
   progress: number;
   status: 'pending' | 'uploading' | 'done' | 'error';
   error?: string;
+  uri?: string;
+  mimeType?: string;
 }

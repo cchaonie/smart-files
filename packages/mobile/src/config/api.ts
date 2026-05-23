@@ -35,6 +35,9 @@ export async function resolveApiUrl(): Promise<string> {
  * Extract a human-readable message from an Axios/network error.
  */
 export function getApiErrorMessage(error: any): string {
+  if (error?.response?.data?.message) {
+    return error.response.data.message;
+  }
   if (error?.response?.data?.error) {
     return error.response.data.error;
   }
