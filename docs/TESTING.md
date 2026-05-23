@@ -134,7 +134,7 @@ packages/
 3. **Use API for Setup (Not UI)**
    ```typescript
    // Fast: Use API to create test data
-   await api.post('/auth/register', userData);
+   await api.post('/api/auth/register', userData);
 
    // Slow: Don't use UI for setup
    // await page.fill(...); await page.click(...);

@@ -1,5 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-import request from 'supertest';
+import * as request from 'supertest';
 import { createTestApp, closeTestApp } from '../helpers/test-app';
 import { cleanDatabase, disconnectDatabase, prisma } from '../helpers/test-database';
 import { createUserCredentials } from '../factories/user.factory';
@@ -25,7 +25,7 @@ describe('FilesController (integration)', () => {
     // Create user and get auth token
     const credentials = createUserCredentials();
     const registerResponse = await request(app.getHttpServer())
-      .post('/auth/register')
+      .post('/api/auth/register')
       .send(credentials);
 
     authToken = registerResponse.body.access_token;
@@ -36,7 +36,7 @@ describe('FilesController (integration)', () => {
     it('should return empty folders and files for new user', async () => {
       // Act
       const response = await request(app.getHttpServer())
-        .get('/folders/browse')
+        .get('/api/folders/browse')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -59,7 +59,7 @@ describe('FilesController (integration)', () => {
 
       // Act
       const response = await request(app.getHttpServer())
-        .get('/folders/browse')
+        .get('/api/folders/browse')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -73,7 +73,7 @@ describe('FilesController (integration)', () => {
     it('should return 401 without auth token', async () => {
       // Act & Assert
       await request(app.getHttpServer())
-        .get('/folders/browse')
+        .get('/api/folders/browse')
         .expect(401);
     });
   });
@@ -82,7 +82,7 @@ describe('FilesController (integration)', () => {
     it('should create a new folder', async () => {
       // Act
       const response = await request(app.getHttpServer())
-        .post('/folders')
+        .post('/api/folders')
         .set('Authorization', `Bearer ${authToken}`)
         .send({ name: 'New Folder' })
         .expect(201);
@@ -96,7 +96,7 @@ describe('FilesController (integration)', () => {
     it('should reject folder creation without name', async () => {
       // Act & Assert
       await request(app.getHttpServer())
-        .post('/folders')
+        .post('/api/folders')
         .set('Authorization', `Bearer ${authToken}`)
         .send({})
         .expect(400);
@@ -110,7 +110,7 @@ describe('FilesController (integration)', () => {
 
       // Act
       const response = await request(app.getHttpServer())
-        .post('/folders')
+        .post('/api/folders')
         .set('Authorization', `Bearer ${authToken}`)
         .send({ name: 'Child Folder', parentId: parentFolder.id })
         .expect(201);
@@ -129,7 +129,7 @@ describe('FilesController (integration)', () => {
 
       // Act
       await request(app.getHttpServer())
-        .delete(`/files/${file.id}`)
+        .delete(`/api/files/${file.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -143,7 +143,7 @@ describe('FilesController (integration)', () => {
     it('should return 404 for non-existent file', async () => {
       // Act & Assert
       await request(app.getHttpServer())
-        .delete('/files/non-existent-id')
+        .delete('/api/files/non-existent-id')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
     });
@@ -158,7 +158,7 @@ describe('FilesController (integration)', () => {
 
       // Act
       const response = await request(app.getHttpServer())
-        .patch(`/folders/${folder.id}`)
+        .patch(`/api/folders/${folder.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ name: 'New Name' })
         .expect(200);

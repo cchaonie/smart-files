@@ -34,7 +34,7 @@ The app will be available at `http://localhost:3000`.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `VITE_API_URL` | Backend API URL | `http://localhost:4000` |
+| `VITE_API_URL` | Backend API URL | `/api` (relative path for same-origin) |
 
 ## Building for Production
 

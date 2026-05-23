@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { FileItem, Folder, BrowseResponse, CreateFolderRequest } from '../types';
+import type { Folder, BrowseResponse, CreateFolderRequest } from '../types';
 
 export const filesApi = {
   browse: async (parentId?: string | null): Promise<BrowseResponse> => {

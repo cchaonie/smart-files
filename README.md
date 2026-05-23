@@ -67,7 +67,7 @@ cd packages/web
 npm run dev
 ```
 
-Open http://localhost:3000. The Vite dev server proxies `/api` requests to the backend at `localhost:4000`.
+Open http://localhost:3000. The Vite dev server proxies `/api` requests to the backend at `localhost:4000` (the backend serves API under `/api` prefix).
 
 ### 6. Run the mobile app (optional)
 
@@ -78,33 +78,33 @@ npm start
 
 ## Production Deployment
 
-See [DEPLOY.md](./DEPLOY.md) for the target production architecture. Production Docker images and compose files are not yet implemented for the new monorepo structure.
+See [DEPLOY.md](./DEPLOY.md) for production deployment instructions.
 
 ## API Summary
 
-| Method | Path | Purpose |
-|--------|------|---------|
-| POST | `/api/register` | Register `{ email, password, name? }` |
-| POST | `/api/upload/session` | Start upload `{ fileName, totalSize, chunkSize? }` |
-| GET | `/api/upload/session/:uploadId` | Resume: list received chunk indexes |
-| PUT | `/api/upload/session/:uploadId/chunk?index=n` | Upload one chunk (raw body) |
-| POST | `/api/upload/session/:uploadId/complete` | Merge chunks, create file record |
-| GET | `/api/files` | List current user's files |
-| DELETE | `/api/files/:id` | Delete file |
-| GET | `/api/files/:id/download` | Download (supports `Range`) |
+| Method | Path                                          | Purpose                                            |
+| ------ | --------------------------------------------- | -------------------------------------------------- |
+| POST   | `/api/register`                               | Register `{ email, password, name? }`              |
+| POST   | `/api/upload/session`                         | Start upload `{ fileName, totalSize, chunkSize? }` |
+| GET    | `/api/upload/session/:uploadId`               | Resume: list received chunk indexes                |
+| PUT    | `/api/upload/session/:uploadId/chunk?index=n` | Upload one chunk (raw body)                        |
+| POST   | `/api/upload/session/:uploadId/complete`      | Merge chunks, create file record                   |
+| GET    | `/api/files`                                  | List current user's files                          |
+| DELETE | `/api/files/:id`                              | Delete file                                        |
+| GET    | `/api/files/:id/download`                     | Download (supports `Range`)                        |
 
 ## Environment Variables
 
 ### Backend (`packages/backend/.env`)
 
-| Variable | Description |
-|----------|-------------|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `JWT_SECRET` | Secret for JWT signing (min 32 chars) |
-| `UPLOAD_ROOT` | Directory for `tmp/` and `files/` (default `./data/storage`) |
-| `MAX_FILE_SIZE_BYTES` | Max upload size (default 10 GiB) |
-| `PORT` | API server port (default `4000`) |
-| `CORS_ORIGIN` | Comma-separated allowed origins (default `http://localhost:3000`) |
+| Variable              | Description                                                                             |
+| --------------------- | --------------------------------------------------------------------------------------- |
+| `DATABASE_URL`        | PostgreSQL connection string                                                            |
+| `JWT_SECRET`          | Secret for JWT signing (min 32 chars)                                                   |
+| `UPLOAD_ROOT`         | Directory for `tmp/` and `files/` (default `./data/storage`)                            |
+| `MAX_FILE_SIZE_BYTES` | Max upload size (default 10 GiB)                                                        |
+| `PORT`                | API server port (default `4000`)                                                        |
+| `CORS_ORIGIN`         | Comma-separated allowed origins (default `http://localhost:3000,http://localhost:4000`) |
 
 ### Web (`packages/web/.env` — optional)
 
@@ -112,7 +112,7 @@ The Vite dev server is already configured to proxy `/api` to `http://localhost:4
 
 ## Deployment Files
 
-Production deployment files (Dockerfile, podman-compose.yml, etc.) are not yet implemented for the new monorepo architecture. The current setup is local-dev only.
+Production deployment files (`Dockerfile`, `podman-compose.yml`) are available at the project root.
 
 ## Notes
 

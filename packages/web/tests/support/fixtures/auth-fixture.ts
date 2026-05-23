@@ -15,7 +15,7 @@ export type AuthFixture = {
 
 export const test = base.extend<AuthFixture>({
   apiURL: async ({}, use) => {
-    await use(process.env.TEST_API_URL || 'http://localhost:4000');
+    await use(process.env.TEST_API_URL || 'http://localhost:4000/api');
   },
 
   auth: async ({ page, context, apiURL }, use) => {

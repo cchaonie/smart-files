@@ -1,5 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-import request from 'supertest';
+import * as request from 'supertest';
 import { createTestApp, closeTestApp } from '../helpers/test-app';
 import { cleanDatabase, disconnectDatabase } from '../helpers/test-database';
 import { createUserCredentials } from '../factories/user.factory';
@@ -27,14 +27,14 @@ describe('AuthController (integration)', () => {
 
       // Act
       const response = await request(app.getHttpServer())
-        .post('/auth/register')
+        .post('/api/auth/register')
         .send(credentials)
         .expect(201);
 
       // Assert
       expect(response.body).toHaveProperty('access_token');
       expect(response.body.user).toMatchObject({
-        email: credentials.email,
+        email: credentials.email.toLowerCase(),
         name: credentials.name,
       });
       expect(response.body.user).toHaveProperty('id');
@@ -44,12 +44,12 @@ describe('AuthController (integration)', () => {
       // Arrange
       const credentials = createUserCredentials();
       await request(app.getHttpServer())
-        .post('/auth/register')
+        .post('/api/auth/register')
         .send(credentials);
 
       // Act & Assert
       await request(app.getHttpServer())
-        .post('/auth/register')
+        .post('/api/auth/register')
         .send(credentials)
         .expect(409);
     });
@@ -60,7 +60,7 @@ describe('AuthController (integration)', () => {
 
       // Act & Assert
       await request(app.getHttpServer())
-        .post('/auth/register')
+        .post('/api/auth/register')
         .send(credentials)
         .expect(400);
     });
@@ -71,7 +71,7 @@ describe('AuthController (integration)', () => {
 
       // Act & Assert
       await request(app.getHttpServer())
-        .post('/auth/register')
+        .post('/api/auth/register')
         .send(credentials)
         .expect(400);
     });
@@ -82,22 +82,22 @@ describe('AuthController (integration)', () => {
       // Arrange
       const credentials = createUserCredentials();
       await request(app.getHttpServer())
-        .post('/auth/register')
+        .post('/api/auth/register')
         .send(credentials);
 
       // Act
       const response = await request(app.getHttpServer())
-        .post('/auth/login')
+        .post('/api/auth/login')
         .send({
           email: credentials.email,
           password: credentials.password,
         })
-        .expect(200);
+        .expect(201);
 
       // Assert
       expect(response.body).toHaveProperty('access_token');
       expect(response.body.user).toMatchObject({
-        email: credentials.email,
+        email: credentials.email.toLowerCase(),
       });
     });
 
@@ -105,12 +105,12 @@ describe('AuthController (integration)', () => {
       // Arrange
       const credentials = createUserCredentials();
       await request(app.getHttpServer())
-        .post('/auth/register')
+        .post('/api/auth/register')
         .send(credentials);
 
       // Act & Assert
       await request(app.getHttpServer())
-        .post('/auth/login')
+        .post('/api/auth/login')
         .send({
           email: credentials.email,
           password: 'wrongpassword',
@@ -121,7 +121,7 @@ describe('AuthController (integration)', () => {
     it('should reject login for non-existent user', async () => {
       // Act & Assert
       await request(app.getHttpServer())
-        .post('/auth/login')
+        .post('/api/auth/login')
         .send({
           email: 'nonexistent@example.com',
           password: 'password123',

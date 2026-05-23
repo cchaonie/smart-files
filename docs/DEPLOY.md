@@ -2,18 +2,14 @@
 
 本文档说明如何部署 Smart Files 应用到服务器。
 
-> **注意：** 生产部署文件（Dockerfile、podman-compose.yml 等）尚未针对新的 monorepo 架构实现。以下文档描述了目标部署架构。本地开发可直接使用 `npm run db:start` 启动数据库，然后在本地运行后端和前端。
-
 ## 部署架构
 
-目标架构：
+统一服务架构：
 
-- **后端服务**: NestJS API (`packages/backend`)
+- **统一服务**: NestJS API + Vite React 静态文件 (`packages/backend` 托管前后端)
   - 端口: 4000
   - 环境: `DATABASE_URL`, `JWT_SECRET`, `UPLOAD_ROOT`, `PORT`, `CORS_ORIGIN`
-- **前端服务**: Vite React 静态文件 (`packages/web`)
-  - 端口: 3000（或由反向代理处理）
-  - 生产构建: `npm run build` 生成 `dist/` 目录
+  - 前端构建产物通过 `@nestjs/serve-static` 托管，API 统一在 `/api` 前缀下
 - **数据库**: PostgreSQL
 - **文件存储**: 共享卷挂载到 `./data/storage`
 
@@ -63,7 +59,7 @@ npx prisma migrate dev
 
 应用将运行在:
 - 前端: http://localhost:3000
-- API: http://localhost:4000
+- API: http://localhost:4000/api
 - API 文档: http://localhost:4000/api/docs
 
 ## 服务器部署
@@ -104,67 +100,15 @@ sudo su - smartfiles
 
 ### 构建生产镜像
 
-#### 后端镜像
+从项目根目录构建统一镜像：
 
 ```bash
-# 从项目根目录
-cd packages/backend
-
-# 构建镜像
-podman build -t smart-files-backend:latest .
+podman build -t smart-files:latest .
 ```
 
-后端 Dockerfile 示例（需创建 `packages/backend/Dockerfile`）：
-
-```dockerfile
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-
-FROM node:20-alpine
-WORKDIR /app
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./
-# 从 shared 复制 prisma schema
-COPY --from=builder /app/prisma ./prisma
-RUN npm install prisma@6.19.3 --omit=optional
-EXPOSE 4000
-CMD ["node", "dist/main"]
-```
-
-#### 前端镜像
-
-```bash
-# 从项目根目录
-cd packages/web
-
-# 构建镜像
-podman build -t smart-files-web:latest .
-```
-
-前端 Dockerfile 示例（需创建 `packages/web/Dockerfile`）：
-
-```dockerfile
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-
-FROM nginx:alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
-```
+Dockerfile 已位于项目根目录，多阶段构建同时编译前后端，最终镜像仅包含生产依赖和构建产物。
 
 ### 使用 podman-compose 部署
-
-需要更新 `podman-compose.yml` 以支持多服务架构。目标配置示例：
 
 ```yaml
 services:
@@ -183,9 +127,9 @@ services:
       retries: 10
 
   backend:
-    image: smart-files-backend:latest
+    image: smart-files:latest
     build:
-      context: ./packages/backend
+      context: .
       dockerfile: Dockerfile
     ports:
       - "4000:4000"
@@ -195,22 +139,11 @@ services:
       UPLOAD_ROOT: /data/storage
       MAX_FILE_SIZE_BYTES: ${MAX_FILE_SIZE_BYTES:-10737418240}
       PORT: 4000
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4000}
     volumes:
       - ./data/storage:/data/storage:Z
     depends_on:
       - db
-    restart: unless-stopped
-
-  web:
-    image: smart-files-web:latest
-    build:
-      context: ./packages/web
-      dockerfile: Dockerfile
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
     restart: unless-stopped
 ```
 
@@ -225,13 +158,16 @@ export POSTGRES_PASSWORD="your-secure-password"
 podman-compose -f podman-compose.yml up --build -d
 ```
 
+启动后访问：
+- UI 界面: http://localhost:4000
+- API 文档: http://localhost:4000/api/docs
+
 ### 使用反向代理（推荐）
 
 生产环境建议使用 Nginx 或 Caddy 作为反向代理：
 
 ```
-用户 -> Nginx (443) -> Web 前端 (3000)
-                -> API /api/* -> 后端 (4000)
+用户 -> Nginx (443) -> Smart Files 统一服务 (4000)
 ```
 
 Nginx 配置示例：
@@ -250,13 +186,7 @@ server {
     # SSL 配置...
 
     location / {
-        proxy_pass http://localhost:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-
-    location /api/ {
-        proxy_pass http://localhost:4000/;
+        proxy_pass http://localhost:4000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
@@ -304,9 +234,6 @@ podman-compose -f podman-compose.yml up -d
 # 查看后端日志
 podman logs -f smart-files-backend
 
-# 查看前端日志
-podman logs -f smart-files-web
-
 # 查看数据库日志
 podman logs -f smart-files-db
 ```
@@ -325,7 +252,6 @@ podman exec smart-files-backend npx prisma migrate deploy
 
 # 重启服务
 podman restart smart-files-backend
-podman restart smart-files-web
 
 # 停止所有服务
 podman-compose -f podman-compose.yml down
@@ -348,16 +274,14 @@ podman exec smart-files-backend npx prisma migrate status
 
 | 服务 | 默认端口 |
 |------|---------|
-| Web | 3000 |
-| API | 4000 |
+| 统一服务 (API + UI) | 4000 |
 | DB | 5432 |
 
 修改 `podman-compose.yml` 中的端口映射：
 
 ```yaml
 ports:
-  - "8080:80"    # Web 使用 8080
-  - "4000:4000"  # API 保持 4000
+  - "8080:4000"  # 统一服务使用 8080
 ```
 
 ## 安全建议
@@ -376,18 +300,15 @@ ports:
 ```bash
 # 生成 systemd 配置
 podman generate systemd --new --name smart-files-backend > ~/.config/systemd/user/smart-files-backend.service
-podman generate systemd --new --name smart-files-web > ~/.config/systemd/user/smart-files-web.service
 podman generate systemd --new --name smart-files-db > ~/.config/systemd/user/smart-files-db.service
 
 # 启用服务
 systemctl --user daemon-reload
 systemctl --user enable smart-files-backend.service
-systemctl --user enable smart-files-web.service
 systemctl --user enable smart-files-db.service
 
 # 启动服务
 systemctl --user start smart-files-backend.service
-systemctl --user start smart-files-web.service
 systemctl --user start smart-files-db.service
 
 # 允许用户服务在后台运行

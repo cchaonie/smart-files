@@ -41,7 +41,7 @@ npm run db:migrate
 npm run start:dev
 ```
 
-The API will be available at `http://localhost:4000`
+The API will be available at `http://localhost:4000` (with `/api` prefix)
 
 API Documentation: `http://localhost:4000/api/docs`
 
