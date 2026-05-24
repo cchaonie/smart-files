@@ -600,29 +600,10 @@ export function FilesPage() {
       await foldersApi.deleteFolder(folder.id);
       setPath((p) => p.filter((seg) => seg.id !== folder.id));
       await loadBrowse();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Delete failed');
-    }
-  }
+ 
 
-  async function runUpload(file: File, itemId: number) {
-    const updateItem = (patch: Partial<UploadProgress>) =>
-      setUploadItems((prev) =>
-        prev.map((it) => (it.id === itemId ? { ...it, ...patch } : it))
-      );
+... [OUTPUT TRUNCATED - 757 chars omitted out of 50757 total] ...
 
-    updateItem({ status: 'uploading', progress: 0 });
-
-    const totalSize = file.size;
-    const folderKey = currentParentId ?? 'root';
-    const persistKey = `smart-files-upload:${folderKey}:${file.name}:${file.size}`;
-    persistKeyRef.current.set(itemId, persistKey);
-    let uploadId: string;
-    let chunkSize = CHUNK_SIZE;
-    let totalChunks: number;
-
-    try {
-      const existingId = sessionStorage.getItem(persistKey);
       if (existingId) {
         try {
           const existing = await uploadApi.getSession(existingId);
@@ -1249,6 +1230,18 @@ export function FilesPage() {
                         >
                           Download
                         </a>
+                        <button
+                          type="button"
+                          className="text-zinc-700 underline dark:text-zinc-300"
+                          onClick={() => {
+                            const name = window.prompt('New name', f.name);
+                            if (name && name.trim()) {
+                              filesApi.renameFile(f.id, name.trim()).then(() => loadBrowse());
+                            }
+                          }}
+                        >
+                          Rename
+                        </button>
                         <button
                           type="button"
                           className="text-red-600 underline dark:text-red-400"

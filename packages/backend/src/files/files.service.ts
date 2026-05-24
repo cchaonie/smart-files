@@ -219,4 +219,26 @@ export class FilesService {
 
     return { deleted: files.length };
   }
+
+  async renameFile(userId: string, fileId: string, name: string) {
+    const file = await this.prisma.file.findFirst({
+      where: { id: fileId, userId, deletedAt: null },
+    });
+
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    const updated = await this.prisma.file.update({
+      where: { id: fileId },
+      data: { name },
+      select: { id: true, name: true, size: true, mimeType: true, folderId: true, createdAt: true },
+    });
+
+    return {
+      ...updated,
+      size: updated.size.toString(),
+      createdAt: updated.createdAt.toISOString(),
+    };
+  }
 }

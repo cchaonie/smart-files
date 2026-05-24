@@ -116,4 +116,14 @@ export class FilesController {
   ) {
     return this.filesService.purgeFile(user.id, id);
   }
+
+  @Patch(':id/rename')
+  @ApiOperation({ summary: 'Rename a file' })
+  async renameFile(
+    @CurrentUser() user: UserEntity,
+    @Param('id') id: string,
+    @Body() body: { name: string },
+  ) {
+    return this.filesService.renameFile(user.id, id, body.name);
+  }
 }

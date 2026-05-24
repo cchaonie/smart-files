@@ -46,6 +46,11 @@ export const filesApi = {
   moveFile: async (id: string, folderId: string | null): Promise<void> => {
     await apiClient.patch(`/files/${id}`, { folderId });
   },
+
+  renameFile: async (id: string, name: string) => {
+    const r = await apiClient.patch(`/files/${id}/rename`, { name });
+    return r.data;
+  },
 };
 
 export const foldersApi = {
