@@ -441,6 +441,12 @@ export function FilesPage() {
   const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
   const [moveTarget, setMoveTarget] = useState<FileItem | null>(null);
   const [shareTarget, setShareTarget] = useState<FileItem | null>(null);
+  const [viewingTrash, setViewingTrash] = useState(false);
+  const [trashFiles, setTrashFiles] = useState<Array<{
+    id: string; name: string; size: string; folderName: string | null;
+    deletedAt: string; folderId: string | null;
+  }> | null>(null);
+  const [trashLoading, setTrashLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Array<{
     id: string; name: string; size: string; mimeType: string | null;
@@ -500,6 +506,49 @@ export function FilesPage() {
     setSearchResults(null);
     setSearchLoading(false);
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+  }
+
+  async function loadTrash() {
+    setTrashLoading(true);
+    try {
+      const files = await filesApi.listTrash();
+      setTrashFiles(files);
+    } catch {
+      setTrashFiles([]);
+    } finally {
+      setTrashLoading(false);
+    }
+  }
+
+  async function handleRestore(id: string) {
+    try {
+      await filesApi.restoreFile(id);
+      await loadTrash();
+      // Also refresh main list if not in trash view
+      if (!viewingTrash) await loadBrowse();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Restore failed');
+    }
+  }
+
+  async function handlePurge(id: string) {
+    if (!confirm('Permanently delete this file? This cannot be undone.')) return;
+    try {
+      await filesApi.purgeFile(id);
+      await loadTrash();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Delete failed');
+    }
+  }
+
+  async function handleEmptyTrash() {
+    if (!confirm('Permanently delete ALL files in trash? This cannot be undone.')) return;
+    try {
+      await filesApi.emptyTrash();
+      await loadTrash();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Empty trash failed');
+    }
   }
 
   useEffect(() => {
@@ -768,6 +817,16 @@ export function FilesPage() {
         <button
           type="button"
           onClick={() => {
+            setViewingTrash(!viewingTrash);
+            if (!viewingTrash) loadTrash();
+          }}
+          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+        >
+          {viewingTrash ? '← Files' : '🗑️ Trash'}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
             logout();
             window.location.href = '/';
           }}
@@ -819,6 +878,79 @@ export function FilesPage() {
           </button>
         )}
       </div>
+
+      {viewingTrash ? (
+        <section className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-6 dark:border-zinc-700 dark:bg-zinc-900/40">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-medium text-zinc-900 dark:text-zinc-50">
+              🗑️ Trash
+            </h2>
+            {trashFiles && trashFiles.length > 0 && (
+              <button
+                type="button"
+                onClick={() => void handleEmptyTrash()}
+                className="rounded-lg border border-red-300 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"
+              >
+                Empty trash
+              </button>
+            )}
+          </div>
+          {trashLoading ? (
+            <p className="text-sm text-zinc-500">Loading…</p>
+          ) : !trashFiles || trashFiles.length === 0 ? (
+            <p className="text-sm text-zinc-500">Trash is empty.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
+              <table className="w-full min-w-[36rem] text-left text-sm">
+                <thead className="bg-zinc-50 dark:bg-zinc-900">
+                  <tr>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">Name</th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">Folder</th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">Size</th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">Deleted</th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {trashFiles.map((f) => (
+                    <tr key={f.id} className="border-t border-zinc-100 dark:border-zinc-800">
+                      <td className="px-4 py-2 text-zinc-900 dark:text-zinc-100">{f.name}</td>
+                      <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
+                        {f.folderName || 'Root'}
+                      </td>
+                      <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
+                        {formatBytes(BigInt(f.size))}
+                      </td>
+                      <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
+                        {new Date(f.deletedAt).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-2">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            className="text-green-600 underline dark:text-green-400"
+                            onClick={() => void handleRestore(f.id)}
+                          >
+                            Restore
+                          </button>
+                          <button
+                            type="button"
+                            className="text-red-600 underline dark:text-red-400"
+                            onClick={() => void handlePurge(f.id)}
+                          >
+                            Delete permanently
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      ) : (
+      <>
 
       {searchResults === null ? (
       <>
@@ -1243,6 +1375,8 @@ export function FilesPage() {
             </div>
           )}
         </section>
+      )}
+      </>
       )}
     </div>
   );

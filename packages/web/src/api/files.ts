@@ -25,6 +25,24 @@ export const filesApi = {
     return response.data.results;
   },
 
+  listTrash: async () => {
+    const response = await apiClient.get('/files/trash');
+    return response.data.files;
+  },
+
+  restoreFile: async (id: string): Promise<void> => {
+    await apiClient.post(`/files/${id}/restore`);
+  },
+
+  purgeFile: async (id: string): Promise<void> => {
+    await apiClient.delete(`/files/${id}/permanent`);
+  },
+
+  emptyTrash: async () => {
+    const response = await apiClient.delete('/files/trash/empty');
+    return response.data;
+  },
+
   moveFile: async (id: string, folderId: string | null): Promise<void> => {
     await apiClient.patch(`/files/${id}`, { folderId });
   },
