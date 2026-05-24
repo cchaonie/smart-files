@@ -4,6 +4,7 @@ import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { FilesPage } from './pages/FilesPage'
 import { HomePage } from './pages/HomePage'
+import { SharePage } from './pages/SharePage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
@@ -60,6 +61,8 @@ function App() {
           </PublicRoute>
         }
       />
+      <Route path="/share/:token" element={<SharePage />} />
+
       <Route
         path="/files"
         element={

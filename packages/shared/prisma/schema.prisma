@@ -44,9 +44,24 @@ model File {
   size       BigInt
   mimeType   String?
   createdAt  DateTime @default(now())
+  shares     Share[]
 
   @@index([userId])
   @@index([userId, folderId])
+}
+
+model Share {
+  id            String    @id @default(cuid())
+  fileId        String
+  file          File      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  token         String    @unique
+  passwordHash  String?
+  expiresAt     DateTime?
+  downloadCount Int       @default(0)
+  createdAt     DateTime  @default(now())
+
+  @@index([token])
+  @@index([fileId])
 }
 
 model UploadSession {
