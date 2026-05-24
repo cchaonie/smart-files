@@ -441,6 +441,13 @@ export function FilesPage() {
   const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
   const [moveTarget, setMoveTarget] = useState<FileItem | null>(null);
   const [shareTarget, setShareTarget] = useState<FileItem | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Array<{
+    id: string; name: string; size: string; mimeType: string | null;
+    folderId: string | null; createdAt: string; folderName: string | null;
+  }> | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nextUploadId = useRef(0);
   const filesByItemId = useRef<Map<number, File>>(new Map());
 
@@ -463,6 +470,37 @@ export function FilesPage() {
   useEffect(() => {
     void loadBrowse();
   }, [loadBrowse]);
+
+  async function doSearch(q: string) {
+    const trimmed = q.trim();
+    if (!trimmed) {
+      setSearchResults(null);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    try {
+      const results = await filesApi.search(trimmed);
+      setSearchResults(results);
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  }
+
+  function handleSearchChange(value: string) {
+    setSearchQuery(value);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => doSearch(value), 300);
+  }
+
+  function clearSearch() {
+    setSearchQuery('');
+    setSearchResults(null);
+    setSearchLoading(false);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+  }
 
   useEffect(() => {
     if (!previewFile) return;
@@ -760,6 +798,30 @@ export function FilesPage() {
           </span>
         ))}
       </nav>
+
+      <div className="relative">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); doSearch(searchQuery); } }}
+          placeholder="Search files…"
+          className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 pl-10 text-sm text-zinc-900 placeholder-zinc-400 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-50 dark:placeholder-zinc-500"
+        />
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500">🔍</span>
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={clearSearch}
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      {searchResults === null ? (
+      <>
 
       <section className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
         <form className="flex flex-wrap items-end gap-2" onSubmit={createFolder}>
@@ -1083,6 +1145,105 @@ export function FilesPage() {
           onMoved={() => void loadBrowse()}
         />
       ) : null}
+
+      </>
+      ) : (
+        <section>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-lg font-medium text-zinc-900 dark:text-zinc-50">
+              Search results
+            </h2>
+            <button
+              type="button"
+              onClick={clearSearch}
+              className="text-sm text-zinc-600 underline dark:text-zinc-400"
+            >
+              Clear search
+            </button>
+          </div>
+          {searchLoading ? (
+            <p className="text-sm text-zinc-500">Searching…</p>
+          ) : searchResults.length === 0 ? (
+            <p className="text-sm text-zinc-500">No matching files found.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
+              <table className="w-full min-w-[36rem] text-left text-sm">
+                <thead className="bg-zinc-50 dark:bg-zinc-900">
+                  <tr>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
+                      Name
+                    </th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
+                      Folder
+                    </th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
+                      Size
+                    </th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
+                      Added
+                    </th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {searchResults.map((f) => (
+                    <tr
+                      key={f.id}
+                      className="border-t border-zinc-100 dark:border-zinc-800"
+                    >
+                      <td className="px-4 py-2 text-zinc-900 dark:text-zinc-100">
+                        {f.name}
+                      </td>
+                      <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
+                        {f.folderName ? (
+                          <button
+                            type="button"
+                            className="underline hover:text-zinc-900 dark:hover:text-zinc-200"
+                            onClick={() => {
+                              // Navigate to the folder if we have folderId
+                              // We don't have full path, but we can reset and use folder info
+                              if (f.folderId) {
+                                // Set path to navigate into the folder
+                                // This is a simple approach: just set the folder
+                                setSearchResults(null);
+                                setSearchQuery('');
+                                setPath([{ id: f.folderId, name: f.folderName }]);
+                              }
+                            }}
+                          >
+                            {f.folderName}
+                          </button>
+                        ) : (
+                          <span className="text-zinc-400">Root</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
+                        {formatBytes(BigInt(f.size))}
+                      </td>
+                      <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
+                        {new Date(f.createdAt).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-2">
+                        <div className="flex flex-wrap gap-2">
+                          <a
+                            href={filesApi.downloadUrl(f.id)}
+                            className="text-zinc-900 underline dark:text-zinc-100"
+                            download={f.name}
+                          >
+                            Download
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

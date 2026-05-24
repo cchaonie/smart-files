@@ -22,6 +22,18 @@ export class FilesController {
     return this.filesService.listFiles(user.id, folderId);
   }
 
+  @Get('search')
+  @ApiOperation({ summary: 'Search files by name' })
+  async searchFiles(
+    @CurrentUser() user: UserEntity,
+    @Query('q') query: string,
+  ) {
+    if (!query || query.trim().length === 0) {
+      return { results: [] };
+    }
+    return this.filesService.searchFiles(user.id, query.trim());
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a file' })
   async deleteFile(
