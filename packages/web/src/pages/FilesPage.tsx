@@ -3,12 +3,16 @@ import { useAuth } from '../context/AuthContext'
 import { filesApi, foldersApi } from '../api/files'
 import { uploadApi, CHUNK_SIZE } from '../api/upload'
 import type { FileItem, Folder, UploadProgress } from '../types'
-import { formatBytes, isPreviewableImage } from '@smart-files/shared/src/utils'
+import { formatBytes, isPreviewableImage, isPreviewableVideo, isPreviewableAudio, isPreviewable } from '@smart-files/shared/src/utils'
 
 function PreviewThumb({ file, onOpen }: { file: FileItem; onOpen: () => void }) {
   const [broken, setBroken] = useState(false);
 
-  if (!isPreviewableImage(file.mimeType, file.name)) {
+  const isVideo = isPreviewableVideo(file.mimeType, file.name);
+  const isAudio = isPreviewableAudio(file.mimeType, file.name);
+  const isImage = isPreviewableImage(file.mimeType, file.name);
+
+  if (!isImage && !isVideo && !isAudio) {
     return (
       <span className="inline-flex h-12 w-12 items-center justify-center text-zinc-400 dark:text-zinc-500">
         —
@@ -16,7 +20,7 @@ function PreviewThumb({ file, onOpen }: { file: FileItem; onOpen: () => void }) 
     );
   }
 
-  if (broken) {
+  if (broken && isImage) {
     return (
       <div
         className="h-12 w-12 shrink-0 rounded border border-zinc-200 bg-zinc-200 dark:border-zinc-600 dark:bg-zinc-700"
@@ -25,20 +29,28 @@ function PreviewThumb({ file, onOpen }: { file: FileItem; onOpen: () => void }) 
     );
   }
 
+  const icon = isVideo ? '\u25b6' : isAudio ? '\u266a' : null;
+
   return (
     <button
       type="button"
       onClick={onOpen}
       className="relative h-12 w-12 shrink-0 overflow-hidden rounded border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:border-zinc-600 dark:focus:ring-zinc-500"
-      title="Preview"
+      title={isVideo ? 'Play video' : isAudio ? 'Play audio' : 'Preview'}
     >
-      <img
-        src={filesApi.previewUrl(file.id)}
-        alt=""
-        loading="lazy"
-        className="h-full w-full object-cover"
-        onError={() => setBroken(true)}
-      />
+      {icon ? (
+        <span className="flex h-full w-full items-center justify-center bg-zinc-100 text-lg dark:bg-zinc-800">
+          {icon}
+        </span>
+      ) : (
+        <img
+          src={filesApi.previewUrl(file.id)}
+          alt=""
+          loading="lazy"
+          className="h-full w-full object-cover"
+          onError={() => setBroken(true)}
+        />
+      )}
     </button>
   );
 }
@@ -186,6 +198,61 @@ function MoveFileModal({
             Move here
           </button>
         </div>
+      </div>
+    </div>
+  );
+
+function MediaPreview({ file, onClose }: { file: FileItem; onClose: () => void }) {
+  const url = filesApi.previewUrl(file.id);
+  const isVideo = isPreviewableVideo(file.mimeType, file.name);
+  const isAudio = isPreviewableAudio(file.mimeType, file.name);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <button
+        type="button"
+        className="absolute right-4 top-4 z-10 rounded-full bg-zinc-800/90 px-3 py-1 text-sm text-white hover:bg-zinc-700"
+        onClick={onClose}
+      >
+        Close
+      </button>
+
+      <div onClick={(e) => e.stopPropagation()} className="flex items-center justify-center">
+        {isVideo ? (
+          <video controls autoPlay className="max-h-[85vh] max-w-[90vw] rounded-lg shadow-2xl">
+            <source src={url} type={file.mimeType || 'video/mp4'} />
+            Your browser does not support video playback.
+          </video>
+        ) : isAudio ? (
+          <div className="rounded-xl bg-white px-8 py-12 shadow-2xl dark:bg-zinc-900">
+            <p className="mb-4 text-center text-sm text-zinc-600 dark:text-zinc-400">
+              {file.name}
+            </p>
+            <audio controls autoPlay className="w-80">
+              <source src={url} type={file.mimeType || 'audio/mpeg'} />
+              Your browser does not support audio playback.
+            </audio>
+          </div>
+        ) : (
+          <img
+            src={url}
+            alt={file.name}
+            className="max-h-[90vh] max-w-full object-contain shadow-2xl"
+          />
+        )}
       </div>
     </div>
   );
@@ -794,7 +861,7 @@ export function FilesPage() {
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex flex-wrap gap-2">
-                        {isPreviewableImage(f.mimeType, f.name) ? (
+                        {isPreviewable(f.mimeType, f.name) ? (
                           <button
                             type="button"
                             className="text-zinc-900 underline dark:text-zinc-100"
@@ -834,29 +901,7 @@ export function FilesPage() {
         )}
       </section>
 
-      {previewFile ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Image preview"
-          onClick={() => setPreviewFile(null)}
-        >
-          <button
-            type="button"
-            className="absolute right-4 top-4 rounded-full bg-zinc-800/90 px-3 py-1 text-sm text-white hover:bg-zinc-700 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-white"
-            onClick={() => setPreviewFile(null)}
-          >
-            Close
-          </button>
-          <img
-            src={filesApi.previewUrl(previewFile.id)}
-            alt={previewFile.name}
-            className="max-h-[90vh] max-w-full object-contain shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      ) : null}
+      {previewFile && <MediaPreview file={previewFile} onClose={() => setPreviewFile(null)} />}
 
       {moveTarget ? (
         <MoveFileModal
