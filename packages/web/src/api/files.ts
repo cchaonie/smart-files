@@ -20,6 +20,11 @@ export const filesApi = {
     return `${apiClient.defaults.baseURL}/files/${id}/preview`;
   },
 
+  search: async (q: string) => {
+    const response = await apiClient.get('/files/search', { params: { q } });
+    return response.data.results;
+  },
+
   moveFile: async (id: string, folderId: string | null): Promise<void> => {
     await apiClient.patch(`/files/${id}`, { folderId });
   },

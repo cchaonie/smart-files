@@ -80,6 +80,37 @@ export class FilesService {
     };
   }
 
+  async searchFiles(userId: string, query: string) {
+    const files = await this.prisma.file.findMany({
+      where: {
+        userId,
+        name: { contains: query, mode: 'insensitive' },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        size: true,
+        mimeType: true,
+        folderId: true,
+        createdAt: true,
+        folder: {
+          select: { id: true, name: true },
+        },
+      },
+      take: 50,
+    });
+
+    return {
+      results: files.map((f) => ({
+        ...f,
+        size: f.size.toString(),
+        createdAt: f.createdAt.toISOString(),
+        folderName: f.folder?.name || null,
+      })),
+    };
+  }
+
   async previewFile(userId: string, fileId: string) {
     const file = await this.prisma.file.findFirst({
       where: { id: fileId, userId },
