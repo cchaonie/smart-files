@@ -48,8 +48,24 @@ export const filesApi = {
   },
 
   renameFile: async (id: string, name: string) => {
-    const r = await apiClient.patch(`/files/${id}/rename`, { name });
+    const r = await apiClient.patch(`/files/${id}`, { name });
     return r.data;
+  },
+
+  batchDelete: async (ids: string[]): Promise<void> => {
+    await apiClient.post('/files/batch/delete', { ids });
+  },
+
+  batchMove: async (ids: string[], folderId: string | null): Promise<void> => {
+    await apiClient.post('/files/batch/move', { ids, folderId });
+  },
+
+  batchRestore: async (ids: string[]): Promise<void> => {
+    await apiClient.post('/files/batch/restore', { ids });
+  },
+
+  batchPurge: async (ids: string[]): Promise<void> => {
+    await apiClient.delete('/files/batch/permanent', { data: { ids } });
   },
 };
 

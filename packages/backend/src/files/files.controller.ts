@@ -46,6 +46,30 @@ export class FilesController {
     return this.filesService.emptyTrash(user.id);
   }
 
+  @Post('batch/delete')
+  @ApiOperation({ summary: 'Soft-delete multiple files' })
+  async batchDelete(@CurrentUser() user: UserEntity, @Body() body: { ids: string[] }) {
+    return this.filesService.batchDelete(user.id, body.ids);
+  }
+
+  @Post('batch/move')
+  @ApiOperation({ summary: 'Move multiple files' })
+  async batchMove(@CurrentUser() user: UserEntity, @Body() body: { ids: string[], folderId?: string | null }) {
+    return this.filesService.batchMove(user.id, body.ids, body.folderId ?? null);
+  }
+
+  @Post('batch/restore')
+  @ApiOperation({ summary: 'Restore multiple files from trash' })
+  async batchRestore(@CurrentUser() user: UserEntity, @Body() body: { ids: string[] }) {
+    return this.filesService.batchRestore(user.id, body.ids);
+  }
+
+  @Delete('batch/permanent')
+  @ApiOperation({ summary: 'Permanently delete multiple files' })
+  async batchPurge(@CurrentUser() user: UserEntity, @Body() body: { ids: string[] }) {
+    return this.filesService.batchPurge(user.id, body.ids);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a file' })
   async deleteFile(
@@ -117,13 +141,16 @@ export class FilesController {
     return this.filesService.purgeFile(user.id, id);
   }
 
-  @Patch(':id/rename')
-  @ApiOperation({ summary: 'Rename a file' })
-  async renameFile(
+  @Patch(':id')
+  @ApiOperation({ summary: 'Rename or move a file' })
+  async updateFile(
     @CurrentUser() user: UserEntity,
     @Param('id') id: string,
-    @Body() body: { name: string },
+    @Body() body: { name?: string; folderId?: string },
   ) {
-    return this.filesService.renameFile(user.id, id, body.name);
+    if (body.name !== undefined) {
+      return this.filesService.renameFile(user.id, id, body.name);
+    }
+    return this.filesService.moveFile(user.id, id, body.folderId ?? null);
   }
 }
