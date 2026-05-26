@@ -20,6 +20,7 @@ import { useI18n } from '@smart-files/shared/src/i18n';
 import type { FileItem, Folder, UploadProgress } from '../types';
 import UploadProgressRow from '../components/UploadProgressRow'
 import FilePreviewModal from '../components/FilePreviewModal'
+import ActionSheet, { type ActionItem } from '../components/ActionSheet'
 import MoveFileModal from '../components/MoveFileModal'
 import CreateFolderModal from '../components/CreateFolderModal'
 import RenameFolderModal from '../components/RenameFolderModal'
@@ -73,6 +74,11 @@ export function HomeScreen() {
   const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
   const [moveTarget, setMoveTarget] = useState<FileItem | null>(null);
   const [renameTarget, setRenameTarget] = useState<Folder | null>(null);
+
+  // ActionSheet state
+  const [actionSheetVisible, setActionSheetVisible] = useState(false);
+  const [actionSheetTitle, setActionSheetTitle] = useState('');
+  const [actionSheetActions, setActionSheetActions] = useState<ActionItem[]>([]);
 
   const currentParentId =
     path.length === 0 ? null : path[path.length - 1].id;
@@ -154,23 +160,13 @@ export function HomeScreen() {
   }
 
   function showFolderActions(folder: Folder) {
-    Alert.alert(folder.name, undefined, [
-      {
-        text: 'Open',
-        onPress: () =>
-          setPath((p) => [...p, { id: folder.id, name: folder.name }]),
-      },
-      {
-        text: 'Rename',
-        onPress: () => setRenameTarget(folder),
-      },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => handleDeleteFolder(folder),
-      },
-      { text: 'Cancel', style: 'cancel' },
+    setActionSheetTitle(folder.name);
+    setActionSheetActions([
+      { key: 'open', label: t.open || 'Open', icon: '📂', onPress: () => setPath((p) => [...p, { id: folder.id, name: folder.name }]) },
+      { key: 'rename', label: t.rename || 'Rename', icon: '✏️', onPress: () => setRenameTarget(folder) },
+      { key: 'delete', label: t.deleteFile || 'Delete', icon: '🗑️', danger: true, onPress: () => handleDeleteFolder(folder) },
     ]);
+    setActionSheetVisible(true);
   }
 
   // -----------------------------------------------------------------------
@@ -205,21 +201,16 @@ export function HomeScreen() {
   }
 
   function showFileActions(file: FileItem) {
-    const options: { text: string; style?: 'cancel' | 'destructive'; onPress?: () => void }[] = [];
-
-    if (isPreviewableImage(file.mimeType, file.name)) {
-      options.push({ text: 'Preview', onPress: () => setPreviewFile(file) });
-    }
-    options.push({ text: 'Download', onPress: () => handleDownloadFile(file) });
-    options.push({ text: 'Move', onPress: () => setMoveTarget(file) });
-    options.push({
-      text: 'Delete',
-      style: 'destructive',
-      onPress: () => handleDeleteFile(file.id),
-    });
-    options.push({ text: 'Cancel', style: 'cancel' });
-
-    Alert.alert(file.name, undefined, options);
+    const isImage = isPreviewableImage(file.mimeType, file.name);
+    setActionSheetTitle(file.name);
+    const items: ActionItem[] = [
+      { key: 'preview', label: isImage ? (t.preview || 'Preview') : (t.play || 'Play'), icon: isImage ? '🖼️' : '▶️', onPress: () => setPreviewFile(file) },
+      { key: 'download', label: t.download || 'Download', icon: '⬇️', onPress: () => handleDownloadFile(file) },
+      { key: 'move', label: t.moveFileTitle || 'Move', icon: '📁', onPress: () => setMoveTarget(file) },
+      { key: 'delete', label: t.deleteFile || 'Delete', icon: '🗑️', danger: true, onPress: () => handleDeleteFile(file.id) },
+    ];
+    setActionSheetActions(items);
+    setActionSheetVisible(true);
   }
 
   // -----------------------------------------------------------------------
@@ -726,6 +717,13 @@ export function HomeScreen() {
           onMoved={() => loadData()}
         />
       ) : null}
+
+      <ActionSheet
+        visible={actionSheetVisible}
+        title={actionSheetTitle}
+        actions={actionSheetActions}
+        onClose={() => setActionSheetVisible(false)}
+      />
     </SafeAreaView>
   );
 }
