@@ -31,6 +31,7 @@ export interface I18nStrings {
   linkUnavailable: string; passwordProtected: string; enterPassword: string;
   verify: string; verifying: string; downloadFile: string;
   preview: string; previewUnavailable: string; playVideo: string; playAudio: string;
+  video: string; audio: string; file: string; play: string; openFile: string;
   unsupportedVideo: string; unsupportedAudio: string;
   upload: string; uploading: string; pending: string; error: string; retry: string;
   aborted: string; uploadFailed: string; sessionFailed: string; parallelUploads: string;

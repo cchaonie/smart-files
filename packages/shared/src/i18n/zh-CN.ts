@@ -51,6 +51,8 @@ export const zhCN: I18nStrings = {
   downloadFile: '下载',
   preview: '预览', previewUnavailable: '预览不可用',
   playVideo: '播放视频', playAudio: '播放音频',
+  video: '视频', audio: '音频', file: '文件',
+  play: '播放', openFile: '打开文件',
   unsupportedVideo: '您的浏览器不支持视频播放。',
   unsupportedAudio: '您的浏览器不支持音频播放。',
   upload: '上传', uploading: '上传中', pending: '等待中',

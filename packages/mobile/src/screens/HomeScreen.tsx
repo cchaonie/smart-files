@@ -19,7 +19,7 @@ import { useAuth } from '../context/AuthContext';
 import { useI18n } from '@smart-files/shared/src/i18n';
 import type { FileItem, Folder, UploadProgress } from '../types';
 import UploadProgressRow from '../components/UploadProgressRow'
-import ImagePreviewModal from '../components/ImagePreviewModal'
+import FilePreviewModal from '../components/FilePreviewModal'
 import MoveFileModal from '../components/MoveFileModal'
 import CreateFolderModal from '../components/CreateFolderModal'
 import RenameFolderModal from '../components/RenameFolderModal'
@@ -466,16 +466,14 @@ export function HomeScreen() {
 
   const renderItem = ({ item }: { item: Folder | FileItem }) => {
     if ('mimeType' in item) {
-      // File
+      // File — tap opens preview, long-press shows actions
       const file = item as FileItem;
       const previewable = isPreviewableImage(file.mimeType, file.name);
       return (
         <TouchableOpacity
           style={styles.fileRow}
           activeOpacity={0.7}
-          onPress={() => {
-            if (previewable) setPreviewFile(file);
-          }}
+          onPress={() => setPreviewFile(file)}
           onLongPress={() => showFileActions(file)}
         >
           <View style={styles.fileInfo}>
@@ -709,9 +707,15 @@ export function HomeScreen() {
       ) : null}
 
       {previewFile ? (
-        <ImagePreviewModal
+        <FilePreviewModal
           file={previewFile}
+          visible={!!previewFile}
           onClose={() => setPreviewFile(null)}
+          onOpenExternal={(url) => {
+            Linking.openURL(url).catch(() =>
+              Alert.alert('Error', 'Failed to open file')
+            );
+          }}
         />
       ) : null}
 

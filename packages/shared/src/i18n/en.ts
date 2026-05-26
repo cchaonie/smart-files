@@ -51,6 +51,8 @@ export const en: I18nStrings = {
   downloadFile: 'Download',
   preview: 'Preview', previewUnavailable: 'Preview unavailable',
   playVideo: 'Play video', playAudio: 'Play audio',
+  video: 'Video', audio: 'Audio', file: 'File',
+  play: 'Play', openFile: 'Open',
   unsupportedVideo: 'Your browser does not support video playback.',
   unsupportedAudio: 'Your browser does not support audio playback.',
   upload: 'Upload', uploading: 'Uploading', pending: 'Pending',
