@@ -202,6 +202,7 @@ function MoveFileModal({
       </div>
     </div>
   );
+}
 
 function ShareModal({ file, onClose }: { file: FileItem; onClose: () => void }) {
   const [password, setPassword] = useState('');
@@ -676,11 +677,38 @@ export function FilesPage() {
       await foldersApi.deleteFolder(folder.id);
       setPath((p) => p.filter((seg) => seg.id !== folder.id));
       await loadBrowse();
- 
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Delete failed');
+    }
+  }
 
-... [OUTPUT TRUNCATED - 643 chars omitted out of 50643 total] ...
+  async function runUpload(file: File, itemId: number) {
+    const updateItem = (patch: Partial<UploadProgress>) => {
+      setUploadItems((prev) =>
+        prev.map((it) => (it.id === itemId ? { ...it, ...patch } : it))
+      );
+    };
 
+    setUploadItems((prev) =>
+      prev.map((it) => (it.id === itemId ? { ...it, status: 'uploading' } : it))
+    );
 
+    const totalSize = file.size;
+    let uploadId: string;
+    let chunkSize: number;
+    let totalChunks: number;
+
+    const persistKey = `upload:${itemId}`;
+    persistKeyRef.current.set(itemId, persistKey);
+
+    try {
+      const existing = sessionStorage.getItem(persistKey);
+      if (existing) {
+        uploadId = existing;
+        const status = await uploadApi.getSession(uploadId);
+        chunkSize = status.chunkSize;
+        totalChunks = status.totalChunks;
+        if (status.receivedIndexes.length !== status.totalChunks) {
           sessionStorage.setItem(persistKey, uploadId);
         }
       } else {
@@ -1029,7 +1057,6 @@ export function FilesPage() {
                 </tbody>
               </table>
             </div>
-          )}
             </>
           )}
         </section>
@@ -1482,7 +1509,7 @@ export function FilesPage() {
                                 // This is a simple approach: just set the folder
                                 setSearchResults(null);
                                 setSearchQuery('');
-                                setPath([{ id: f.folderId, name: f.folderName }]);
+                                setPath([{ id: f.folderId, name: f.folderName || 'Unknown' }]);
                               }
                             }}
                           >
