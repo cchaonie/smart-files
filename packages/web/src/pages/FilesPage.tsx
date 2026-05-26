@@ -457,6 +457,82 @@ export function FilesPage() {
   const nextUploadId = useRef(0);
   const filesByItemId = useRef<Map<number, File>>(new Map());
 
+  // Multi-select state
+  const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
+  const [selectedUploadIds, setSelectedUploadIds] = useState<Set<number>>(new Set());
+  const [selectedTrashIds, setSelectedTrashIds] = useState<Set<string>>(new Set());
+
+  function toggleFileSelect(id: string) {
+    setSelectedFileIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAllFiles() {
+    setSelectedFileIds(prev => 
+      prev.size === files.length ? new Set() : new Set(files.map(f => f.id))
+    );
+  }
+
+  function toggleUploadSelect(id: number) {
+    setSelectedUploadIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleTrashSelect(id: string) {
+    setSelectedTrashIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function clearAllSelections() {
+    setSelectedFileIds(new Set());
+    setSelectedUploadIds(new Set());
+    setSelectedTrashIds(new Set());
+  }
+
+  async function handleBatchDelete() {
+    if (!confirm(`Delete ${selectedFileIds.size} file(s)?`)) return;
+    try {
+      await filesApi.batchDelete(Array.from(selectedFileIds));
+      setSelectedFileIds(new Set());
+      await loadBrowse();
+    } catch (err) { alert(err instanceof Error ? err.message : 'Batch delete failed'); }
+  }
+
+  async function handleBatchRestore() {
+    try {
+      await filesApi.batchRestore(Array.from(selectedTrashIds));
+      setSelectedTrashIds(new Set());
+      await loadTrash();
+    } catch (err) { alert(err instanceof Error ? err.message : 'Batch restore failed'); }
+  }
+
+  async function handleBatchPurge() {
+    if (!confirm(`Permanently delete ${selectedTrashIds.size} file(s)? This cannot be undone.`)) return;
+    try {
+      await filesApi.batchPurge(Array.from(selectedTrashIds));
+      setSelectedTrashIds(new Set());
+      await loadTrash();
+    } catch (err) { alert(err instanceof Error ? err.message : 'Batch purge failed'); }
+  }
+
+  // Escape to deselect
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') clearAllSelections();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const loadBrowse = useCallback(async () => {
     setListError(null);
     setLoading(true);
@@ -602,24 +678,9 @@ export function FilesPage() {
       await loadBrowse();
  
 
-... [OUTPUT TRUNCATED - 757 chars omitted out of 50757 total] ...
+... [OUTPUT TRUNCATED - 643 chars omitted out of 50643 total] ...
 
-      if (existingId) {
-        try {
-          const existing = await uploadApi.getSession(existingId);
-          uploadId = existingId;
-          chunkSize = existing.chunkSize;
-          totalChunks = existing.totalChunks;
-        } catch {
-          sessionStorage.removeItem(persistKey);
-          const created = await uploadApi.createSession(
-            file.name,
-            totalSize,
-            currentParentId || undefined
-          );
-          uploadId = created.uploadId;
-          chunkSize = created.chunkSize;
-          totalChunks = created.totalChunks;
+
           sessionStorage.setItem(persistKey, uploadId);
         }
       } else {
@@ -881,10 +942,40 @@ export function FilesPage() {
           ) : !trashFiles || trashFiles.length === 0 ? (
             <p className="text-sm text-zinc-500">Trash is empty.</p>
           ) : (
+            <>
+            {selectedTrashIds.size > 0 && (
+              <div className="mb-3 flex items-center gap-3 rounded-lg border border-zinc-300 bg-zinc-100 px-4 py-2 dark:border-zinc-600 dark:bg-zinc-800">
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                  {selectedTrashIds.size} selected
+                </span>
+                <button
+                  type="button"
+                  className="text-sm text-green-600 underline dark:text-green-400"
+                  onClick={() => void handleBatchRestore()}
+                >
+                  Restore
+                </button>
+                <button
+                  type="button"
+                  className="text-sm text-red-600 underline dark:text-red-400"
+                  onClick={() => void handleBatchPurge()}
+                >
+                  Delete permanently
+                </button>
+                <button
+                  type="button"
+                  className="text-sm text-zinc-600 underline dark:text-zinc-400"
+                  onClick={() => setSelectedTrashIds(new Set())}
+                >
+                  Deselect
+                </button>
+              </div>
+            )}
             <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
               <table className="w-full min-w-[36rem] text-left text-sm">
                 <thead className="bg-zinc-50 dark:bg-zinc-900">
                   <tr>
+                    <th className="w-10 px-4 py-2"></th>
                     <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">Name</th>
                     <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">Folder</th>
                     <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">Size</th>
@@ -894,7 +985,17 @@ export function FilesPage() {
                 </thead>
                 <tbody>
                   {trashFiles.map((f) => (
-                    <tr key={f.id} className="border-t border-zinc-100 dark:border-zinc-800">
+                    <tr key={f.id} className={`border-t border-zinc-100 dark:border-zinc-800 ${
+                      selectedTrashIds.has(f.id) ? 'bg-zinc-100 dark:bg-zinc-800' : ''
+                    }`}>
+                      <td className="px-4 py-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedTrashIds.has(f.id)}
+                          onChange={() => toggleTrashSelect(f.id)}
+                          className="h-4 w-4 rounded"
+                        />
+                      </td>
                       <td className="px-4 py-2 text-zinc-900 dark:text-zinc-100">{f.name}</td>
                       <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
                         {f.folderName || 'Root'}
@@ -928,6 +1029,8 @@ export function FilesPage() {
                 </tbody>
               </table>
             </div>
+          )}
+            </>
           )}
         </section>
       ) : (
@@ -1007,7 +1110,13 @@ export function FilesPage() {
             </div>
             {uploadItems.map((item) => (
               <div key={item.id} className="space-y-1">
-                <div className="flex justify-between text-xs text-zinc-600 dark:text-zinc-400">
+                <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
+                  <input
+                    type="checkbox"
+                    checked={selectedUploadIds.has(item.id)}
+                    onChange={() => toggleUploadSelect(item.id)}
+                    className="h-3.5 w-3.5 rounded"
+                  />
                   <span className="truncate pr-2">
                     {item.status === 'done'
                       ? 'Done'
@@ -1112,9 +1221,38 @@ export function FilesPage() {
           <p className="text-sm text-zinc-500">This folder is empty.</p>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
+            {selectedFileIds.size > 0 && (
+              <div className="mb-3 flex items-center gap-3 rounded-lg border border-zinc-300 bg-zinc-100 px-4 py-2 dark:border-zinc-600 dark:bg-zinc-800">
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                  {selectedFileIds.size} selected
+                </span>
+                <button
+                  type="button"
+                  className="text-sm text-red-600 underline dark:text-red-400"
+                  onClick={() => void handleBatchDelete()}
+                >
+                  Delete
+                </button>
+                <button
+                  type="button"
+                  className="text-sm text-zinc-600 underline dark:text-zinc-400"
+                  onClick={clearAllSelections}
+                >
+                  Deselect all
+                </button>
+              </div>
+            )}
             <table className="w-full min-w-[36rem] text-left text-sm">
               <thead className="bg-zinc-50 dark:bg-zinc-900">
                 <tr>
+                  <th className="w-10 px-4 py-2">
+                    <input
+                      type="checkbox"
+                      checked={files.length > 0 && selectedFileIds.size === files.length}
+                      onChange={toggleSelectAllFiles}
+                      className="h-4 w-4 rounded"
+                    />
+                  </th>
                   <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
                     Preview
                   </th>
@@ -1184,8 +1322,18 @@ export function FilesPage() {
                 {files.map((f) => (
                   <tr
                     key={f.id}
-                    className="border-t border-zinc-100 dark:border-zinc-800"
+                    className={`border-t border-zinc-100 dark:border-zinc-800 ${
+                      selectedFileIds.has(f.id) ? 'bg-zinc-100 dark:bg-zinc-800' : ''
+                    }`}
                   >
+                    <td className="px-4 py-2 align-middle">
+                      <input
+                        type="checkbox"
+                        checked={selectedFileIds.has(f.id)}
+                        onChange={() => toggleFileSelect(f.id)}
+                        className="h-4 w-4 rounded"
+                      />
+                    </td>
                     <td className="px-4 py-2 align-middle">
                       <PreviewThumb file={f} onOpen={() => setPreviewFile(f)} />
                     </td>

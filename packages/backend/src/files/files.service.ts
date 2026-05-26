@@ -241,4 +241,84 @@ export class FilesService {
       createdAt: updated.createdAt.toISOString(),
     };
   }
+
+  async moveFile(userId: string, fileId: string, folderId: string | null) {
+    const file = await this.prisma.file.findFirst({
+      where: { id: fileId, userId, deletedAt: null },
+    });
+
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    if (folderId) {
+      const folder = await this.prisma.folder.findFirst({
+        where: { id: folderId, userId },
+      });
+      if (!folder) {
+        throw new NotFoundException('Target folder not found');
+      }
+    }
+
+    const updated = await this.prisma.file.update({
+      where: { id: fileId },
+      data: { folderId },
+      select: { id: true, name: true, size: true, mimeType: true, folderId: true, createdAt: true },
+    });
+
+    return {
+      ...updated,
+      size: updated.size.toString(),
+      createdAt: updated.createdAt.toISOString(),
+    };
+  }
+
+  // --- Batch operations ---
+
+  async batchDelete(userId: string, ids: string[]) {
+    const count = await this.prisma.file.updateMany({
+      where: { id: { in: ids }, userId, deletedAt: null },
+      data: { deletedAt: new Date() },
+    });
+    return { deleted: count.count };
+  }
+
+  async batchMove(userId: string, ids: string[], folderId: string | null) {
+    if (folderId) {
+      const folder = await this.prisma.folder.findFirst({
+        where: { id: folderId, userId },
+      });
+      if (!folder) throw new NotFoundException('Target folder not found');
+    }
+
+    const count = await this.prisma.file.updateMany({
+      where: { id: { in: ids }, userId, deletedAt: null },
+      data: { folderId },
+    });
+    return { moved: count.count };
+  }
+
+  async batchRestore(userId: string, ids: string[]) {
+    const count = await this.prisma.file.updateMany({
+      where: { id: { in: ids }, userId, deletedAt: { not: null } },
+      data: { deletedAt: null },
+    });
+    return { restored: count.count };
+  }
+
+  async batchPurge(userId: string, ids: string[]) {
+    const files = await this.prisma.file.findMany({
+      where: { id: { in: ids }, userId, deletedAt: { not: null } },
+    });
+
+    for (const file of files) {
+      const filePath = path.join(this.uploadRoot, 'files', userId, file.storageKey);
+      import('fs/promises').then(fs => fs.unlink(filePath).catch(() => {}));
+    }
+
+    const count = await this.prisma.file.deleteMany({
+      where: { id: { in: ids }, userId, deletedAt: { not: null } },
+    });
+    return { purged: count.count };
+  }
 }
