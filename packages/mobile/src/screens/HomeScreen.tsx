@@ -19,7 +19,9 @@ import {
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { filesApi, foldersApi } from '../api/files';
+import { sharesApi } from '../api/shares';
 import { uploadApi, CHUNK_SIZE } from '../api/upload';
+import apiClient from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import type { FileItem, Folder, UploadProgress } from '../types';
 
@@ -380,6 +382,153 @@ function RenameFolderModal({
 }
 
 // ---------------------------------------------------------------------------
+// Share file modal
+// ---------------------------------------------------------------------------
+function ShareFileModal({
+  file,
+  onClose,
+}: {
+  file: FileItem;
+  onClose: () => void;
+}) {
+  const [password, setPassword] = useState('');
+  const [expiresIn, setExpiresIn] = useState('');
+  const [shareLink, setShareLink] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function create() {
+    setLoading(true); setErr(null);
+    try {
+      const result = await sharesApi.createShare(file.id, password || undefined, expiresIn || undefined);
+      setShareLink(`${apiClient.defaults.baseURL}/share/${result.token}`);
+    } catch (e: any) {
+      setErr(e.message || 'Failed to create share link');
+    } finally { setLoading(false); }
+  }
+
+  const expiryOptions = [
+    { label: '1 hour', value: '1h' },
+    { label: '24 hours', value: '24h' },
+    { label: '7 days', value: '7d' },
+    { label: '30 days', value: '30d' },
+    { label: 'Never', value: '' },
+  ];
+
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.modalOverlay} onPress={onClose}>
+        <Pressable style={styles.dialogBox} onPress={() => {}}>
+          {shareLink ? (
+            <>
+              <Text style={styles.dialogTitle}>Share link created</Text>
+              <Text selectable style={{ fontSize: 13, color: '#007AFF', marginBottom: 12, textAlign: 'center' }}>
+                {shareLink}
+              </Text>
+              <TouchableOpacity onPress={onClose} style={[styles.dialogBtn, styles.dialogBtnPrimary, { alignSelf: 'center' }]}>
+                <Text style={styles.dialogBtnPrimaryText}>Done</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <Text style={styles.dialogTitle}>Share {file.name}</Text>
+              <Text style={{ fontSize: 12, color: '#666', marginBottom: 12 }}>Password (optional)</Text>
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Leave empty for no password"
+                placeholderTextColor="#999"
+                secureTextEntry
+                style={styles.dialogInput}
+              />
+              <Text style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>Expires</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+                {expiryOptions.map(opt => (
+                  <TouchableOpacity
+                    key={opt.value}
+                    onPress={() => setExpiresIn(opt.value)}
+                    style={{
+                      paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6,
+                      borderWidth: 1,
+                      borderColor: expiresIn === opt.value ? '#007AFF' : '#ccc',
+                      backgroundColor: expiresIn === opt.value ? '#e8f0fe' : '#fff',
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, color: expiresIn === opt.value ? '#007AFF' : '#333' }}>{opt.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {err ? <Text style={{ color: '#ef4444', fontSize: 12, marginBottom: 8 }}>{err}</Text> : null}
+              <View style={styles.dialogActions}>
+                <TouchableOpacity onPress={onClose} style={styles.dialogBtn}>
+                  <Text style={styles.dialogBtnCancel}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={create} style={[styles.dialogBtn, styles.dialogBtnPrimary]} disabled={loading}>
+                  <Text style={styles.dialogBtnPrimaryText}>{loading ? '...' : 'Create'}</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+
+// ---------------------------------------------------------------------------
+// Rename file modal
+// ---------------------------------------------------------------------------
+function RenameFileModal({
+  visible,
+  file,
+  onClose,
+  onRename,
+}: {
+  visible: boolean;
+  file: FileItem | null;
+  onClose: () => void;
+  onRename: (name: string) => void;
+}) {
+  const [name, setName] = useState(file?.name || '');
+  useEffect(() => { if (file) setName(file.name); }, [file]);
+
+  const handle = () => {
+    const t = name.trim();
+    if (!t) return;
+    onRename(t);
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.modalOverlay} onPress={onClose}>
+        <Pressable style={styles.dialogBox} onPress={() => {}}>
+          <Text style={styles.dialogTitle}>Rename file</Text>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            placeholder="File name"
+            placeholderTextColor="#999"
+            style={styles.dialogInput}
+            autoFocus
+            onSubmitEditing={handle}
+          />
+          <View style={styles.dialogActions}>
+            <TouchableOpacity onPress={onClose} style={styles.dialogBtn}>
+              <Text style={styles.dialogBtnCancel}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handle} style={[styles.dialogBtn, styles.dialogBtnPrimary]}>
+              <Text style={styles.dialogBtnPrimaryText}>Rename</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // HomeScreen (main)
 // ---------------------------------------------------------------------------
 export function HomeScreen() {
@@ -407,6 +556,23 @@ export function HomeScreen() {
   const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
   const [moveTarget, setMoveTarget] = useState<FileItem | null>(null);
   const [renameTarget, setRenameTarget] = useState<Folder | null>(null);
+  const [renameFileTarget, setRenameFileTarget] = useState<FileItem | null>(null);
+  const [shareTarget, setShareTarget] = useState<FileItem | null>(null);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[] | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  // Trash state
+  const [viewingTrash, setViewingTrash] = useState(false);
+  const [trashFiles, setTrashFiles] = useState<any[] | null>(null);
+  const [trashLoading, setTrashLoading] = useState(false);
+
+  // Multi-select state
+  const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
+  const [selectedUploadIds, setSelectedUploadIds] = useState<Set<number>>(new Set());
+  const [selectedTrashIds, setSelectedTrashIds] = useState<Set<string>>(new Set());
 
   const currentParentId =
     path.length === 0 ? null : path[path.length - 1].id;
@@ -430,246 +596,11 @@ export function HomeScreen() {
     }
   }, [currentParentId]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
 
-  // -----------------------------------------------------------------------
-  // Folder operations
-  // -----------------------------------------------------------------------
-  async function handleCreateFolder(name: string) {
-    try {
-      await foldersApi.createFolder({
-        name,
-        parentId: currentParentId || undefined,
-      });
-      await loadData();
-    } catch (e) {
-      Alert.alert('Error', e instanceof Error ? e.message : 'Failed to create folder');
-    }
-  }
 
-  async function handleRenameFolder(folder: Folder, name: string) {
-    try {
-      await foldersApi.renameFolder(folder.id, name);
-      setPath((p) =>
-        p.map((seg) => (seg.id === folder.id ? { ...seg, name } : seg)),
-      );
-      await loadData();
-    } catch (e) {
-      Alert.alert('Error', e instanceof Error ? e.message : 'Rename failed');
-    }
-  }
+... [OUTPUT TRUNCATED - 7395 chars omitted out of 57395 total] ...
 
-  async function handleDeleteFolder(folder: Folder) {
-    Alert.alert(
-      'Delete folder',
-      `Delete "${folder.name}"? Only empty folders can be removed.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await foldersApi.deleteFolder(folder.id);
-              setPath((p) => p.filter((seg) => seg.id !== folder.id));
-              await loadData();
-            } catch (e) {
-              Alert.alert(
-                'Error',
-                e instanceof Error ? e.message : 'Delete failed',
-              );
-            }
-          },
-        },
-      ],
-    );
-  }
-
-  function showFolderActions(folder: Folder) {
-    Alert.alert(folder.name, undefined, [
-      {
-        text: 'Open',
-        onPress: () =>
-          setPath((p) => [...p, { id: folder.id, name: folder.name }]),
-      },
-      {
-        text: 'Rename',
-        onPress: () => setRenameTarget(folder),
-      },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => handleDeleteFolder(folder),
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  }
-
-  // -----------------------------------------------------------------------
-  // File operations
-  // -----------------------------------------------------------------------
-  async function handleDeleteFile(fileId: string) {
-    Alert.alert('Delete file', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await filesApi.deleteFile(fileId);
-            await loadData();
-          } catch (e) {
-            Alert.alert(
-              'Error',
-              e instanceof Error ? e.message : 'Delete failed',
-            );
-          }
-        },
-      },
-    ]);
-  }
-
-  function handleDownloadFile(file: FileItem) {
-    const url = filesApi.downloadUrl(file.id);
-    Linking.openURL(url).catch(() =>
-      Alert.alert('Error', 'Failed to open download URL'),
-    );
-  }
-
-  function showFileActions(file: FileItem) {
-    const options: { text: string; style?: 'cancel' | 'destructive'; onPress?: () => void }[] = [];
-
-    if (isPreviewableImage(file.mimeType, file.name)) {
-      options.push({ text: 'Preview', onPress: () => setPreviewFile(file) });
-    }
-    options.push({ text: 'Download', onPress: () => handleDownloadFile(file) });
-    options.push({ text: 'Move', onPress: () => setMoveTarget(file) });
-    options.push({
-      text: 'Delete',
-      style: 'destructive',
-      onPress: () => handleDeleteFile(file.id),
-    });
-    options.push({ text: 'Cancel', style: 'cancel' });
-
-    Alert.alert(file.name, undefined, options);
-  }
-
-  // -----------------------------------------------------------------------
-  // Upload logic (adapted from web FilesPage)
-  // -----------------------------------------------------------------------
-  async function pickFiles() {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        multiple: true,
-        copyToCacheDirectory: true,
-      });
-      if (result.canceled || !result.assets?.length) return;
-      runUploadQueue(result.assets);
-    } catch (e) {
-      Alert.alert('Error', 'Failed to pick files');
-    }
-  }
-
-  async function runUpload(
-    meta: { uri: string; name: string; mimeType: string; size: number },
-    itemId: number,
-  ) {
-    const updateItem = (patch: Partial<UploadProgress>) =>
-      setUploadItems((prev) =>
-        prev.map((it) => (it.id === itemId ? { ...it, ...patch } : it)),
-      );
-
-    updateItem({ status: 'uploading', progress: 0 });
-
-    const totalSize = meta.size;
-    const folderKey = currentParentId ?? 'root';
-    const persistKey = `smart-files-upload:${folderKey}:${meta.name}:${meta.size}`;
-    persistKeyRef.current.set(itemId, persistKey);
-    let uploadId: string;
-    let chunkSize = CHUNK_SIZE;
-    let totalChunks: number;
-
-    try {
-      const existingId = await getSessionStorage(persistKey);
-      if (existingId) {
-        try {
-          const existing = await uploadApi.getSession(existingId);
-          uploadId = existingId;
-          chunkSize = existing.chunkSize;
-          totalChunks = existing.totalChunks;
-        } catch {
-          await removeSessionStorage(persistKey);
-          const created = await uploadApi.createSession(
-            meta.name,
-            totalSize,
-            currentParentId || undefined,
-          );
-          uploadId = created.uploadId;
-          chunkSize = created.chunkSize;
-          totalChunks = created.totalChunks;
-          await setSessionStorage(persistKey, uploadId);
-        }
-      } else {
-        const created = await uploadApi.createSession(
-          meta.name,
-          totalSize,
-          currentParentId || undefined,
-        );
-        uploadId = created.uploadId;
-        chunkSize = created.chunkSize;
-        totalChunks = created.totalChunks;
-        await setSessionStorage(persistKey, uploadId);
-      }
-    } catch (e) {
-      updateItem({
-        status: 'error',
-        error: e instanceof Error ? e.message : 'Session failed',
-      });
-      return;
-    }
-
-    const uploadAllChunks = async () => {
-      for (;;) {
-        if (abortRef.current) throw new Error('Aborted');
-
-        while (pausedRef.current) {
-          await new Promise((r) => setTimeout(r, 200));
-          if (abortRef.current) throw new Error('Aborted');
-        }
-
-        const status = await uploadApi.getSession(uploadId);
-        const received = new Set(status.receivedIndexes);
-        const missing: number[] = [];
-        for (let i = 0; i < status.totalChunks; i++) {
-          if (!received.has(i)) missing.push(i);
-        }
-
-        if (missing.length === 0) break;
-
-        let doneCount = received.size;
-
-        for (const index of missing) {
-          while (pausedRef.current) {
-            await new Promise((r) => setTimeout(r, 200));
-            if (abortRef.current) throw new Error('Aborted');
-          }
-
-          const start = index * chunkSize;
-          const end = Math.min(start + chunkSize, meta.size);
-          const chunkSizeActual = end - start;
-
-          // Read chunk via expo-file-system
-          const chunkBase64 = await FileSystem.readAsStringAsync(meta.uri, {
-            encoding: FileSystem.EncodingType.Base64,
-            position: start,
-            length: chunkSizeActual,
-          });
-
-          const binaryString = atob(chunkBase64);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let j = 0; j < binaryString.length; j++) {
+ring.length; j++) {
             bytes[j] = binaryString.charCodeAt(j);
           }
 
@@ -804,8 +735,14 @@ export function HomeScreen() {
       const file = item as FileItem;
       const previewable = isPreviewableImage(file.mimeType, file.name);
       return (
+        <View style={[styles.fileRow, selectedFileIds.has(file.id) && { backgroundColor: '#f0f7ff' }]}>
+          <TouchableOpacity onPress={() => toggleFileSelect(file.id)} style={{ paddingRight: 8 }}>
+            <Text style={{ fontSize: 18, color: selectedFileIds.has(file.id) ? '#007AFF' : '#ccc' }}>
+              {selectedFileIds.has(file.id) ? '☑' : '☐'}
+            </Text>
+          </TouchableOpacity>
         <TouchableOpacity
-          style={styles.fileRow}
+          style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
           activeOpacity={0.7}
           onPress={() => {
             if (previewable) setPreviewFile(file);
@@ -834,13 +771,14 @@ export function HomeScreen() {
               </Text>
             </View>
           </View>
+        </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionDots}
             onPress={() => showFileActions(file)}
           >
             <Text style={styles.actionDotsText}>{'\u22EE'}</Text>
           </TouchableOpacity>
-        </TouchableOpacity>
+        </View>
       );
     }
 
@@ -855,6 +793,7 @@ export function HomeScreen() {
         }
         onLongPress={() => showFolderActions(folder)}
       >
+        <View style={{ width: 26 }} />
         <View style={styles.fileInfo}>
           <View style={styles.folderIcon}>
             <Text style={styles.folderIconText}>{'\uD83D\uDCC1'}</Text>
@@ -886,12 +825,23 @@ export function HomeScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>My Files</Text>
-        <TouchableOpacity onPress={logout}>
-          <Text style={styles.logout}>Logout</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <TouchableOpacity onPress={() => {
+            setViewingTrash(!viewingTrash);
+            if (!viewingTrash) loadTrash();
+            else { setSearchResults(null); setSearchQuery(''); }
+          }}>
+            <Text style={styles.logout}>{viewingTrash ? '← Files' : '🗑 Trash'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={logout}>
+            <Text style={styles.logout}>Logout</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Breadcrumb */}
+      {!viewingTrash && (
+      <>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -912,8 +862,31 @@ export function HomeScreen() {
           </View>
         ))}
       </ScrollView>
+      </>
+      )}
+
+      {/* Search bar */}
+      {!viewingTrash && (
+      <View style={styles.searchBar}>
+        <TextInput
+          value={searchQuery}
+          onChangeText={(v) => { setSearchQuery(v); setTimeout(() => doSearch(v), 300); }}
+          onSubmitEditing={() => doSearch(searchQuery)}
+          placeholder="Search files…"
+          placeholderTextColor="#999"
+          style={styles.searchInput}
+          returnKeyType="search"
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchResults(null); }}>
+            <Text style={styles.searchClear}>✕</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      )}
 
       {/* Action bar */}
+      {!viewingTrash && (
       <View style={styles.actionBar}>
         <TouchableOpacity
           style={styles.actionBtn}
@@ -928,14 +901,33 @@ export function HomeScreen() {
           <Text style={styles.actionBtnText}>{'\u21BB'}</Text>
         </TouchableOpacity>
       </View>
+      )}
 
       {/* Upload section */}
-      {hasUploads ? (
+      {!viewingTrash && hasUploads ? (
         <View style={styles.uploadSection}>
           <ScrollView
             style={styles.uploadList}
             nestedScrollEnabled
           >
+            {/* Batch upload actions */}
+            {selectedUploadIds.size > 0 && (
+              <View style={styles.batchBar}>
+                <Text style={styles.batchBarText}>{selectedUploadIds.size} selected</Text>
+                <TouchableOpacity onPress={() => {
+                  setUploadItems(p => p.filter(it => !selectedUploadIds.has(it.id)));
+                  setSelectedUploadIds(new Set());
+                }}>
+                  <Text style={styles.batchBarAction}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => {
+                  setUploadItems(p => p.filter(it => !(selectedUploadIds.has(it.id) && (it.status === 'done' || it.status === 'error'))));
+                  setSelectedUploadIds(new Set());
+                }}>
+                  <Text style={styles.batchBarAction}>Clear</Text>
+                </TouchableOpacity>
+              </View>
+            )}
             {/* Parallel count control */}
             <View style={styles.uploadControls}>
               <Text style={styles.uploadControlsLabel}>Parallel: </Text>
@@ -955,11 +947,16 @@ export function HomeScreen() {
             </View>
 
             {uploadItems.map((item) => (
-              <UploadProgressRow
-                key={item.id}
-                item={item}
-                onRetry={retryUpload}
-              />
+              <View key={item.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <TouchableOpacity onPress={() => toggleUploadSelect(item.id)} style={{ paddingRight: 8 }}>
+                  <Text style={{ fontSize: 18, color: selectedUploadIds.has(item.id) ? '#007AFF' : '#ccc' }}>
+                    {selectedUploadIds.has(item.id) ? '☑' : '☐'}
+                  </Text>
+                </TouchableOpacity>
+                <View style={{ flex: 1 }}>
+                  <UploadProgressRow item={item} onRetry={retryUpload} />
+                </View>
+              </View>
             ))}
 
             <View style={styles.uploadActionsRow}>
@@ -1002,9 +999,103 @@ export function HomeScreen() {
       ) : null}
 
       {/* Content list */}
-      {listError ? (
+      {listError && !viewingTrash ? (
         <Text style={styles.errorText}>{listError}</Text>
       ) : null}
+
+      {/* Trash view */}
+      {viewingTrash ? (
+        <View style={{ flex: 1 }}>
+          {trashFiles && trashFiles.length > 0 && (
+            <TouchableOpacity style={styles.emptyTrashBtn} onPress={handleEmptyTrash}>
+              <Text style={styles.emptyTrashText}>Empty trash</Text>
+            </TouchableOpacity>
+          )}
+          {selectedTrashIds.size > 0 && (
+            <View style={styles.batchBar}>
+              <Text style={styles.batchBarText}>{selectedTrashIds.size} selected</Text>
+              <TouchableOpacity onPress={handleBatchRestore}>
+                <Text style={[styles.batchBarAction, { color: '#22c55e' }]}>Restore</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleBatchPurge}>
+                <Text style={[styles.batchBarAction, { color: '#ef4444' }]}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <FlatList
+            data={trashFiles || []}
+            keyExtractor={(f: any) => f.id}
+            refreshControl={<RefreshControl refreshing={trashLoading} onRefresh={loadTrash} />}
+            renderItem={({ item }: { item: any }) => (
+              <View style={[styles.fileRow, selectedTrashIds.has(item.id) && { backgroundColor: '#f0f7ff' }]}>
+                <TouchableOpacity onPress={() => toggleTrashSelect(item.id)} style={{ paddingRight: 8 }}>
+                  <Text style={{ fontSize: 18, color: selectedTrashIds.has(item.id) ? '#007AFF' : '#ccc' }}>
+                    {selectedTrashIds.has(item.id) ? '☑' : '☐'}
+                  </Text>
+                </TouchableOpacity>
+                <View style={styles.fileInfo}>
+                  <View style={styles.thumbPlaceholder}><Text style={styles.thumbPlaceholderText}>🗑</Text></View>
+                  <View style={styles.fileDetails}>
+                    <Text style={styles.fileName} numberOfLines={1}>{item.name}</Text>
+                    <Text style={styles.fileSize}>{item.folderName || 'Root'} · {new Date(item.deletedAt).toLocaleDateString()}</Text>
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TouchableOpacity onPress={() => handleRestoreFile(item.id)}>
+                    <Text style={{ color: '#22c55e', fontSize: 13 }}>Restore</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handlePurgeFile(item.id)}>
+                    <Text style={{ color: '#ef4444', fontSize: 13 }}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>{trashLoading ? 'Loading…' : 'Trash is empty'}</Text>
+              </View>
+            }
+          />
+        </View>
+      ) : searchResults !== null ? (
+        /* Search results */
+        <FlatList
+          data={searchResults}
+          keyExtractor={(f: any) => f.id}
+          renderItem={({ item }: { item: any }) => (
+            <TouchableOpacity style={styles.fileRow} onPress={() => {
+              setSearchResults(null); setSearchQuery('');
+              if (item.folderId) setPath([{ id: item.folderId, name: item.folderName }]);
+            }}>
+              <View style={styles.fileInfo}>
+                <View style={styles.thumbPlaceholder}><Text style={styles.thumbPlaceholderText}>🔍</Text></View>
+                <View style={styles.fileDetails}>
+                  <Text style={styles.fileName} numberOfLines={1}>{item.name}</Text>
+                  <Text style={styles.fileSize}>{item.folderName || 'Root'} · {new Date(item.createdAt).toLocaleDateString()}</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          )}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>{searchLoading ? 'Searching…' : 'No matching files'}</Text>
+            </View>
+          }
+        />
+      ) : (
+        /* Normal file list */
+      <>
+      {selectedFileIds.size > 0 && (
+        <View style={styles.batchBar}>
+          <Text style={styles.batchBarText}>{selectedFileIds.size} selected</Text>
+          <TouchableOpacity onPress={handleBatchDelete}>
+            <Text style={[styles.batchBarAction, { color: '#ef4444' }]}>Delete</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setSelectedFileIds(new Set())}>
+            <Text style={styles.batchBarAction}>Deselect</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       <FlatList
         data={[...folders, ...files]}
         renderItem={renderItem}
@@ -1025,6 +1116,8 @@ export function HomeScreen() {
             : undefined
         }
       />
+      </>
+      )}
 
       {/* Modals */}
       <CreateFolderModal
@@ -1056,6 +1149,22 @@ export function HomeScreen() {
           onMoved={() => loadData()}
         />
       ) : null}
+
+      {shareTarget ? (
+        <ShareFileModal
+          file={shareTarget}
+          onClose={() => setShareTarget(null)}
+        />
+      ) : null}
+
+      <RenameFileModal
+        visible={renameFileTarget !== null}
+        file={renameFileTarget}
+        onClose={() => setRenameFileTarget(null)}
+        onRename={(name) => {
+          if (renameFileTarget) handleRenameFile(renameFileTarget, name);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -1321,6 +1430,68 @@ const styles = StyleSheet.create({
   actionDotsText: {
     fontSize: 20,
     color: '#666',
+  },
+
+  // Batch bar
+  batchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#f0f7ff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#d0e0f0',
+  },
+  batchBarText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#007AFF',
+    flex: 1,
+  },
+  batchBarAction: {
+    fontSize: 13,
+    color: '#333',
+    fontWeight: '500',
+  },
+
+  // Search bar
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+  },
+  searchClear: {
+    fontSize: 16,
+    color: '#999',
+    paddingLeft: 8,
+  },
+
+  // Empty trash
+  emptyTrashBtn: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ef4444',
+    alignItems: 'center',
+  },
+  emptyTrashText: {
+    color: '#ef4444',
+    fontSize: 14,
+    fontWeight: '500',
   },
 
   // Empty state
