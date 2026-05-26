@@ -43,11 +43,13 @@ model File {
   storageKey String
   size       BigInt
   mimeType   String?
+  deletedAt  DateTime?
   createdAt  DateTime @default(now())
   shares     Share[]
 
   @@index([userId])
   @@index([userId, folderId])
+  @@index([userId, deletedAt])
 }
 
 model Share {
