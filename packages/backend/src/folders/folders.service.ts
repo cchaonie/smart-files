@@ -25,6 +25,7 @@ export class FoldersService {
         where: {
           userId,
           folderId,
+          deletedAt: null,
         },
         orderBy: { createdAt: 'desc' },
         select: {
