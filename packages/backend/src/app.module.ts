@@ -7,6 +7,8 @@ import { UploadModule } from './upload/upload.module';
 import { FoldersModule } from './folders/folders.module';
 import { StaticModule } from './static/static.module';
 
+import { ShareModule } from './share/share.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -16,6 +18,7 @@ import { StaticModule } from './static/static.module';
     UploadModule,
     FoldersModule,
     StaticModule,
+    ShareModule,
   ],
 })
 export class AppModule {}
