@@ -13,3 +13,19 @@ export function isPreviewableImage(mimeType: string | null, name: string): boole
   const ext = name.split('.').pop()?.toLowerCase();
   return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '');
 }
+
+export function isPreviewableVideo(mimeType: string | null, name: string): boolean {
+  if (mimeType?.startsWith('video/')) return true;
+  const ext = name.split('.').pop()?.toLowerCase();
+  return ['mp4', 'webm', 'mov', 'avi', 'mkv'].includes(ext || '');
+}
+
+export function isPreviewableAudio(mimeType: string | null, name: string): boolean {
+  if (mimeType?.startsWith('audio/')) return true;
+  const ext = name.split('.').pop()?.toLowerCase();
+  return ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a'].includes(ext || '');
+}
+
+export function isPreviewable(mimeType: string | null, name: string): boolean {
+  return isPreviewableImage(mimeType, name) || isPreviewableVideo(mimeType, name) || isPreviewableAudio(mimeType, name);
+}

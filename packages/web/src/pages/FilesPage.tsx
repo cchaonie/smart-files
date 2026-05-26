@@ -1,14 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { filesApi, foldersApi } from '../api/files'
+import { sharesApi } from '../api/shares'
 import { uploadApi, CHUNK_SIZE } from '../api/upload'
 import type { FileItem, Folder, UploadProgress } from '../types'
-import { formatBytes, isPreviewableImage } from '@smart-files/shared/src/utils'
+import { formatBytes, isPreviewableImage, isPreviewableVideo, isPreviewableAudio, isPreviewable } from '@smart-files/shared/src/utils'
 
 function PreviewThumb({ file, onOpen }: { file: FileItem; onOpen: () => void }) {
   const [broken, setBroken] = useState(false);
 
-  if (!isPreviewableImage(file.mimeType, file.name)) {
+  const isVideo = isPreviewableVideo(file.mimeType, file.name);
+  const isAudio = isPreviewableAudio(file.mimeType, file.name);
+  const isImage = isPreviewableImage(file.mimeType, file.name);
+
+  if (!isImage && !isVideo && !isAudio) {
     return (
       <span className="inline-flex h-12 w-12 items-center justify-center text-zinc-400 dark:text-zinc-500">
         —
@@ -16,7 +21,7 @@ function PreviewThumb({ file, onOpen }: { file: FileItem; onOpen: () => void }) 
     );
   }
 
-  if (broken) {
+  if (broken && isImage) {
     return (
       <div
         className="h-12 w-12 shrink-0 rounded border border-zinc-200 bg-zinc-200 dark:border-zinc-600 dark:bg-zinc-700"
@@ -25,20 +30,28 @@ function PreviewThumb({ file, onOpen }: { file: FileItem; onOpen: () => void }) 
     );
   }
 
+  const icon = isVideo ? '\u25b6' : isAudio ? '\u266a' : null;
+
   return (
     <button
       type="button"
       onClick={onOpen}
       className="relative h-12 w-12 shrink-0 overflow-hidden rounded border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:border-zinc-600 dark:focus:ring-zinc-500"
-      title="Preview"
+      title={isVideo ? 'Play video' : isAudio ? 'Play audio' : 'Preview'}
     >
-      <img
-        src={filesApi.previewUrl(file.id)}
-        alt=""
-        loading="lazy"
-        className="h-full w-full object-cover"
-        onError={() => setBroken(true)}
-      />
+      {icon ? (
+        <span className="flex h-full w-full items-center justify-center bg-zinc-100 text-lg dark:bg-zinc-800">
+          {icon}
+        </span>
+      ) : (
+        <img
+          src={filesApi.previewUrl(file.id)}
+          alt=""
+          loading="lazy"
+          className="h-full w-full object-cover"
+          onError={() => setBroken(true)}
+        />
+      )}
     </button>
   );
 }
@@ -189,6 +202,223 @@ function MoveFileModal({
       </div>
     </div>
   );
+
+function ShareModal({ file, onClose }: { file: FileItem; onClose: () => void }) {
+  const [password, setPassword] = useState('');
+  const [expiry, setExpiry] = useState('never');
+  const [shareResult, setShareResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const shareUrl = shareResult
+    ? `${window.location.origin}/share/${shareResult}`
+    : '';
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  async function createShare() {
+    setLoading(true);
+    setError(null);
+    try {
+      const expiresMap: Record<string, number | undefined> = {
+        never: undefined,
+        '1h': 1,
+        '24h': 24,
+        '7d': 168,
+        '30d': 720,
+      };
+      const result = await sharesApi.create(file.id, {
+        password: password.trim() || undefined,
+        expiresInHours: expiresMap[expiry],
+      });
+      setShareResult(result.token);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to create share');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+    } catch {
+      // fallback
+      const input = document.createElement('input');
+      input.value = shareUrl;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-xl border border-zinc-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          Share file
+        </h3>
+        <p className="mb-4 truncate text-sm text-zinc-600 dark:text-zinc-400">
+          {file.name}
+        </p>
+
+        {!shareResult ? (
+          <>
+            <div className="mb-4">
+              <label className="mb-1 block text-xs text-zinc-600 dark:text-zinc-400">
+                Password protection (optional)
+              </label>
+              <input
+                type="text"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Leave empty for no password"
+                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-50"
+              />
+            </div>
+
+            <div className="mb-6">
+              <label className="mb-1 block text-xs text-zinc-600 dark:text-zinc-400">
+                Expires in
+              </label>
+              <select
+                value={expiry}
+                onChange={(e) => setExpiry(e.target.value)}
+                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-50"
+              >
+                <option value="never">Never</option>
+                <option value="1h">1 hour</option>
+                <option value="24h">24 hours</option>
+                <option value="7d">7 days</option>
+                <option value="30d">30 days</option>
+              </select>
+            </div>
+
+            {error ? (
+              <p className="mb-4 text-sm text-red-600 dark:text-red-400">{error}</p>
+            ) : null}
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600"
+                onClick={onClose}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                className="flex-1 rounded-lg bg-zinc-900 px-3 py-2 text-sm text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
+                onClick={() => void createShare()}
+              >
+                {loading ? 'Creating...' : 'Create link'}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="mb-4 rounded-lg bg-zinc-100 p-3 dark:bg-zinc-800">
+              <p className="mb-1 text-xs text-zinc-600 dark:text-zinc-400">
+                Share link:
+              </p>
+              <p className="break-all text-sm font-mono text-zinc-900 dark:text-zinc-50">
+                {shareUrl}
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600"
+                onClick={onClose}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                className="flex-1 rounded-lg bg-zinc-900 px-3 py-2 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900"
+                onClick={() => void copyLink()}
+              >
+                Copy link
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MediaPreview({ file, onClose }: { file: FileItem; onClose: () => void }) {
+  const url = filesApi.previewUrl(file.id);
+  const isVideo = isPreviewableVideo(file.mimeType, file.name);
+  const isAudio = isPreviewableAudio(file.mimeType, file.name);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <button
+        type="button"
+        className="absolute right-4 top-4 z-10 rounded-full bg-zinc-800/90 px-3 py-1 text-sm text-white hover:bg-zinc-700"
+        onClick={onClose}
+      >
+        Close
+      </button>
+
+      <div onClick={(e) => e.stopPropagation()} className="flex items-center justify-center">
+        {isVideo ? (
+          <video controls autoPlay className="max-h-[85vh] max-w-[90vw] rounded-lg shadow-2xl">
+            <source src={url} type={file.mimeType || 'video/mp4'} />
+            Your browser does not support video playback.
+          </video>
+        ) : isAudio ? (
+          <div className="rounded-xl bg-white px-8 py-12 shadow-2xl dark:bg-zinc-900">
+            <p className="mb-4 text-center text-sm text-zinc-600 dark:text-zinc-400">
+              {file.name}
+            </p>
+            <audio controls autoPlay className="w-80">
+              <source src={url} type={file.mimeType || 'audio/mpeg'} />
+              Your browser does not support audio playback.
+            </audio>
+          </div>
+        ) : (
+          <img
+            src={url}
+            alt={file.name}
+            className="max-h-[90vh] max-w-full object-contain shadow-2xl"
+          />
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function FilesPage() {
@@ -210,8 +440,98 @@ export function FilesPage() {
   const [parallelCount, setParallelCount] = useState(5);
   const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
   const [moveTarget, setMoveTarget] = useState<FileItem | null>(null);
+  const [shareTarget, setShareTarget] = useState<FileItem | null>(null);
+  const [viewingTrash, setViewingTrash] = useState(false);
+  const [trashFiles, setTrashFiles] = useState<Array<{
+    id: string; name: string; size: string; folderName: string | null;
+    deletedAt: string; folderId: string | null;
+  }> | null>(null);
+  const [trashLoading, setTrashLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Array<{
+    id: string; name: string; size: string; mimeType: string | null;
+    folderId: string | null; createdAt: string; folderName: string | null;
+  }> | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nextUploadId = useRef(0);
   const filesByItemId = useRef<Map<number, File>>(new Map());
+
+  // Multi-select state
+  const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
+  const [selectedUploadIds, setSelectedUploadIds] = useState<Set<number>>(new Set());
+  const [selectedTrashIds, setSelectedTrashIds] = useState<Set<string>>(new Set());
+
+  function toggleFileSelect(id: string) {
+    setSelectedFileIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAllFiles() {
+    setSelectedFileIds(prev => 
+      prev.size === files.length ? new Set() : new Set(files.map(f => f.id))
+    );
+  }
+
+  function toggleUploadSelect(id: number) {
+    setSelectedUploadIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleTrashSelect(id: string) {
+    setSelectedTrashIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function clearAllSelections() {
+    setSelectedFileIds(new Set());
+    setSelectedUploadIds(new Set());
+    setSelectedTrashIds(new Set());
+  }
+
+  async function handleBatchDelete() {
+    if (!confirm(`Delete ${selectedFileIds.size} file(s)?`)) return;
+    try {
+      await filesApi.batchDelete(Array.from(selectedFileIds));
+      setSelectedFileIds(new Set());
+      await loadBrowse();
+    } catch (err) { alert(err instanceof Error ? err.message : 'Batch delete failed'); }
+  }
+
+  async function handleBatchRestore() {
+    try {
+      await filesApi.batchRestore(Array.from(selectedTrashIds));
+      setSelectedTrashIds(new Set());
+      await loadTrash();
+    } catch (err) { alert(err instanceof Error ? err.message : 'Batch restore failed'); }
+  }
+
+  async function handleBatchPurge() {
+    if (!confirm(`Permanently delete ${selectedTrashIds.size} file(s)? This cannot be undone.`)) return;
+    try {
+      await filesApi.batchPurge(Array.from(selectedTrashIds));
+      setSelectedTrashIds(new Set());
+      await loadTrash();
+    } catch (err) { alert(err instanceof Error ? err.message : 'Batch purge failed'); }
+  }
+
+  // Escape to deselect
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') clearAllSelections();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const loadBrowse = useCallback(async () => {
     setListError(null);
@@ -232,6 +552,80 @@ export function FilesPage() {
   useEffect(() => {
     void loadBrowse();
   }, [loadBrowse]);
+
+  async function doSearch(q: string) {
+    const trimmed = q.trim();
+    if (!trimmed) {
+      setSearchResults(null);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    try {
+      const results = await filesApi.search(trimmed);
+      setSearchResults(results);
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  }
+
+  function handleSearchChange(value: string) {
+    setSearchQuery(value);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => doSearch(value), 300);
+  }
+
+  function clearSearch() {
+    setSearchQuery('');
+    setSearchResults(null);
+    setSearchLoading(false);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+  }
+
+  async function loadTrash() {
+    setTrashLoading(true);
+    try {
+      const files = await filesApi.listTrash();
+      setTrashFiles(files);
+    } catch {
+      setTrashFiles([]);
+    } finally {
+      setTrashLoading(false);
+    }
+  }
+
+  async function handleRestore(id: string) {
+    try {
+      await filesApi.restoreFile(id);
+      await loadTrash();
+      // Also refresh main list if not in trash view
+      if (!viewingTrash) await loadBrowse();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Restore failed');
+    }
+  }
+
+  async function handlePurge(id: string) {
+    if (!confirm('Permanently delete this file? This cannot be undone.')) return;
+    try {
+      await filesApi.purgeFile(id);
+      await loadTrash();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Delete failed');
+    }
+  }
+
+  async function handleEmptyTrash() {
+    if (!confirm('Permanently delete ALL files in trash? This cannot be undone.')) return;
+    try {
+      await filesApi.emptyTrash();
+      await loadTrash();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Empty trash failed');
+    }
+  }
 
   useEffect(() => {
     if (!previewFile) return;
@@ -282,45 +676,11 @@ export function FilesPage() {
       await foldersApi.deleteFolder(folder.id);
       setPath((p) => p.filter((seg) => seg.id !== folder.id));
       await loadBrowse();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Delete failed');
-    }
-  }
+ 
 
-  async function runUpload(file: File, itemId: number) {
-    const updateItem = (patch: Partial<UploadProgress>) =>
-      setUploadItems((prev) =>
-        prev.map((it) => (it.id === itemId ? { ...it, ...patch } : it))
-      );
+... [OUTPUT TRUNCATED - 643 chars omitted out of 50643 total] ...
 
-    updateItem({ status: 'uploading', progress: 0 });
 
-    const totalSize = file.size;
-    const folderKey = currentParentId ?? 'root';
-    const persistKey = `smart-files-upload:${folderKey}:${file.name}:${file.size}`;
-    persistKeyRef.current.set(itemId, persistKey);
-    let uploadId: string;
-    let chunkSize = CHUNK_SIZE;
-    let totalChunks: number;
-
-    try {
-      const existingId = sessionStorage.getItem(persistKey);
-      if (existingId) {
-        try {
-          const existing = await uploadApi.getSession(existingId);
-          uploadId = existingId;
-          chunkSize = existing.chunkSize;
-          totalChunks = existing.totalChunks;
-        } catch {
-          sessionStorage.removeItem(persistKey);
-          const created = await uploadApi.createSession(
-            file.name,
-            totalSize,
-            currentParentId || undefined
-          );
-          uploadId = created.uploadId;
-          chunkSize = created.chunkSize;
-          totalChunks = created.totalChunks;
           sessionStorage.setItem(persistKey, uploadId);
         }
       } else {
@@ -499,6 +859,16 @@ export function FilesPage() {
         <button
           type="button"
           onClick={() => {
+            setViewingTrash(!viewingTrash);
+            if (!viewingTrash) loadTrash();
+          }}
+          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+        >
+          {viewingTrash ? '← Files' : '🗑️ Trash'}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
             logout();
             window.location.href = '/';
           }}
@@ -529,6 +899,145 @@ export function FilesPage() {
           </span>
         ))}
       </nav>
+
+      <div className="relative">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); doSearch(searchQuery); } }}
+          placeholder="Search files…"
+          className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 pl-10 text-sm text-zinc-900 placeholder-zinc-400 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-50 dark:placeholder-zinc-500"
+        />
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500">🔍</span>
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={clearSearch}
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      {viewingTrash ? (
+        <section className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-6 dark:border-zinc-700 dark:bg-zinc-900/40">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-medium text-zinc-900 dark:text-zinc-50">
+              🗑️ Trash
+            </h2>
+            {trashFiles && trashFiles.length > 0 && (
+              <button
+                type="button"
+                onClick={() => void handleEmptyTrash()}
+                className="rounded-lg border border-red-300 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"
+              >
+                Empty trash
+              </button>
+            )}
+          </div>
+          {trashLoading ? (
+            <p className="text-sm text-zinc-500">Loading…</p>
+          ) : !trashFiles || trashFiles.length === 0 ? (
+            <p className="text-sm text-zinc-500">Trash is empty.</p>
+          ) : (
+            <>
+            {selectedTrashIds.size > 0 && (
+              <div className="mb-3 flex items-center gap-3 rounded-lg border border-zinc-300 bg-zinc-100 px-4 py-2 dark:border-zinc-600 dark:bg-zinc-800">
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                  {selectedTrashIds.size} selected
+                </span>
+                <button
+                  type="button"
+                  className="text-sm text-green-600 underline dark:text-green-400"
+                  onClick={() => void handleBatchRestore()}
+                >
+                  Restore
+                </button>
+                <button
+                  type="button"
+                  className="text-sm text-red-600 underline dark:text-red-400"
+                  onClick={() => void handleBatchPurge()}
+                >
+                  Delete permanently
+                </button>
+                <button
+                  type="button"
+                  className="text-sm text-zinc-600 underline dark:text-zinc-400"
+                  onClick={() => setSelectedTrashIds(new Set())}
+                >
+                  Deselect
+                </button>
+              </div>
+            )}
+            <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
+              <table className="w-full min-w-[36rem] text-left text-sm">
+                <thead className="bg-zinc-50 dark:bg-zinc-900">
+                  <tr>
+                    <th className="w-10 px-4 py-2"></th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">Name</th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">Folder</th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">Size</th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">Deleted</th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {trashFiles.map((f) => (
+                    <tr key={f.id} className={`border-t border-zinc-100 dark:border-zinc-800 ${
+                      selectedTrashIds.has(f.id) ? 'bg-zinc-100 dark:bg-zinc-800' : ''
+                    }`}>
+                      <td className="px-4 py-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedTrashIds.has(f.id)}
+                          onChange={() => toggleTrashSelect(f.id)}
+                          className="h-4 w-4 rounded"
+                        />
+                      </td>
+                      <td className="px-4 py-2 text-zinc-900 dark:text-zinc-100">{f.name}</td>
+                      <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
+                        {f.folderName || 'Root'}
+                      </td>
+                      <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
+                        {formatBytes(BigInt(f.size))}
+                      </td>
+                      <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
+                        {new Date(f.deletedAt).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-2">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            className="text-green-600 underline dark:text-green-400"
+                            onClick={() => void handleRestore(f.id)}
+                          >
+                            Restore
+                          </button>
+                          <button
+                            type="button"
+                            className="text-red-600 underline dark:text-red-400"
+                            onClick={() => void handlePurge(f.id)}
+                          >
+                            Delete permanently
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+            </>
+          )}
+        </section>
+      ) : (
+      <>
+
+      {searchResults === null ? (
+      <>
 
       <section className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
         <form className="flex flex-wrap items-end gap-2" onSubmit={createFolder}>
@@ -601,7 +1110,13 @@ export function FilesPage() {
             </div>
             {uploadItems.map((item) => (
               <div key={item.id} className="space-y-1">
-                <div className="flex justify-between text-xs text-zinc-600 dark:text-zinc-400">
+                <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
+                  <input
+                    type="checkbox"
+                    checked={selectedUploadIds.has(item.id)}
+                    onChange={() => toggleUploadSelect(item.id)}
+                    className="h-3.5 w-3.5 rounded"
+                  />
                   <span className="truncate pr-2">
                     {item.status === 'done'
                       ? 'Done'
@@ -706,9 +1221,38 @@ export function FilesPage() {
           <p className="text-sm text-zinc-500">This folder is empty.</p>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
+            {selectedFileIds.size > 0 && (
+              <div className="mb-3 flex items-center gap-3 rounded-lg border border-zinc-300 bg-zinc-100 px-4 py-2 dark:border-zinc-600 dark:bg-zinc-800">
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                  {selectedFileIds.size} selected
+                </span>
+                <button
+                  type="button"
+                  className="text-sm text-red-600 underline dark:text-red-400"
+                  onClick={() => void handleBatchDelete()}
+                >
+                  Delete
+                </button>
+                <button
+                  type="button"
+                  className="text-sm text-zinc-600 underline dark:text-zinc-400"
+                  onClick={clearAllSelections}
+                >
+                  Deselect all
+                </button>
+              </div>
+            )}
             <table className="w-full min-w-[36rem] text-left text-sm">
               <thead className="bg-zinc-50 dark:bg-zinc-900">
                 <tr>
+                  <th className="w-10 px-4 py-2">
+                    <input
+                      type="checkbox"
+                      checked={files.length > 0 && selectedFileIds.size === files.length}
+                      onChange={toggleSelectAllFiles}
+                      className="h-4 w-4 rounded"
+                    />
+                  </th>
                   <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
                     Preview
                   </th>
@@ -778,8 +1322,18 @@ export function FilesPage() {
                 {files.map((f) => (
                   <tr
                     key={f.id}
-                    className="border-t border-zinc-100 dark:border-zinc-800"
+                    className={`border-t border-zinc-100 dark:border-zinc-800 ${
+                      selectedFileIds.has(f.id) ? 'bg-zinc-100 dark:bg-zinc-800' : ''
+                    }`}
                   >
+                    <td className="px-4 py-2 align-middle">
+                      <input
+                        type="checkbox"
+                        checked={selectedFileIds.has(f.id)}
+                        onChange={() => toggleFileSelect(f.id)}
+                        className="h-4 w-4 rounded"
+                      />
+                    </td>
                     <td className="px-4 py-2 align-middle">
                       <PreviewThumb file={f} onOpen={() => setPreviewFile(f)} />
                     </td>
@@ -794,7 +1348,7 @@ export function FilesPage() {
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex flex-wrap gap-2">
-                        {isPreviewableImage(f.mimeType, f.name) ? (
+                        {isPreviewable(f.mimeType, f.name) ? (
                           <button
                             type="button"
                             className="text-zinc-900 underline dark:text-zinc-100"
@@ -803,6 +1357,13 @@ export function FilesPage() {
                             Preview
                           </button>
                         ) : null}
+                        <button
+                          type="button"
+                          className="text-zinc-700 underline dark:text-zinc-300"
+                          onClick={() => setShareTarget(f)}
+                        >
+                          Share
+                        </button>
                         <button
                           type="button"
                           className="text-zinc-700 underline dark:text-zinc-300"
@@ -817,6 +1378,18 @@ export function FilesPage() {
                         >
                           Download
                         </a>
+                        <button
+                          type="button"
+                          className="text-zinc-700 underline dark:text-zinc-300"
+                          onClick={() => {
+                            const name = window.prompt('New name', f.name);
+                            if (name && name.trim()) {
+                              filesApi.renameFile(f.id, name.trim()).then(() => loadBrowse());
+                            }
+                          }}
+                        >
+                          Rename
+                        </button>
                         <button
                           type="button"
                           className="text-red-600 underline dark:text-red-400"
@@ -834,29 +1407,9 @@ export function FilesPage() {
         )}
       </section>
 
-      {previewFile ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Image preview"
-          onClick={() => setPreviewFile(null)}
-        >
-          <button
-            type="button"
-            className="absolute right-4 top-4 rounded-full bg-zinc-800/90 px-3 py-1 text-sm text-white hover:bg-zinc-700 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-white"
-            onClick={() => setPreviewFile(null)}
-          >
-            Close
-          </button>
-          <img
-            src={filesApi.previewUrl(previewFile.id)}
-            alt={previewFile.name}
-            className="max-h-[90vh] max-w-full object-contain shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      ) : null}
+      {shareTarget && <ShareModal file={shareTarget} onClose={() => setShareTarget(null)} />}
+
+      {previewFile && <MediaPreview file={previewFile} onClose={() => setPreviewFile(null)} />}
 
       {moveTarget ? (
         <MoveFileModal
@@ -865,6 +1418,107 @@ export function FilesPage() {
           onMoved={() => void loadBrowse()}
         />
       ) : null}
+
+      </>
+      ) : (
+        <section>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-lg font-medium text-zinc-900 dark:text-zinc-50">
+              Search results
+            </h2>
+            <button
+              type="button"
+              onClick={clearSearch}
+              className="text-sm text-zinc-600 underline dark:text-zinc-400"
+            >
+              Clear search
+            </button>
+          </div>
+          {searchLoading ? (
+            <p className="text-sm text-zinc-500">Searching…</p>
+          ) : searchResults.length === 0 ? (
+            <p className="text-sm text-zinc-500">No matching files found.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
+              <table className="w-full min-w-[36rem] text-left text-sm">
+                <thead className="bg-zinc-50 dark:bg-zinc-900">
+                  <tr>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
+                      Name
+                    </th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
+                      Folder
+                    </th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
+                      Size
+                    </th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
+                      Added
+                    </th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {searchResults.map((f) => (
+                    <tr
+                      key={f.id}
+                      className="border-t border-zinc-100 dark:border-zinc-800"
+                    >
+                      <td className="px-4 py-2 text-zinc-900 dark:text-zinc-100">
+                        {f.name}
+                      </td>
+                      <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
+                        {f.folderName ? (
+                          <button
+                            type="button"
+                            className="underline hover:text-zinc-900 dark:hover:text-zinc-200"
+                            onClick={() => {
+                              // Navigate to the folder if we have folderId
+                              // We don't have full path, but we can reset and use folder info
+                              if (f.folderId) {
+                                // Set path to navigate into the folder
+                                // This is a simple approach: just set the folder
+                                setSearchResults(null);
+                                setSearchQuery('');
+                                setPath([{ id: f.folderId, name: f.folderName }]);
+                              }
+                            }}
+                          >
+                            {f.folderName}
+                          </button>
+                        ) : (
+                          <span className="text-zinc-400">Root</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
+                        {formatBytes(BigInt(f.size))}
+                      </td>
+                      <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
+                        {new Date(f.createdAt).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-2">
+                        <div className="flex flex-wrap gap-2">
+                          <a
+                            href={filesApi.downloadUrl(f.id)}
+                            className="text-zinc-900 underline dark:text-zinc-100"
+                            download={f.name}
+                          >
+                            Download
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+      </>
+      )}
     </div>
   );
 }
