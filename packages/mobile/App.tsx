@@ -1,4 +1,6 @@
 import React from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { I18nProvider } from '@smart-files/shared/src/i18n';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ConfigProvider, useConfig } from './src/context/ConfigContext';
@@ -39,12 +41,19 @@ function AppNavigator() {
   );
 }
 
+const asyncStorage = {
+  getItem: (key: string) => AsyncStorage.getItem(key),
+  setItem: (key: string, value: string) => AsyncStorage.setItem(key, value),
+};
+
 export default function App() {
   return (
-    <ConfigProvider>
-      <AuthProvider>
-        <AppNavigator />
-      </AuthProvider>
-    </ConfigProvider>
+    <I18nProvider storage={asyncStorage}>
+      <ConfigProvider>
+        <AuthProvider>
+          <AppNavigator />
+        </AuthProvider>
+      </ConfigProvider>
+    </I18nProvider>
   );
 }

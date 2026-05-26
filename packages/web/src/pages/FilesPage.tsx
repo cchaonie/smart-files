@@ -5,6 +5,8 @@ import { sharesApi } from '../api/shares'
 import { uploadApi, CHUNK_SIZE } from '../api/upload'
 import type { FileItem, Folder, UploadProgress } from '../types'
 import { formatBytes, isPreviewableImage, isPreviewableVideo, isPreviewableAudio, isPreviewable } from '@smart-files/shared/src/utils'
+import { useI18n, tFormat } from '@smart-files/shared/src/i18n'
+import { LangSwitcher } from '../components/LangSwitcher'
 
 function PreviewThumb({ file, onOpen }: { file: FileItem; onOpen: () => void }) {
   const [broken, setBroken] = useState(false);
@@ -25,7 +27,7 @@ function PreviewThumb({ file, onOpen }: { file: FileItem; onOpen: () => void }) 
     return (
       <div
         className="h-12 w-12 shrink-0 rounded border border-zinc-200 bg-zinc-200 dark:border-zinc-600 dark:bg-zinc-700"
-        title="Preview unavailable"
+        title={t.previewUnavailable}
       />
     );
   }
@@ -37,7 +39,7 @@ function PreviewThumb({ file, onOpen }: { file: FileItem; onOpen: () => void }) 
       type="button"
       onClick={onOpen}
       className="relative h-12 w-12 shrink-0 overflow-hidden rounded border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:border-zinc-600 dark:focus:ring-zinc-500"
-      title={isVideo ? 'Play video' : isAudio ? 'Play audio' : 'Preview'}
+      title={isVideo ? t.playVideo : isAudio ? t.playAudio : t.preview}
     >
       {icon ? (
         <span className="flex h-full w-full items-center justify-center bg-zinc-100 text-lg dark:bg-zinc-800">
@@ -119,7 +121,7 @@ function MoveFileModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       role="dialog"
       aria-modal="true"
-      aria-label="Move file"
+      aria-label={t.moveFileTitle}
       onClick={onClose}
     >
       <div
@@ -128,20 +130,20 @@ function MoveFileModal({
       >
         <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-            Move file
+            {t.moveFileTitle}
           </h3>
           <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
             {file.name}
           </p>
         </div>
         <div className="border-b border-zinc-100 px-4 py-2 text-xs dark:border-zinc-800">
-          <span className="text-zinc-500">Into: </span>
+          <span className="text-zinc-500">{t.into}</span>
           <button
             type="button"
             className="text-zinc-900 underline dark:text-zinc-100"
             onClick={() => setModalPath([])}
           >
-            Root
+            {t.root}
           </button>
           {modalPath.map((seg, i) => (
             <span key={seg.id}>
@@ -158,9 +160,9 @@ function MoveFileModal({
         </div>
         <div className="max-h-48 overflow-y-auto px-2 py-2">
           {loading ? (
-            <p className="px-2 py-2 text-sm text-zinc-500">Loading…</p>
+            <p className="px-2 py-2 text-sm text-zinc-500">{t.loadingElipsis}</p>
           ) : folders.length === 0 ? (
-            <p className="px-2 py-2 text-sm text-zinc-500">No subfolders</p>
+            <p className="px-2 py-2 text-sm text-zinc-500">{t.noSubfolders}</p>
           ) : (
             <ul className="space-y-1">
               {folders.map((f) => (
@@ -188,7 +190,7 @@ function MoveFileModal({
             className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-600"
             onClick={onClose}
           >
-            Cancel
+            {t.cancel}
           </button>
           <button
             type="button"
@@ -272,7 +274,7 @@ function ShareModal({ file, onClose }: { file: FileItem; onClose: () => void }) 
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-          Share file
+          {t.shareFile}
         </h3>
         <p className="mb-4 truncate text-sm text-zinc-600 dark:text-zinc-400">
           {file.name}
@@ -288,7 +290,7 @@ function ShareModal({ file, onClose }: { file: FileItem; onClose: () => void }) 
                 type="text"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Leave empty for no password"
+                placeholder={t.noPassword}
                 className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-50"
               />
             </div>
@@ -302,11 +304,11 @@ function ShareModal({ file, onClose }: { file: FileItem; onClose: () => void }) 
                 onChange={(e) => setExpiry(e.target.value)}
                 className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-50"
               >
-                <option value="never">Never</option>
-                <option value="1h">1 hour</option>
-                <option value="24h">24 hours</option>
-                <option value="7d">7 days</option>
-                <option value="30d">30 days</option>
+                <option value="never">{t.never}</option>
+                <option value="1h">{t.oneHour}</option>
+                <option value="24h">{t.twentyFourHours}</option>
+                <option value="7d">{t.sevenDays}</option>
+                <option value="30d">{t.thirtyDays}</option>
               </select>
             </div>
 
@@ -328,7 +330,7 @@ function ShareModal({ file, onClose }: { file: FileItem; onClose: () => void }) 
                 className="flex-1 rounded-lg bg-zinc-900 px-3 py-2 text-sm text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
                 onClick={() => void createShare()}
               >
-                {loading ? 'Creating...' : 'Create link'}
+                {loading ? t.creatingLink : t.createLink}
               </button>
             </div>
           </>
@@ -349,7 +351,7 @@ function ShareModal({ file, onClose }: { file: FileItem; onClose: () => void }) 
                 className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600"
                 onClick={onClose}
               >
-                Close
+                {t.close}
               </button>
               <button
                 type="button"
@@ -391,14 +393,14 @@ function MediaPreview({ file, onClose }: { file: FileItem; onClose: () => void }
         className="absolute right-4 top-4 z-10 rounded-full bg-zinc-800/90 px-3 py-1 text-sm text-white hover:bg-zinc-700"
         onClick={onClose}
       >
-        Close
+        {t.close}
       </button>
 
       <div onClick={(e) => e.stopPropagation()} className="flex items-center justify-center">
         {isVideo ? (
           <video controls autoPlay className="max-h-[85vh] max-w-[90vw] rounded-lg shadow-2xl">
             <source src={url} type={file.mimeType || 'video/mp4'} />
-            Your browser does not support video playback.
+            {t.unsupportedVideo}
           </video>
         ) : isAudio ? (
           <div className="rounded-xl bg-white px-8 py-12 shadow-2xl dark:bg-zinc-900">
@@ -407,7 +409,7 @@ function MediaPreview({ file, onClose }: { file: FileItem; onClose: () => void }
             </p>
             <audio controls autoPlay className="w-80">
               <source src={url} type={file.mimeType || 'audio/mpeg'} />
-              Your browser does not support audio playback.
+              {t.unsupportedAudio}
             </audio>
           </div>
         ) : (
@@ -423,7 +425,8 @@ function MediaPreview({ file, onClose }: { file: FileItem; onClose: () => void }
 }
 
 export function FilesPage() {
-  const { logout } = useAuth();
+  const { logout } = useAuth()
+  const { t } = useI18n();
   const [path, setPath] = useState<{ id: string; name: string }[]>([]);
   const currentParentId = path.length === 0 ? null : path[path.length - 1].id;
 
@@ -500,7 +503,7 @@ export function FilesPage() {
   }
 
   async function handleBatchDelete() {
-    if (!confirm(`Delete ${selectedFileIds.size} file(s)?`)) return;
+    if (!confirm(tFormat(t.deleteConfirm, { n: selectedFileIds.size }))) return;
     try {
       await filesApi.batchDelete(Array.from(selectedFileIds));
       setSelectedFileIds(new Set());
@@ -517,7 +520,7 @@ export function FilesPage() {
   }
 
   async function handleBatchPurge() {
-    if (!confirm(`Permanently delete ${selectedTrashIds.size} file(s)? This cannot be undone.`)) return;
+    if (!confirm(tFormat(t.deleteSelectedConfirm, { n: selectedTrashIds.size }))) return;
     try {
       await filesApi.batchPurge(Array.from(selectedTrashIds));
       setSelectedTrashIds(new Set());
@@ -597,251 +600,11 @@ export function FilesPage() {
     }
   }
 
-  async function handleRestore(id: string) {
-    try {
-      await filesApi.restoreFile(id);
-      await loadTrash();
-      // Also refresh main list if not in trash view
-      if (!viewingTrash) await loadBrowse();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Restore failed');
-    }
-  }
+ 
 
-  async function handlePurge(id: string) {
-    if (!confirm('Permanently delete this file? This cannot be undone.')) return;
-    try {
-      await filesApi.purgeFile(id);
-      await loadTrash();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Delete failed');
-    }
-  }
+... [OUTPUT TRUNCATED - 7204 chars omitted out of 57204 total] ...
 
-  async function handleEmptyTrash() {
-    if (!confirm('Permanently delete ALL files in trash? This cannot be undone.')) return;
-    try {
-      await filesApi.emptyTrash();
-      await loadTrash();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Empty trash failed');
-    }
-  }
-
-  useEffect(() => {
-    if (!previewFile) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setPreviewFile(null);
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [previewFile]);
-
-  async function createFolder(e: React.FormEvent) {
-    e.preventDefault();
-    const name = newFolderName.trim();
-    if (!name) return;
-    try {
-      await foldersApi.createFolder({ name, parentId: currentParentId || undefined });
-      setNewFolderName('');
-      await loadBrowse();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to create folder');
-    }
-  }
-
-  async function renameFolder(folder: Folder) {
-    const name = window.prompt('New folder name', folder.name);
-    if (name === null) return;
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    try {
-      await foldersApi.renameFolder(folder.id, trimmed);
-      setPath((p) =>
-        p.map((seg) => (seg.id === folder.id ? { ...seg, name: trimmed } : seg))
-      );
-      await loadBrowse();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Rename failed');
-    }
-  }
-
-  async function deleteFolder(folder: Folder) {
-    if (
-      !confirm(
-        `Delete folder "${folder.name}"? Only empty folders can be removed.`
-      )
-    )
-      return;
-    try {
-      await foldersApi.deleteFolder(folder.id);
-      setPath((p) => p.filter((seg) => seg.id !== folder.id));
-      await loadBrowse();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Delete failed');
-    }
-  }
-
-  async function runUpload(file: File, itemId: number) {
-    const updateItem = (patch: Partial<UploadProgress>) => {
-      setUploadItems((prev) =>
-        prev.map((it) => (it.id === itemId ? { ...it, ...patch } : it))
-      );
-    };
-
-    setUploadItems((prev) =>
-      prev.map((it) => (it.id === itemId ? { ...it, status: 'uploading' } : it))
-    );
-
-    const totalSize = file.size;
-    let uploadId: string;
-    let chunkSize: number;
-    let totalChunks: number;
-
-    const persistKey = `upload:${itemId}`;
-    persistKeyRef.current.set(itemId, persistKey);
-
-    try {
-      const existing = sessionStorage.getItem(persistKey);
-      if (existing) {
-        uploadId = existing;
-        const status = await uploadApi.getSession(uploadId);
-        chunkSize = status.chunkSize;
-        totalChunks = status.totalChunks;
-        if (status.receivedIndexes.length !== status.totalChunks) {
-          sessionStorage.setItem(persistKey, uploadId);
-        }
-      } else {
-        const created = await uploadApi.createSession(
-          file.name,
-          totalSize,
-          currentParentId || undefined
-        );
-        uploadId = created.uploadId;
-        chunkSize = created.chunkSize;
-        totalChunks = created.totalChunks;
-        sessionStorage.setItem(persistKey, uploadId);
-      }
-    } catch (e) {
-      updateItem({
-        status: 'error',
-        error: e instanceof Error ? e.message : 'Session failed',
-      });
-      return;
-    }
-
-    const uploadAllChunks = async () => {
-      for (;;) {
-        if (abortRef.current) throw new Error('Aborted');
-
-        while (pausedRef.current) {
-          await new Promise((r) => setTimeout(r, 200));
-          if (abortRef.current) throw new Error('Aborted');
-        }
-
-        const status = await uploadApi.getSession(uploadId);
-
-        const received = new Set(status.receivedIndexes);
-        const missing: number[] = [];
-        for (let i = 0; i < status.totalChunks; i++) {
-          if (!received.has(i)) missing.push(i);
-        }
-
-        if (missing.length === 0) break;
-
-        let doneCount = received.size;
-
-        for (const index of missing) {
-          while (pausedRef.current) {
-            await new Promise((r) => setTimeout(r, 200));
-            if (abortRef.current) throw new Error('Aborted');
-          }
-
-          const start = index * chunkSize;
-          const end = Math.min(start + chunkSize, file.size);
-          const blob = file.slice(start, end);
-          const buf = await blob.arrayBuffer();
-
-          await uploadApi.uploadChunk(uploadId, index, buf);
-
-          doneCount += 1;
-          updateItem({ progress: Math.round((doneCount / totalChunks) * 100) });
-        }
-      }
-    };
-
-    try {
-      await uploadAllChunks();
-
-      await uploadApi.completeUpload(uploadId, file.type || undefined);
-
-      sessionStorage.removeItem(persistKey);
-      persistKeyRef.current.delete(itemId);
-      updateItem({ status: 'done', progress: 100 });
-    } catch (e) {
-      if ((e as Error).message !== 'Aborted') {
-        updateItem({
-          status: 'error',
-          error: e instanceof Error ? e.message : 'Upload failed',
-        });
-      } else {
-        updateItem({ status: 'error', error: 'Cancelled' });
-      }
-    } finally {
-      persistKeyRef.current.delete(itemId);
-    }
-  }
-
-  async function runUploadQueue(files: File[]) {
-    pausedRef.current = false;
-    abortRef.current = false;
-
-    const items: UploadProgress[] = files.map((f) => ({
-      id: nextUploadId.current++,
-      name: f.name,
-      progress: 0,
-      status: 'pending' as const,
-    }));
-    items.forEach((item, i) => filesByItemId.current.set(item.id, files[i]));
-    setUploadItems((prev) => [...prev, ...items]);
-
-    const queue = items.map((item, index) => ({ item, file: files[index] }));
-    let index = 0;
-
-    const processNext = async () => {
-      while (index < queue.length) {
-        if (abortRef.current) {
-          const remainingIndex = index;
-          setUploadItems((prev) =>
-            prev.map((it) =>
-              queue.slice(remainingIndex).some((q) => q.item.id === it.id) &&
-              it.status === 'pending'
-                ? { ...it, status: 'error', error: 'Cancelled' }
-                : it
-            )
-          );
-          return;
-        }
-
-        const { item, file } = queue[index++];
-        if (item.status === 'pending') {
-          await runUpload(file, item.id);
-        }
-      }
-    };
-
-    const workers = Array(Math.min(parallelCount, queue.length))
-      .fill(null)
-      .map(() => processNext());
-
-    await Promise.all(workers);
-
-    await loadBrowse();
-  }
-
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const fileList = e.target.files;
     const files = fileList && fileList.length > 0 ? Array.from(fileList) : [];
 
@@ -862,7 +625,7 @@ export function FilesPage() {
   }
 
   async function removeFile(id: string) {
-    if (!confirm('Delete this file?')) return;
+    if (!confirm(t.deleteFile)) return;
     try {
       await filesApi.deleteFile(id);
       await loadBrowse();
@@ -892,7 +655,7 @@ export function FilesPage() {
           }}
           className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
         >
-          {viewingTrash ? '← Files' : '🗑️ Trash'}
+          {viewingTrash ? `← ${t.backToFiles}` : `🗑️ ${t.trash}`}
         </button>
         <button
           type="button"
@@ -912,7 +675,7 @@ export function FilesPage() {
           className="font-medium text-zinc-900 underline dark:text-zinc-100"
           onClick={() => setPath([])}
         >
-          Root
+          {t.root}
         </button>
         {path.map((seg, i) => (
           <span key={seg.id} className="flex items-center gap-1">
@@ -934,7 +697,7 @@ export function FilesPage() {
           value={searchQuery}
           onChange={(e) => handleSearchChange(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); doSearch(searchQuery); } }}
-          placeholder="Search files…"
+          placeholder={t.searchPlaceholder}
           className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 pl-10 text-sm text-zinc-900 placeholder-zinc-400 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-50 dark:placeholder-zinc-500"
         />
         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500">🔍</span>
@@ -966,9 +729,9 @@ export function FilesPage() {
             )}
           </div>
           {trashLoading ? (
-            <p className="text-sm text-zinc-500">Loading…</p>
+            <p className="text-sm text-zinc-500">{t.loadingElipsis}</p>
           ) : !trashFiles || trashFiles.length === 0 ? (
-            <p className="text-sm text-zinc-500">Trash is empty.</p>
+            <p className="text-sm text-zinc-500">{t.trashEmpty}</p>
           ) : (
             <>
             {selectedTrashIds.size > 0 && (
@@ -1004,11 +767,11 @@ export function FilesPage() {
                 <thead className="bg-zinc-50 dark:bg-zinc-900">
                   <tr>
                     <th className="w-10 px-4 py-2"></th>
-                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">Name</th>
-                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">Folder</th>
-                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">Size</th>
-                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">Deleted</th>
-                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">Actions</th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">{t.colName}</th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">{t.colFolder}</th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">{t.colSize}</th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">{t.colDeleted}</th>
+                    <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">{t.colActions}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1243,7 +1006,7 @@ export function FilesPage() {
         </div>
         {listError ? <p className="text-sm text-red-600">{listError}</p> : null}
         {loading ? (
-          <p className="text-sm text-zinc-500">Loading…</p>
+          <p className="text-sm text-zinc-500">{t.loadingElipsis}</p>
         ) : empty ? (
           <p className="text-sm text-zinc-500">This folder is empty.</p>
         ) : (
@@ -1516,7 +1279,7 @@ export function FilesPage() {
                             {f.folderName}
                           </button>
                         ) : (
-                          <span className="text-zinc-400">Root</span>
+                          <span className="text-zinc-400">{t.root}</span>
                         )}
                       </td>
                       <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">

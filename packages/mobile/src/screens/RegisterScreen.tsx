@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
+import { useI18n } from '@smart-files/shared/src/i18n';
 import { getApiErrorMessage, isNetworkError } from '../config/api';
 
 export function RegisterScreen({ navigation }: { navigation: any }) {
@@ -18,15 +19,16 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
   const [isLoading, setIsLoading] = useState(false);
   const { register } = useAuth();
   const { apiUrl } = useConfig();
+  const { t } = useI18n();
 
   const handleRegister = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter email and password');
+      Alert.alert(t.error, t.enterCredentials);
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      Alert.alert(t.error, t.passwordMinLength);
       return;
     }
 
@@ -37,18 +39,18 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
       const message = getApiErrorMessage(error);
       if (isNetworkError(error)) {
         Alert.alert(
-          'Cannot Connect to Server',
+          t.cannotConnect,
           `Unable to reach the backend at:\n${apiUrl}\n\n${message}\n\nTap "Configure Server" below to set the correct URL.`,
           [
             { text: 'OK', style: 'cancel' },
             {
-              text: 'Configure Server',
+              text: t.configureServer,
               onPress: () => navigation.navigate('ServerConfig'),
             },
           ]
         );
       } else {
-        Alert.alert('Registration Failed', message);
+        Alert.alert(t.registrationFailed, message);
       }
     } finally {
       setIsLoading(false);
@@ -57,19 +59,19 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Create Account</Text>
-      <Text style={styles.subtitle}>Sign up for Smart Files</Text>
+      <Text style={styles.title}>{t.createAccount}</Text>
+      <Text style={styles.subtitle}>{t.registerSubtitle}</Text>
 
       <TextInput
         style={styles.input}
-        placeholder="Name (optional)"
+        placeholder={t.nameOptional}
         value={name}
         onChangeText={setName}
       />
 
       <TextInput
         style={styles.input}
-        placeholder="Email"
+        placeholder={t.email}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -78,7 +80,7 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
 
       <TextInput
         style={styles.input}
-        placeholder="Password"
+        placeholder={t.password}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -90,21 +92,21 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
         disabled={isLoading}
       >
         <Text style={styles.buttonText}>
-          {isLoading ? 'Creating account...' : 'Sign Up'}
+          {isLoading ? t.creating : t.signUp}
         </Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-        <Text style={styles.link}>Already have an account? Sign in</Text>
+        <Text style={styles.link}>{t.hasAccountMobile}</Text>
       </TouchableOpacity>
 
       <View style={styles.divider} />
 
       <TouchableOpacity onPress={() => navigation.navigate('ServerConfig')}>
         <Text style={styles.configLink}>
-          Server: {apiUrl || 'loading...'}
+          {t.serverLabel}: {apiUrl || 'loading...'}
         </Text>
-        <Text style={styles.configSubtext}>Tap to configure</Text>
+        <Text style={styles.configSubtext}>{t.tapToConfigure}</Text>
       </TouchableOpacity>
     </View>
   );
