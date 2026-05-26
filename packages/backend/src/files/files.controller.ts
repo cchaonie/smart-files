@@ -1,9 +1,10 @@
-import { Controller, Get, Delete, Param, UseGuards, Query, Res } from '@nestjs/common';
+import { Controller, Get, Delete, Param, UseGuards, Query, Res, Req, Patch, Body } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import { FilesService } from './files.service';
 import { JwtAuthGuard } from '../common/guards/jwt.guard';
 import { CurrentUser, UserEntity } from '../common/decorators/current-user.decorator';
+import { createReadStream } from 'fs';
 
 @ApiTags('Files')
 @ApiBearerAuth()
@@ -44,14 +45,33 @@ export class FilesController {
   }
 
   @Get(':id/preview')
-  @ApiOperation({ summary: 'Preview file (images)' })
+  @ApiOperation({ summary: 'Preview file (images, video, audio)' })
   async previewFile(
     @CurrentUser() user: UserEntity,
     @Param('id') id: string,
+    @Req() req: Request,
     @Res() res: Response,
   ) {
-    const { stream, mimeType } = await this.filesService.previewFile(user.id, id);
+    const { mimeType, size, path: filePath } = await this.filesService.previewFile(user.id, id);
+
+    const range = req.headers.range;
     if (mimeType) res.setHeader('Content-Type', mimeType);
-    stream.pipe(res);
+    res.setHeader('Accept-Ranges', 'bytes');
+
+    if (range && size) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : size - 1;
+      const chunkSize = end - start + 1;
+
+      res.status(206);
+      res.setHeader('Content-Range', `bytes ${start}-${end}/${size}`);
+      res.setHeader('Content-Length', chunkSize);
+      createReadStream(filePath, { start, end }).pipe(res);
+    } else {
+      if (size) res.setHeader('Content-Length', size);
+      const { stream } = await this.filesService.previewFile(user.id, id);
+      stream.pipe(res);
+    }
   }
 }

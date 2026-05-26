@@ -100,6 +100,8 @@ export class FilesService {
     return {
       stream: createReadStream(filePath),
       mimeType: file.mimeType,
+      size: Number(file.size),
+      path: filePath,
     };
   }
 }
