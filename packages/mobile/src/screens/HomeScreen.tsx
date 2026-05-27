@@ -21,6 +21,8 @@ import type { FileItem, Folder, UploadProgress } from '../types';
 import UploadProgressRow from '../components/UploadProgressRow'
 import FilePreviewModal from '../components/FilePreviewModal'
 import ActionSheet, { type ActionItem } from '../components/ActionSheet'
+import RenameFileModal from '../components/RenameFileModal'
+import ShareFileModal from '../components/ShareFileModal'
 import MoveFileModal from '../components/MoveFileModal'
 import CreateFolderModal from '../components/CreateFolderModal'
 import RenameFolderModal from '../components/RenameFolderModal'
@@ -79,6 +81,10 @@ export function HomeScreen() {
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [actionSheetTitle, setActionSheetTitle] = useState('');
   const [actionSheetActions, setActionSheetActions] = useState<ActionItem[]>([]);
+
+  // File rename / share state
+  const [renameFileTarget, setRenameFileTarget] = useState<FileItem | null>(null);
+  const [shareTarget, setShareTarget] = useState<FileItem | null>(null);
 
   const currentParentId =
     path.length === 0 ? null : path[path.length - 1].id;
@@ -193,6 +199,15 @@ export function HomeScreen() {
     ]);
   }
 
+  async function handleRenameFile(file: FileItem, name: string) {
+    try {
+      await filesApi.renameFile(file.id, name);
+      await loadData();
+    } catch (e) {
+      Alert.alert('Error', e instanceof Error ? e.message : 'Rename failed');
+    }
+  }
+
   function handleDownloadFile(file: FileItem) {
     const url = filesApi.downloadUrl(file.id);
     Linking.openURL(url).catch(() =>
@@ -205,7 +220,9 @@ export function HomeScreen() {
     setActionSheetTitle(file.name);
     const items: ActionItem[] = [
       { key: 'preview', label: isImage ? (t.preview || 'Preview') : (t.play || 'Play'), icon: isImage ? '🖼️' : '▶️', onPress: () => setPreviewFile(file) },
+      { key: 'share', label: t.share || 'Share', icon: '🔗', onPress: () => setShareTarget(file) },
       { key: 'download', label: t.download || 'Download', icon: '⬇️', onPress: () => handleDownloadFile(file) },
+      { key: 'rename', label: t.rename || 'Rename', icon: '✏️', onPress: () => setRenameFileTarget(file) },
       { key: 'move', label: t.moveFileTitle || 'Move', icon: '📁', onPress: () => setMoveTarget(file) },
       { key: 'delete', label: t.deleteFile || 'Delete', icon: '🗑️', danger: true, onPress: () => handleDeleteFile(file.id) },
     ];
@@ -715,6 +732,23 @@ export function HomeScreen() {
           file={moveTarget}
           onClose={() => setMoveTarget(null)}
           onMoved={() => loadData()}
+        />
+      ) : null}
+
+      {renameFileTarget ? (
+        <RenameFileModal
+          visible={!!renameFileTarget}
+          fileName={renameFileTarget.name}
+          onClose={() => setRenameFileTarget(null)}
+          onRename={(name) => handleRenameFile(renameFileTarget, name)}
+        />
+      ) : null}
+
+      {shareTarget ? (
+        <ShareFileModal
+          file={shareTarget}
+          visible={!!shareTarget}
+          onClose={() => setShareTarget(null)}
         />
       ) : null}
 
