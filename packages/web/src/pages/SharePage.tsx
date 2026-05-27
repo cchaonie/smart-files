@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
+import { useI18n } from '@smart-files/shared/src/i18n'
 import { sharesApi, ShareInfo } from '../api/shares';
 import { formatBytes } from '@smart-files/shared/src/utils';
 
 export function SharePage() {
+  const { t } = useI18n();
   const { token } = useParams<{ token: string }>();
   const [searchParams] = useSearchParams();
   const [info, setInfo] = useState<ShareInfo | null>(null);
@@ -48,7 +50,7 @@ export function SharePage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
-        <p className="text-zinc-500">Loading...</p>
+        <p className="text-zinc-500">{t.loading}</p>
       </div>
     );
   }
@@ -82,7 +84,7 @@ export function SharePage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && verify()}
-            placeholder="Enter password"
+            placeholder={t.enterPassword}
             className="mb-3 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-50"
           />
 
@@ -96,7 +98,7 @@ export function SharePage() {
             className="w-full rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
             onClick={() => void verify()}
           >
-            {verifying ? 'Verifying...' : 'Verify'}
+            {verifying ? t.verifying : t.verify}
           </button>
         </div>
       </div>

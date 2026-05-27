@@ -21,6 +21,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { filesApi, foldersApi } from '../api/files';
 import { uploadApi, CHUNK_SIZE } from '../api/upload';
 import { useAuth } from '../context/AuthContext';
+import { useI18n, tFormat } from '@smart-files/shared/src/i18n';
 import type { FileItem, Folder, UploadProgress } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -60,12 +61,12 @@ function UploadProgressRow({
 }) {
   const label =
     item.status === 'done'
-      ? 'Done'
+      ? t.done
       : item.status === 'error'
-        ? 'Error'
+        ? t.error
         : item.status === 'uploading'
-          ? 'Uploading'
-          : 'Pending';
+          ? t.uploading
+          : t.pending;
 
   const barColor =
     item.status === 'error'
@@ -103,7 +104,7 @@ function UploadProgressRow({
             style={styles.retryBtn}
             onPress={() => onRetry(item.id)}
           >
-            <Text style={styles.retryBtnText}>Retry</Text>
+            <Text style={styles.retryBtnText}>{t.retry}</Text>
           </TouchableOpacity>
         </View>
       ) : null}
@@ -131,7 +132,7 @@ function ImagePreviewModal({
       <Pressable style={styles.previewOverlay} onPress={onClose}>
         <Pressable style={styles.previewContent} onPress={() => {}}>
           <TouchableOpacity style={styles.previewCloseBtn} onPress={onClose}>
-            <Text style={styles.previewCloseText}>Close</Text>
+            <Text style={styles.previewCloseText}>{t.close}</Text>
           </TouchableOpacity>
           <Image
             source={{ uri: filesApi.previewUrl(file.id) }}
@@ -204,9 +205,9 @@ function MoveFileModal({
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={onClose}>
-            <Text style={styles.modalCancel}>Cancel</Text>
+            <Text style={styles.modalCancel}>{t.cancel}</Text>
           </TouchableOpacity>
-          <Text style={styles.modalTitle}>Move file</Text>
+          <Text style={styles.modalTitle}>{t.moveFileTitle}</Text>
           <TouchableOpacity
             disabled={sameLocation}
             onPress={() => confirmMove()}
@@ -217,15 +218,15 @@ function MoveFileModal({
                 sameLocation && styles.modalDoneDisabled,
               ]}
             >
-              Move here
+              {t.moveHere}
             </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.moveBreadcrumb}>
-          <Text style={styles.moveBreadcrumbLabel}>Into: </Text>
+          <Text style={styles.moveBreadcrumbLabel}>{t.into}</Text>
           <TouchableOpacity onPress={() => setModalPath([])}>
-            <Text style={styles.moveBreadcrumbLink}>Root</Text>
+            <Text style={styles.moveBreadcrumbLink}>{t.root}</Text>
           </TouchableOpacity>
           {modalPath.map((seg, i) => (
             <TouchableOpacity
@@ -259,7 +260,7 @@ function MoveFileModal({
             loading ? (
               <ActivityIndicator style={{ marginTop: 20 }} />
             ) : (
-              <Text style={styles.moveEmpty}>No subfolders</Text>
+              <Text style={styles.moveEmpty}>{t.noSubfolders}</Text>
             )
           }
         />
@@ -298,11 +299,11 @@ function CreateFolderModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.modalOverlay} onPress={onClose}>
         <Pressable style={styles.dialogBox} onPress={() => {}}>
-          <Text style={styles.dialogTitle}>New folder</Text>
+          <Text style={styles.dialogTitle}>{t.newFolder}</Text>
           <TextInput
             value={name}
             onChangeText={setName}
-            placeholder="Folder name"
+            placeholder={t.folderName}
             placeholderTextColor="#999"
             style={styles.dialogInput}
             autoFocus
@@ -310,13 +311,13 @@ function CreateFolderModal({
           />
           <View style={styles.dialogActions}>
             <TouchableOpacity onPress={onClose} style={styles.dialogBtn}>
-              <Text style={styles.dialogBtnCancel}>Cancel</Text>
+              <Text style={styles.dialogBtnCancel}>{t.cancel}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleCreate}
               style={[styles.dialogBtn, styles.dialogBtnPrimary]}
             >
-              <Text style={styles.dialogBtnPrimaryText}>Create</Text>
+              <Text style={styles.dialogBtnPrimaryText}>{t.create}</Text>
             </TouchableOpacity>
           </View>
         </Pressable>
@@ -352,11 +353,11 @@ function RenameFolderModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.modalOverlay} onPress={onClose}>
         <Pressable style={styles.dialogBox} onPress={() => {}}>
-          <Text style={styles.dialogTitle}>Rename folder</Text>
+          <Text style={styles.dialogTitle}>{t.renameFolder}</Text>
           <TextInput
             value={name}
             onChangeText={setName}
-            placeholder="Folder name"
+            placeholder={t.folderName}
             placeholderTextColor="#999"
             style={styles.dialogInput}
             autoFocus
@@ -364,13 +365,13 @@ function RenameFolderModal({
           />
           <View style={styles.dialogActions}>
             <TouchableOpacity onPress={onClose} style={styles.dialogBtn}>
-              <Text style={styles.dialogBtnCancel}>Cancel</Text>
+              <Text style={styles.dialogBtnCancel}>{t.cancel}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleRename}
               style={[styles.dialogBtn, styles.dialogBtnPrimary]}
             >
-              <Text style={styles.dialogBtnPrimaryText}>Rename</Text>
+              <Text style={styles.dialogBtnPrimaryText}>{t.rename}</Text>
             </TouchableOpacity>
           </View>
         </Pressable>
@@ -887,7 +888,7 @@ export function HomeScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>My Files</Text>
         <TouchableOpacity onPress={logout}>
-          <Text style={styles.logout}>Logout</Text>
+          <Text style={styles.logout}>{t.signOut}</Text>
         </TouchableOpacity>
       </View>
 

@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
+import { useI18n } from '@smart-files/shared/src/i18n'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { FilesPage } from './pages/FilesPage'
@@ -8,11 +9,12 @@ import { SharePage } from './pages/SharePage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
+  const { t } = useI18n()
 
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-zinc-500">Loading...</p>
+        <p className="text-zinc-500">{t.loading}</p>
       </div>
     )
   }
@@ -22,11 +24,12 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
+  const { t: tt } = useI18n()
 
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-zinc-500">Loading...</p>
+        <p className="text-zinc-500">{tt.loading}</p>
       </div>
     )
   }

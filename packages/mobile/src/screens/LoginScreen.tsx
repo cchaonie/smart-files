@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
+import { useI18n } from '@smart-files/shared/src/i18n';
 import { getApiErrorMessage, isNetworkError } from '../config/api';
 
 export function LoginScreen({ navigation }: { navigation: any }) {
@@ -17,10 +18,11 @@ export function LoginScreen({ navigation }: { navigation: any }) {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const { apiUrl } = useConfig();
+  const { t } = useI18n();
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter email and password');
+      Alert.alert(t.error, t.enterCredentials);
       return;
     }
 
@@ -31,18 +33,18 @@ export function LoginScreen({ navigation }: { navigation: any }) {
       const message = getApiErrorMessage(error);
       if (isNetworkError(error)) {
         Alert.alert(
-          'Cannot Connect to Server',
+          t.cannotConnect,
           `Unable to reach the backend at:\n${apiUrl}\n\n${message}\n\nTap "Configure Server" below to set the correct URL.`,
           [
             { text: 'OK', style: 'cancel' },
             {
-              text: 'Configure Server',
+              text: t.configureServer,
               onPress: () => navigation.navigate('ServerConfig'),
             },
           ]
         );
       } else {
-        Alert.alert('Login Failed', message);
+        Alert.alert(t.loginFailed, message);
       }
     } finally {
       setIsLoading(false);
@@ -51,12 +53,12 @@ export function LoginScreen({ navigation }: { navigation: any }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Smart Files</Text>
-      <Text style={styles.subtitle}>Sign in to your account</Text>
+      <Text style={styles.title}>{t.appName}</Text>
+      <Text style={styles.subtitle}>{t.signInSubtitle}</Text>
 
       <TextInput
         style={styles.input}
-        placeholder="Email"
+        placeholder={t.email}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -65,7 +67,7 @@ export function LoginScreen({ navigation }: { navigation: any }) {
 
       <TextInput
         style={styles.input}
-        placeholder="Password"
+        placeholder={t.password}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -77,21 +79,21 @@ export function LoginScreen({ navigation }: { navigation: any }) {
         disabled={isLoading}
       >
         <Text style={styles.buttonText}>
-          {isLoading ? 'Signing in...' : 'Sign In'}
+          {isLoading ? t.signingIn : t.signIn}
         </Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-        <Text style={styles.link}>Don't have an account? Sign up</Text>
+        <Text style={styles.link}>{t.noAccountMobile}</Text>
       </TouchableOpacity>
 
       <View style={styles.divider} />
 
       <TouchableOpacity onPress={() => navigation.navigate('ServerConfig')}>
         <Text style={styles.configLink}>
-          Server: {apiUrl || 'loading...'}
+          {t.serverLabel}: {apiUrl || 'loading...'}
         </Text>
-        <Text style={styles.configSubtext}>Tap to configure</Text>
+        <Text style={styles.configSubtext}>{t.tapToConfigure}</Text>
       </TouchableOpacity>
     </View>
   );
