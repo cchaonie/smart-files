@@ -66,5 +66,5 @@ export const en: I18nStrings = {
   signUp: 'Sign Up', noAccountMobile: "Don't have an account? Sign up",
   hasAccountMobile: 'Already have an account? Sign in',
   language: 'Language', switchToChinese: '\u5207\u6362\u5230\u4e2d\u6587',
-  switchToEnglish: 'Switch to English',
+  switchToEnglish: 'Switch to English', open: 'Open',
 };

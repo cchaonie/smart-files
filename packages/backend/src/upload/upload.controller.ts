@@ -1,6 +1,6 @@
-import { Controller, Post, Get, Put, Body, Param, UseGuards, Query, Req, Res } from '@nestjs/common';
+import { Controller, Post, Get, Put, Body, Param, UseGuards, Query, Req } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger';
-import { Request, Response } from 'express';
+import { Request } from 'express';
 import { UploadService } from './upload.service';
 import { JwtAuthGuard } from '../common/guards/jwt.guard';
 import { CurrentUser, UserEntity } from '../common/decorators/current-user.decorator';

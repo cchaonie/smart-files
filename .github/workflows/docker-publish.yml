@@ -51,6 +51,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable=${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag == 'latest' }}
             type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '' && github.event.inputs.tag != 'latest' }}
+            type=sha,prefix=,suffix=,enable=${{ github.event_name != 'workflow_dispatch' }}
 
       - name: Build and push Docker image
         id: push

@@ -1,6 +1,6 @@
 import { getStoredApiUrl } from './storage';
 
-const DEFAULT_API_URL = 'http://localhost:4000';
+const DEFAULT_API_URL = 'http://localhost:4000/api';
 
 export function getPlatformDefaultApiUrl(): string {
   return DEFAULT_API_URL;

@@ -66,5 +66,5 @@ export const zhCN: I18nStrings = {
   signUp: '注册', noAccountMobile: '还没有账号？注册',
   hasAccountMobile: '已有账号？登录',
   language: '语言', switchToChinese: '切换到中文',
-  switchToEnglish: 'Switch to English',
+  switchToEnglish: 'Switch to English', open: '打开',
 };

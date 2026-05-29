@@ -10,6 +10,7 @@ import {
   Image,
   ScrollView,
   SafeAreaView,
+  Linking,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -53,6 +54,7 @@ function isPreviewableImage(mimeType: string | null, name: string): boolean {
 }
 export function HomeScreen() {
   const { logout } = useAuth();
+  const { t } = useI18n();
   const [folders, setFolders] = useState<Folder[]>([]);
   const [files, setFiles] = useState<FileItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);

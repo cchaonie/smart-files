@@ -38,7 +38,7 @@ export interface I18nStrings {
   configureServer: string; tapToConfigure: string; serverLabel: string;
   cannotConnect: string; cannotConnectMessage: string; enterCredentials: string;
   loginFailed: string; signUp: string; noAccountMobile: string; hasAccountMobile: string;
-  language: string; switchToChinese: string; switchToEnglish: string;
+  language: string; switchToChinese: string; switchToEnglish: string; open: string;
 }
 
 export interface I18nContextType {

@@ -5,7 +5,6 @@ import { uploadApi, CHUNK_SIZE } from '../api/upload'
 import type { FileItem, Folder, UploadProgress } from '../types'
 import { formatBytes, isPreviewable } from '@smart-files/shared/src/utils'
 import { useI18n, tFormat } from '@smart-files/shared/src/i18n'
-import { LangSwitcher } from '../components/LangSwitcher'
 import PreviewThumb from '../components/PreviewThumb'
 import MoveFileModal from '../components/MoveFileModal'
 import ShareModal from '../components/ShareModal'
@@ -45,8 +44,8 @@ export function FilesPage() {
   }> | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const nextUploadId = useRef(0);
   const filesByItemId = useRef<Map<number, File>>(new Map());
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Multi-select state
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
@@ -178,11 +177,17 @@ export function FilesPage() {
   async function loadTrash() {
     setTrashLoading(true);
     try {
-      const 
+      const files = await filesApi.listTrash();
+      setTrashFiles(files);
+    } catch {
+      setTrashFiles([]);
+    } finally {
+      setTrashLoading(false);
+    }
+  }
 
-... [OUTPUT TRUNCATED - 308 chars omitted out of 50308 total] ...
-
-eList = e.target.files;
+  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const fileList = e.target.files;
     const files = fileList && fileList.length > 0 ? Array.from(fileList) : [];
 
     e.target.value = '';
@@ -208,6 +213,130 @@ eList = e.target.files;
       await loadBrowse();
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Delete failed');
+    }
+  }
+
+  async function runUpload(file: File, itemId: number) {
+    try {
+      setUploadItems(prev => prev.map(item => item.id === itemId ? { ...item, status: 'uploading' } : item));
+      const session = await uploadApi.createSession(file.name, file.size, currentParentId ?? undefined);
+      persistKeyRef.current.set(itemId, session.uploadId);
+
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+      const uploadedChunks = new Set<number>();
+
+      while (uploadedChunks.size < totalChunks && !abortRef.current) {
+        while (pausedRef.current && !abortRef.current) {
+          await new Promise(r => setTimeout(r, 200));
+        }
+        if (abortRef.current) break;
+
+        const nextIndex = uploadedChunks.size;
+        const start = nextIndex * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const chunk = file.slice(start, end);
+        const arrayBuffer = await chunk.arrayBuffer();
+
+        try {
+          await uploadApi.uploadChunk(session.uploadId, nextIndex, arrayBuffer);
+          uploadedChunks.add(nextIndex);
+          const progress = Math.round((uploadedChunks.size / totalChunks) * 100);
+          setUploadItems(prev => prev.map(item => item.id === itemId ? { ...item, progress } : item));
+        } catch {
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+
+      if (!abortRef.current) {
+        await uploadApi.completeUpload(session.uploadId, file.type);
+        setUploadItems(prev => prev.map(item => item.id === itemId ? { ...item, status: 'done', progress: 100 } : item));
+      } else {
+        setUploadItems(prev => prev.map(item => item.id === itemId ? { ...item, status: 'error', error: t.aborted } : item));
+      }
+    } catch (e) {
+      setUploadItems(prev => prev.map(item => item.id === itemId ? { ...item, status: 'error', error: e instanceof Error ? e.message : t.uploadFailed } : item));
+    }
+  }
+
+  async function runUploadQueue(files: File[]) {
+    const items: UploadProgress[] = files.map((file, i) => {
+      const id = Date.now() + i;
+      filesByItemId.current.set(id, file);
+      return { id, name: file.name, progress: 0, status: 'pending' as const };
+    });
+    setUploadItems(prev => [...prev, ...items]);
+
+    const running = new Set<Promise<void>>();
+    for (const item of items) {
+      const task = runUpload(filesByItemId.current.get(item.id)!, item.id).then(() => { running.delete(task); });
+      running.add(task);
+      if (running.size >= parallelCount) {
+        await Promise.race(running);
+      }
+    }
+    await Promise.all(running);
+    await loadBrowse();
+  }
+
+  async function handleRestore(id: string) {
+    try {
+      await filesApi.restoreFile(id);
+      await loadTrash();
+    } catch {
+      alert(t.restoreFailed);
+    }
+  }
+
+  async function handlePurge(id: string) {
+    if (!confirm(t.confirmDeleteTitle)) return;
+    try {
+      await filesApi.purgeFile(id);
+      await loadTrash();
+    } catch {
+      alert(t.deleteFailed);
+    }
+  }
+
+  async function handleEmptyTrash() {
+    if (!confirm(t.deleteSelectedConfirm.replace('{n}', String(trashFiles?.length ?? 0)))) return;
+    try {
+      await filesApi.emptyTrash();
+      await loadTrash();
+    } catch {
+      alert(t.batchPurgeFailed);
+    }
+  }
+
+  async function createFolder(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newFolderName.trim()) return;
+    try {
+      await foldersApi.createFolder({ name: newFolderName.trim(), parentId: currentParentId ?? undefined });
+      setNewFolderName('');
+      await loadBrowse();
+    } catch {
+      alert(t.createFolderFailed);
+    }
+  }
+
+  async function renameFolder(folder: Folder) {
+    const name = prompt(t.renameFolder, folder.name);
+    if (!name || name === folder.name) return;
+    try {
+      await foldersApi.renameFolder(folder.id, name);
+      await loadBrowse();
+    } catch {
+      alert(t.renameFailed);
+    }
+  }
+
+  async function deleteFolder(folder: Folder) {
+    if (!confirm(tFormat(t.deleteFolderConfirm, { name: folder.name }))) return;
+    try {
+      await foldersApi.deleteFolder(folder.id);
+      await loadBrowse();
+    } catch {
+      alert(t.deleteFailed);
     }
   }
 

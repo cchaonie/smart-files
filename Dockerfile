@@ -7,7 +7,7 @@ COPY package*.json ./
 COPY packages/backend/package*.json ./packages/backend/
 COPY packages/web/package*.json ./packages/web/
 COPY packages/shared/package*.json ./packages/shared/
-RUN npm install --prefer-offline --no-audit
+RUN npm ci
 
 # Copy source and build
 COPY . .
