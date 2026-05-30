@@ -102,7 +102,7 @@ export function HomeScreen() {
       setFolders(data.folders ?? []);
       setFiles(data.files ?? []);
     } catch (e) {
-      setListError(e instanceof Error ? e.message : 'Failed to load files');
+      setListError(e instanceof Error ? e.message : t.failedToLoad);
       setFolders([]);
       setFiles([]);
     } finally {
@@ -125,7 +125,7 @@ export function HomeScreen() {
       });
       await loadData();
     } catch (e) {
-      Alert.alert('Error', e instanceof Error ? e.message : 'Failed to create folder');
+      Alert.alert(t.error, e instanceof Error ? e.message : t.createFolderFailed);
     }
   }
 
@@ -137,18 +137,18 @@ export function HomeScreen() {
       );
       await loadData();
     } catch (e) {
-      Alert.alert('Error', e instanceof Error ? e.message : 'Rename failed');
+      Alert.alert(t.error, e instanceof Error ? e.message : t.renameFailed);
     }
   }
 
   async function handleDeleteFolder(folder: Folder) {
     Alert.alert(
-      'Delete folder',
+      t.delete,
       `Delete "${folder.name}"? Only empty folders can be removed.`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t.cancel, style: 'cancel' },
         {
-          text: 'Delete',
+          text: t.delete,
           style: 'destructive',
           onPress: async () => {
             try {
@@ -157,8 +157,8 @@ export function HomeScreen() {
               await loadData();
             } catch (e) {
               Alert.alert(
-                'Error',
-                e instanceof Error ? e.message : 'Delete failed',
+                t.error,
+                e instanceof Error ? e.message : t.deleteFailed,
               );
             }
           },
@@ -181,10 +181,10 @@ export function HomeScreen() {
   // File operations
   // -----------------------------------------------------------------------
   async function handleDeleteFile(fileId: string) {
-    Alert.alert('Delete file', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t.deleteFile, 'Are you sure?', [
+      { text: t.cancel, style: 'cancel' },
       {
-        text: 'Delete',
+        text: t.delete,
         style: 'destructive',
         onPress: async () => {
           try {
@@ -192,8 +192,8 @@ export function HomeScreen() {
             await loadData();
           } catch (e) {
             Alert.alert(
-              'Error',
-              e instanceof Error ? e.message : 'Delete failed',
+              t.error,
+              e instanceof Error ? e.message : t.deleteFailed,
             );
           }
         },
@@ -206,14 +206,14 @@ export function HomeScreen() {
       await filesApi.renameFile(file.id, name);
       await loadData();
     } catch (e) {
-      Alert.alert('Error', e instanceof Error ? e.message : 'Rename failed');
+      Alert.alert(t.error, e instanceof Error ? e.message : t.renameFailed);
     }
   }
 
   function handleDownloadFile(file: FileItem) {
     const url = filesApi.downloadUrl(file.id);
     Linking.openURL(url).catch(() =>
-      Alert.alert('Error', 'Failed to open download URL'),
+      Alert.alert(t.error, 'Failed to open download URL'),
     );
   }
 
@@ -221,12 +221,12 @@ export function HomeScreen() {
     const isImage = isPreviewableImage(file.mimeType, file.name);
     setActionSheetTitle(file.name);
     const items: ActionItem[] = [
-      { key: 'preview', label: isImage ? (t.preview || 'Preview') : (t.play || 'Play'), icon: isImage ? '🖼️' : '▶️', onPress: () => setPreviewFile(file) },
-      { key: 'share', label: t.share || 'Share', icon: '🔗', onPress: () => setShareTarget(file) },
-      { key: 'download', label: t.download || 'Download', icon: '⬇️', onPress: () => handleDownloadFile(file) },
-      { key: 'rename', label: t.rename || 'Rename', icon: '✏️', onPress: () => setRenameFileTarget(file) },
-      { key: 'move', label: t.moveFileTitle || 'Move', icon: '📁', onPress: () => setMoveTarget(file) },
-      { key: 'delete', label: t.deleteFile || 'Delete', icon: '🗑️', danger: true, onPress: () => handleDeleteFile(file.id) },
+      { key: 'preview', label: isImage ? t.preview : t.play, icon: isImage ? '🖼️' : '▶️', onPress: () => setPreviewFile(file) },
+      { key: 'share', label: t.share, icon: '🔗', onPress: () => setShareTarget(file) },
+      { key: 'download', label: t.download, icon: '⬇️', onPress: () => handleDownloadFile(file) },
+      { key: 'rename', label: t.rename, icon: '✏️', onPress: () => setRenameFileTarget(file) },
+      { key: 'move', label: t.moveFile, icon: '📁', onPress: () => setMoveTarget(file) },
+      { key: 'delete', label: t.deleteFile, icon: '🗑️', danger: true, onPress: () => handleDeleteFile(file.id) },
     ];
     setActionSheetActions(items);
     setActionSheetVisible(true);
@@ -244,7 +244,7 @@ export function HomeScreen() {
       if (result.canceled || !result.assets?.length) return;
       runUploadQueue(result.assets);
     } catch (e) {
-      Alert.alert('Error', 'Failed to pick files');
+      Alert.alert(t.error, 'Failed to pick files');
     }
   }
 
@@ -301,7 +301,7 @@ export function HomeScreen() {
     } catch (e) {
       updateItem({
         status: 'error',
-        error: e instanceof Error ? e.message : 'Session failed',
+        error: e instanceof Error ? e.message : t.sessionFailed,
       });
       return;
     }
@@ -369,10 +369,10 @@ export function HomeScreen() {
       if ((e as Error).message !== 'Aborted') {
         updateItem({
           status: 'error',
-          error: e instanceof Error ? e.message : 'Upload failed',
+          error: e instanceof Error ? e.message : t.uploadFailed,
         });
       } else {
-        updateItem({ status: 'error', error: 'Cancelled' });
+        updateItem({ status: 'error', error: t.aborted });
       }
     } finally {
       persistKeyRef.current.delete(itemId);
@@ -416,7 +416,7 @@ export function HomeScreen() {
             prev.map((it) =>
               queue.slice(remainingIndex).some((q) => q.id === it.id) &&
               it.status === 'pending'
-                ? { ...it, status: 'error', error: 'Cancelled' }
+                ? { ...it, status: 'error', error: t.aborted }
                 : it,
             ),
           );
@@ -559,7 +559,7 @@ export function HomeScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>My Files</Text>
+        <Text style={styles.title}>{t.yourFiles}</Text>
         <TouchableOpacity onPress={logout}>
           <Text style={styles.logout}>{t.signOut}</Text>
         </TouchableOpacity>
@@ -573,7 +573,7 @@ export function HomeScreen() {
         contentContainerStyle={styles.breadcrumbContent}
       >
         <TouchableOpacity onPress={() => setPath([])}>
-          <Text style={styles.breadcrumbLink}>Root</Text>
+          <Text style={styles.breadcrumbLink}>{t.root}</Text>
         </TouchableOpacity>
         {path.map((seg, i) => (
           <View key={seg.id} style={styles.breadcrumbSegment}>
@@ -593,10 +593,10 @@ export function HomeScreen() {
           style={styles.actionBtn}
           onPress={() => setCreateFolderVisible(true)}
         >
-          <Text style={styles.actionBtnText}>{'\u002B'} Folder</Text>
+          <Text style={styles.actionBtnText}>{`\u002B ${t.newFolder}`}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionBtn} onPress={pickFiles}>
-          <Text style={styles.actionBtnText}>{'\u2191'} Upload</Text>
+          <Text style={styles.actionBtnText}>{`\u2191 ${t.upload}`}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionBtn} onPress={loadData}>
           <Text style={styles.actionBtnText}>{'\u21BB'}</Text>
@@ -612,7 +612,7 @@ export function HomeScreen() {
           >
             {/* Parallel count control */}
             <View style={styles.uploadControls}>
-              <Text style={styles.uploadControlsLabel}>Parallel: </Text>
+              <Text style={styles.uploadControlsLabel}>{`${t.parallelUploads}: `}</Text>
               <TouchableOpacity
                 style={styles.parallelBtn}
                 onPress={() => setParallelCount((c) => Math.max(1, c - 1))}
@@ -659,7 +659,7 @@ export function HomeScreen() {
                 }}
               >
                 <Text style={styles.uploadActionBtnDangerText}>
-                  Cancel all
+                  {t.cancelAll}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -668,7 +668,7 @@ export function HomeScreen() {
                   if (allUploadsDone) setUploadItems([]);
                 }}
               >
-                <Text style={styles.uploadActionBtnText}>Clear</Text>
+                <Text style={styles.uploadActionBtnText}>{t.clearCompleted}</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -689,7 +689,7 @@ export function HomeScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
-              {isLoading ? 'Loading\u2026' : 'No files in this folder'}
+              {isLoading ? t.loadingElipsis : t.folderEmpty}
             </Text>
           </View>
         }
@@ -723,7 +723,7 @@ export function HomeScreen() {
           onClose={() => setPreviewFile(null)}
           onOpenExternal={(url) => {
             Linking.openURL(url).catch(() =>
-              Alert.alert('Error', 'Failed to open file')
+              Alert.alert(t.error, 'Failed to open file')
             );
           }}
         />

@@ -1,4 +1,5 @@
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Pressable } from 'react-native'
+import { useI18n } from '@smart-files/shared/src/i18n'
 
 export type ActionItem = {
   key: string
@@ -19,6 +20,7 @@ function ActionSheet({
   actions: ActionItem[]
   onClose: () => void
 }) {
+  const { t } = useI18n()
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
@@ -65,7 +67,7 @@ function ActionSheet({
             onPress={onClose}
             activeOpacity={0.6}
           >
-            <Text style={styles.cancelLabel}>Cancel</Text>
+            <Text style={styles.cancelLabel}>{t.cancel}</Text>
           </TouchableOpacity>
         </Pressable>
       </Pressable>

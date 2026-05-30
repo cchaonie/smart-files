@@ -39,6 +39,14 @@ export interface I18nStrings {
   cannotConnect: string; cannotConnectMessage: string; enterCredentials: string;
   loginFailed: string; signUp: string; noAccountMobile: string; hasAccountMobile: string;
   language: string; switchToChinese: string; switchToEnglish: string; open: string;
+  shareNotFound: string; verificationFailed: string; failedToLoad: string;
+  failedToLoadFolders: string; uploadIntoFolder: string; chunkInfo: string;
+  chooseFiles: string; searchResults: string; clearSearch: string;
+  searching: string; noMatchingFiles: string; contents: string;
+  refresh: string; folderEmpty: string; pauseResume: string;
+  cancelAll: string; clearCompleted: string; folderLabel: string;
+  newNamePrompt: string; expiresPrefix: string; colAdded: string;
+  unknownFolder: string;
 }
 
 export interface I18nContextType {

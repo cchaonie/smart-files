@@ -40,7 +40,7 @@ function ShareModal({ file, onClose }: { file: FileItem; onClose: () => void }) 
       });
       setShareResult(result.token);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create share');
+      setError(e instanceof Error ? e.message : t.shareFailed);
     } finally {
       setLoading(false);
     }
@@ -82,7 +82,7 @@ function ShareModal({ file, onClose }: { file: FileItem; onClose: () => void }) 
           <>
             <div className="mb-4">
               <label className="mb-1 block text-xs text-zinc-600 dark:text-zinc-400">
-                Password protection (optional)
+                {t.passwordProtection}
               </label>
               <input
                 type="text"
@@ -95,7 +95,7 @@ function ShareModal({ file, onClose }: { file: FileItem; onClose: () => void }) 
 
             <div className="mb-6">
               <label className="mb-1 block text-xs text-zinc-600 dark:text-zinc-400">
-                Expires in
+                {t.expiresIn}
               </label>
               <select
                 value={expiry}
@@ -120,7 +120,7 @@ function ShareModal({ file, onClose }: { file: FileItem; onClose: () => void }) 
                 className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600"
                 onClick={onClose}
               >
-                Cancel
+                {t.cancel}
               </button>
               <button
                 type="button"
@@ -136,7 +136,7 @@ function ShareModal({ file, onClose }: { file: FileItem; onClose: () => void }) 
           <>
             <div className="mb-4 rounded-lg bg-zinc-100 p-3 dark:bg-zinc-800">
               <p className="mb-1 text-xs text-zinc-600 dark:text-zinc-400">
-                Share link:
+                {t.shareLinkLabel}
               </p>
               <p className="break-all text-sm font-mono text-zinc-900 dark:text-zinc-50">
                 {shareUrl}
@@ -156,7 +156,7 @@ function ShareModal({ file, onClose }: { file: FileItem; onClose: () => void }) 
                 className="flex-1 rounded-lg bg-zinc-900 px-3 py-2 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900"
                 onClick={() => void copyLink()}
               >
-                Copy link
+                {t.copyLink}
               </button>
             </div>
           </>

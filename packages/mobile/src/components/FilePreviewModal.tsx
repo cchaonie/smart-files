@@ -82,7 +82,7 @@ function FilePreviewModal({
             <Text style={styles.fileMeta}>
               {formatBytes(BigInt(file.size))}
               {' · '}
-              {file.mimeType || 'unknown'}
+              {file.mimeType || t.file}
             </Text>
           </View>
 

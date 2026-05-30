@@ -33,11 +33,11 @@ function RenameFileModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.modalOverlay} onPress={onClose}>
         <Pressable style={styles.dialogBox} onPress={() => {}}>
-          <Text style={styles.dialogTitle}>{t.renameFile || 'Rename file'}</Text>
+          <Text style={styles.dialogTitle}>{t.renameFile}</Text>
           <TextInput
             value={name}
             onChangeText={setName}
-            placeholder={t.folderName || 'File name'}
+            placeholder={t.newNamePrompt}
             placeholderTextColor="#999"
             style={styles.dialogInput}
             autoFocus

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { useI18n } from '@smart-files/shared/src/i18n'
+import { useI18n, tFormat } from '@smart-files/shared/src/i18n'
 import { sharesApi, ShareInfo } from '../api/shares';
 import { formatBytes } from '@smart-files/shared/src/utils';
 
@@ -28,7 +28,7 @@ export function SharePage() {
       setInfo(data);
       if (!data.hasPassword) setVerified(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Share not found');
+      setError(e instanceof Error ? e.message : t.shareNotFound);
     } finally {
       setLoading(false);
     }
@@ -41,7 +41,7 @@ export function SharePage() {
       await sharesApi.verifyShare(token!, password || undefined);
       setVerified(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Verification failed');
+      setError(e instanceof Error ? e.message : t.verificationFailed);
     } finally {
       setVerifying(false);
     }
@@ -60,7 +60,7 @@ export function SharePage() {
       <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
         <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
           <h1 className="mb-2 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-            Link unavailable
+            {t.linkUnavailable}
           </h1>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">{error}</p>
         </div>
@@ -76,7 +76,7 @@ export function SharePage() {
             {info?.fileName}
           </h1>
           <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
-            This share is password-protected.
+            {t.passwordProtected}
           </p>
 
           <input
@@ -113,7 +113,7 @@ export function SharePage() {
         </h1>
         <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
           {info?.fileSize ? formatBytes(BigInt(info.fileSize)) : ''}
-          {info?.expiresAt ? ` · Expires ${new Date(info.expiresAt).toLocaleDateString()}` : ''}
+          {info?.expiresAt ? ` · ${tFormat(t.expiresPrefix, { date: new Date(info.expiresAt).toLocaleDateString() })}` : ''}
         </p>
 
         <a
@@ -121,11 +121,11 @@ export function SharePage() {
           className="block w-full rounded-lg bg-zinc-900 px-4 py-2.5 text-center text-sm text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
           download={info?.fileName}
         >
-          Download
+          {t.downloadFile}
         </a>
 
         <p className="mt-4 text-center text-xs text-zinc-400 dark:text-zinc-500">
-          Smart Files
+          {t.appName}
         </p>
       </div>
     </div>

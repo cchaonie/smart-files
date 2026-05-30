@@ -28,11 +28,11 @@ function ShareFileModal({
     : ''
 
   const expiryOptions = [
-    { label: '1 hour', value: '1h' },
-    { label: '24 hours', value: '24h' },
-    { label: '7 days', value: '7d' },
-    { label: '30 days', value: '30d' },
-    { label: t.never || 'Never', value: '' },
+    { label: t.oneHour, value: '1h' },
+    { label: t.twentyFourHours, value: '24h' },
+    { label: t.sevenDays, value: '7d' },
+    { label: t.thirtyDays, value: '30d' },
+    { label: t.never, value: '' },
   ]
 
   async function handleCreate() {
@@ -42,7 +42,7 @@ function ShareFileModal({
       const result = await sharesApi.createShare(file.id, password || undefined, expiry || undefined)
       setShareToken(result.token)
     } catch (e) {
-      setError(e instanceof Error ? e.message : (t.shareFailed || 'Failed to create share'))
+      setError(e instanceof Error ? e.message : t.shareFailed)
     } finally {
       setLoading(false)
     }
@@ -53,22 +53,22 @@ function ShareFileModal({
       <Pressable style={styles.modalOverlay} onPress={onClose}>
         <Pressable style={styles.dialogBox} onPress={() => {}}>
           <ScrollView>
-            <Text style={styles.dialogTitle}>{t.shareFile || 'Share file'}</Text>
+            <Text style={styles.dialogTitle}>{t.shareFile}</Text>
             <Text style={styles.fileName}>{file.name}</Text>
 
             {!shareToken ? (
               <>
-                <Text style={styles.label}>Password (optional)</Text>
+                <Text style={styles.label}>{t.passwordOptional}</Text>
                 <TextInput
                   value={password}
                   onChangeText={setPassword}
-                  placeholder={t.noPassword || 'No password'}
+                  placeholder={t.noPassword}
                   placeholderTextColor="#999"
                   secureTextEntry
                   style={styles.dialogInput}
                 />
 
-                <Text style={styles.label}>Expires</Text>
+                <Text style={styles.label}>{t.expiresIn}</Text>
                 <View style={styles.expiryRow}>
                   {expiryOptions.map((opt) => (
                     <TouchableOpacity
@@ -105,7 +105,7 @@ function ShareFileModal({
                     style={[styles.dialogBtn, styles.dialogBtnPrimary]}
                   >
                     <Text style={styles.dialogBtnPrimaryText}>
-                      {loading ? (t.creatingLink || 'Creating...') : (t.createLink || 'Create link')}
+                      {loading ? t.creatingLink : t.createLink}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -113,14 +113,14 @@ function ShareFileModal({
             ) : (
               <>
                 <View style={styles.linkBox}>
-                  <Text style={styles.linkLabel}>{t.shareLinkLabel || 'Share link:'}</Text>
+                  <Text style={styles.linkLabel}>{t.shareLinkLabel}</Text>
                   <Text selectable style={styles.linkUrl}>{shareUrl}</Text>
                 </View>
                 <TouchableOpacity
                   onPress={onClose}
                   style={[styles.dialogBtn, styles.dialogBtnPrimary, { alignSelf: 'center', marginTop: 12 }]}
                 >
-                  <Text style={styles.dialogBtnPrimaryText}>{t.done || 'Done'}</Text>
+                  <Text style={styles.dialogBtnPrimaryText}>{t.done}</Text>
                 </TouchableOpacity>
               </>
             )}

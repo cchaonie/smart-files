@@ -28,7 +28,7 @@ function MoveFileModal({
       const data = await filesApi.browse(modalParentId);
       setFolders(data.folders);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Failed to load folders');
+      setErr(e instanceof Error ? e.message : t.failedToLoadFolders);
       setFolders([]);
     } finally {
       setLoading(false);
@@ -58,7 +58,7 @@ function MoveFileModal({
       onMoved();
       onClose();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Move failed');
+      setErr(e instanceof Error ? e.message : t.moveFailed);
     }
   }
 
@@ -144,7 +144,7 @@ function MoveFileModal({
             className="rounded-lg bg-zinc-900 px-3 py-1.5 text-sm text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
             onClick={() => void confirmMove()}
           >
-            Move here
+            {t.moveHere}
           </button>
         </div>
       </div>

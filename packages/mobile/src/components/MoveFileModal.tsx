@@ -32,7 +32,7 @@ function MoveFileModal({
       const data = await filesApi.browse(modalParentId);
       setFolders(data.folders);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Failed to load folders');
+      setErr(e instanceof Error ? e.message : t.failedToLoadFolders);
       setFolders([]);
     } finally {
       setLoading(false);
@@ -54,7 +54,7 @@ function MoveFileModal({
       onMoved();
       onClose();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Move failed');
+      setErr(e instanceof Error ? e.message : t.moveFailed);
     }
   }
 
