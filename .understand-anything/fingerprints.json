@@ -1,0 +1,4320 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "04878301207978f815e6659f750ad04d7e91ba83",
+  "generatedAt": "2026-05-30T04:58:04.670Z",
+  "files": {
+    ".dockerignore": {
+      "filePath": ".dockerignore",
+      "contentHash": "f5a6d0cbab8eaf5c9d3925a9d69c0d859e9f13a2f74820d5fec869ba60e6673f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 14,
+      "hasStructuralAnalysis": false
+    },
+    ".env.example": {
+      "filePath": ".env.example",
+      "contentHash": "490bac24e0a0df6b0171803dac596693111d78c2e9e3ef1e466a11bf4a413791",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 41,
+      "hasStructuralAnalysis": true
+    },
+    ".github/workflows/docker-publish.yml": {
+      "filePath": ".github/workflows/docker-publish.yml",
+      "contentHash": "d366a0756d6425fd261ffb0e37c20717f8dc1b74e7fbb4e56b102336e08e7d5b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 77,
+      "hasStructuralAnalysis": true
+    },
+    ".npmrc": {
+      "filePath": ".npmrc",
+      "contentHash": "57739718c1255e6634faf8b05862c4464c4c81463cddc4c5a1a25037ebdbd6da",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 1,
+      "hasStructuralAnalysis": false
+    },
+    "Dockerfile": {
+      "filePath": "Dockerfile",
+      "contentHash": "5807dfd2509084f6f62743a7c3bf0fb388834275b6b4dc06c11ac0a7d2122621",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 40,
+      "hasStructuralAnalysis": true
+    },
+    "docs/DEPLOY.md": {
+      "filePath": "docs/DEPLOY.md",
+      "contentHash": "5142fc8d83c292cb14cc23c60a06e85f1235db4ee6c008456b243f7da53b384a",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 317,
+      "hasStructuralAnalysis": true
+    },
+    "docs/DEV.md": {
+      "filePath": "docs/DEV.md",
+      "contentHash": "8f28a47addfa1a0382c3a5f0df3b6bcfb4927f1f9176840dd966834aca919841",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 271,
+      "hasStructuralAnalysis": true
+    },
+    "docs/plans/01-file-sharing.md": {
+      "filePath": "docs/plans/01-file-sharing.md",
+      "contentHash": "74ad29536ef768347ebe4e20288b13f78f8c6088bd41a353b707c91bed869c4c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 137,
+      "hasStructuralAnalysis": true
+    },
+    "docs/plans/02-file-search.md": {
+      "filePath": "docs/plans/02-file-search.md",
+      "contentHash": "2e9b1c1fec603a662ca4d6ea8913a310b64e74f24881832feab8c48b54edad87",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 123,
+      "hasStructuralAnalysis": true
+    },
+    "docs/plans/03-recycle-bin.md": {
+      "filePath": "docs/plans/03-recycle-bin.md",
+      "contentHash": "c5a07f308e59722542b067aa3fe585933079f74fb120d22861c9aa13f0158e15",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 104,
+      "hasStructuralAnalysis": true
+    },
+    "docs/plans/04-media-playback.md": {
+      "filePath": "docs/plans/04-media-playback.md",
+      "contentHash": "41cdc48ca3df1d81b40c8e2667389f1eef8c52d857b1d0ccb9521f7cd4017f22",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 178,
+      "hasStructuralAnalysis": true
+    },
+    "docs/plans/05-file-rename.md": {
+      "filePath": "docs/plans/05-file-rename.md",
+      "contentHash": "ebc4b8a324e5912fdbb2bf30bf343106ce7af7f011bdecb59402372adf6c6c1d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 109,
+      "hasStructuralAnalysis": true
+    },
+    "docs/plans/06-multi-select.md": {
+      "filePath": "docs/plans/06-multi-select.md",
+      "contentHash": "d330d283c21e659a0cc5a18fa582d2d9c1d42b03e6eb0edf6344ca264b44315b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 277,
+      "hasStructuralAnalysis": true
+    },
+    "package.json": {
+      "filePath": "package.json",
+      "contentHash": "d2eb39c521c4bf1ec7897abf1b003bcb10f26ffdb9c52a332f8a3dc4c0e6f9bc",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 31,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/.env.example": {
+      "filePath": "packages/backend/.env.example",
+      "contentHash": "34cc8d8e5ba8b1157111482b2b5991b3c0afe4551abcecf420654ab9f33e61d0",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 23,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/.env.test.example": {
+      "filePath": "packages/backend/.env.test.example",
+      "contentHash": "2d59a4cbc6868232c266b18a36e629ea9f37cfce45561dde8574690c1e28ec4a",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 13,
+      "hasStructuralAnalysis": false
+    },
+    "packages/backend/nest-cli.json": {
+      "filePath": "packages/backend/nest-cli.json",
+      "contentHash": "bcb15e3049ff5d131762d2bfe3a6f917c3c64c83ac772467a4073975cd423b5b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 9,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/package.json": {
+      "filePath": "packages/backend/package.json",
+      "contentHash": "ae92c0940518553213966f5d51ad32333f7af4a8bfce4ec7231f9fb63049b11b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 91,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/README.md": {
+      "filePath": "packages/backend/README.md",
+      "contentHash": "61a587f8ad6958e185bc0e7eb4bd933accab3d1b970b67b38d68bc5379353bbc",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 92,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/app.module.ts": {
+      "filePath": "packages/backend/src/app.module.ts",
+      "contentHash": "37efc1d7ff4fa531b6ab556046259a69dacbd8bd5aee8f0194e75e499003f05c",
+      "functions": [],
+      "classes": [
+        {
+          "name": "AppModule",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 1
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Module"
+          ]
+        },
+        {
+          "source": "@nestjs/config",
+          "specifiers": [
+            "ConfigModule"
+          ]
+        },
+        {
+          "source": "./prisma/prisma.module",
+          "specifiers": [
+            "PrismaModule"
+          ]
+        },
+        {
+          "source": "./auth/auth.module",
+          "specifiers": [
+            "AuthModule"
+          ]
+        },
+        {
+          "source": "./files/files.module",
+          "specifiers": [
+            "FilesModule"
+          ]
+        },
+        {
+          "source": "./upload/upload.module",
+          "specifiers": [
+            "UploadModule"
+          ]
+        },
+        {
+          "source": "./folders/folders.module",
+          "specifiers": [
+            "FoldersModule"
+          ]
+        },
+        {
+          "source": "./static/static.module",
+          "specifiers": [
+            "StaticModule"
+          ]
+        },
+        {
+          "source": "./share/share.module",
+          "specifiers": [
+            "ShareModule"
+          ]
+        }
+      ],
+      "exports": [
+        "AppModule"
+      ],
+      "totalLines": 25,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/auth/auth.controller.ts": {
+      "filePath": "packages/backend/src/auth/auth.controller.ts",
+      "contentHash": "ef9876b0c99ad05cdf2c884fd683f72d320c85446e121f002e6977b03328f17c",
+      "functions": [],
+      "classes": [
+        {
+          "name": "AuthController",
+          "methods": [
+            "constructor",
+            "login",
+            "register"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 19
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Controller",
+            "Post",
+            "Body",
+            "UnauthorizedException"
+          ]
+        },
+        {
+          "source": "@nestjs/swagger",
+          "specifiers": [
+            "ApiTags",
+            "ApiOperation"
+          ]
+        },
+        {
+          "source": "./auth.service",
+          "specifiers": [
+            "AuthService"
+          ]
+        },
+        {
+          "source": "./dto",
+          "specifiers": [
+            "LoginDto",
+            "RegisterDto"
+          ]
+        }
+      ],
+      "exports": [
+        "AuthController"
+      ],
+      "totalLines": 27,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/auth/auth.module.ts": {
+      "filePath": "packages/backend/src/auth/auth.module.ts",
+      "contentHash": "807afb40c03f0ca996faf5f5c34468a44bd93285f89d34b5eab6917eddaa5b47",
+      "functions": [],
+      "classes": [
+        {
+          "name": "AuthModule",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 1
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Module"
+          ]
+        },
+        {
+          "source": "@nestjs/jwt",
+          "specifiers": [
+            "JwtModule"
+          ]
+        },
+        {
+          "source": "@nestjs/passport",
+          "specifiers": [
+            "PassportModule"
+          ]
+        },
+        {
+          "source": "./auth.service",
+          "specifiers": [
+            "AuthService"
+          ]
+        },
+        {
+          "source": "./auth.controller",
+          "specifiers": [
+            "AuthController"
+          ]
+        },
+        {
+          "source": "./jwt.strategy",
+          "specifiers": [
+            "JwtStrategy"
+          ]
+        },
+        {
+          "source": "../prisma/prisma.module",
+          "specifiers": [
+            "PrismaModule"
+          ]
+        }
+      ],
+      "exports": [
+        "AuthModule"
+      ],
+      "totalLines": 23,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/auth/auth.service.ts": {
+      "filePath": "packages/backend/src/auth/auth.service.ts",
+      "contentHash": "099775b6c61d7be235f667d46abfce2cbf43073c3bb5cb0e5de383bfcf4017f8",
+      "functions": [],
+      "classes": [
+        {
+          "name": "AuthService",
+          "methods": [
+            "constructor",
+            "validateUser",
+            "login",
+            "register"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 54
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable",
+            "ConflictException"
+          ]
+        },
+        {
+          "source": "@nestjs/jwt",
+          "specifiers": [
+            "JwtService"
+          ]
+        },
+        {
+          "source": "../prisma/prisma.service",
+          "specifiers": [
+            "PrismaService"
+          ]
+        },
+        {
+          "source": "bcryptjs",
+          "specifiers": [
+            "compare",
+            "hash"
+          ]
+        },
+        {
+          "source": "./dto",
+          "specifiers": [
+            "RegisterDto"
+          ]
+        }
+      ],
+      "exports": [
+        "AuthService"
+      ],
+      "totalLines": 62,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/auth/dto/index.ts": {
+      "filePath": "packages/backend/src/auth/dto/index.ts",
+      "contentHash": "eac9590126520ca4c743134bf8545590af746d098ac1281512309bc998aacdad",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 3,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/auth/dto/login.dto.ts": {
+      "filePath": "packages/backend/src/auth/dto/login.dto.ts",
+      "contentHash": "f426697acc4db74fa1040b8fd658d0e148acd2d0f883043c805766cde2e504a3",
+      "functions": [],
+      "classes": [
+        {
+          "name": "LoginDto",
+          "methods": [],
+          "properties": [
+            "email",
+            "password"
+          ],
+          "exported": true,
+          "lineCount": 10
+        }
+      ],
+      "imports": [
+        {
+          "source": "class-validator",
+          "specifiers": [
+            "IsEmail",
+            "IsString",
+            "MinLength"
+          ]
+        },
+        {
+          "source": "@nestjs/swagger",
+          "specifiers": [
+            "ApiProperty"
+          ]
+        }
+      ],
+      "exports": [
+        "LoginDto"
+      ],
+      "totalLines": 14,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/auth/dto/register.dto.ts": {
+      "filePath": "packages/backend/src/auth/dto/register.dto.ts",
+      "contentHash": "7755e10eb54c3abeebb2e00950e585cfee19495135e81e2c37aa8547257d5ab5",
+      "functions": [],
+      "classes": [
+        {
+          "name": "RegisterDto",
+          "methods": [],
+          "properties": [
+            "email",
+            "password",
+            "name"
+          ],
+          "exported": true,
+          "lineCount": 15
+        }
+      ],
+      "imports": [
+        {
+          "source": "class-validator",
+          "specifiers": [
+            "IsEmail",
+            "IsString",
+            "MinLength",
+            "IsOptional"
+          ]
+        },
+        {
+          "source": "@nestjs/swagger",
+          "specifiers": [
+            "ApiPropertyOptional",
+            "ApiProperty"
+          ]
+        }
+      ],
+      "exports": [
+        "RegisterDto"
+      ],
+      "totalLines": 19,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/auth/jwt.strategy.ts": {
+      "filePath": "packages/backend/src/auth/jwt.strategy.ts",
+      "contentHash": "57c9a777ab74ec6d4e279aa6cab687610a66d5f93408c54763c4c0b93f6f9934",
+      "functions": [],
+      "classes": [
+        {
+          "name": "JwtStrategy",
+          "methods": [
+            "constructor",
+            "validate"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 20
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable",
+            "UnauthorizedException"
+          ]
+        },
+        {
+          "source": "@nestjs/passport",
+          "specifiers": [
+            "PassportStrategy"
+          ]
+        },
+        {
+          "source": "passport-jwt",
+          "specifiers": [
+            "ExtractJwt",
+            "Strategy"
+          ]
+        },
+        {
+          "source": "../prisma/prisma.service",
+          "specifiers": [
+            "PrismaService"
+          ]
+        }
+      ],
+      "exports": [
+        "JwtStrategy"
+      ],
+      "totalLines": 27,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/common/decorators/current-user.decorator.ts": {
+      "filePath": "packages/backend/src/common/decorators/current-user.decorator.ts",
+      "contentHash": "111bd1613d6ee9841b480e66d3679390bfbb52ab0fa4f71e5c7b3be3f31e7d76",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "createParamDecorator",
+            "ExecutionContext"
+          ]
+        }
+      ],
+      "exports": [
+        "CurrentUser"
+      ],
+      "totalLines": 15,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/common/guards/jwt.guard.ts": {
+      "filePath": "packages/backend/src/common/guards/jwt.guard.ts",
+      "contentHash": "955de30ac2b914ecf15d14b2706612d8051511a072df3906bf2f1069dab341cb",
+      "functions": [],
+      "classes": [
+        {
+          "name": "JwtAuthGuard",
+          "methods": [
+            "canActivate"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 5
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable",
+            "ExecutionContext"
+          ]
+        },
+        {
+          "source": "@nestjs/passport",
+          "specifiers": [
+            "AuthGuard"
+          ]
+        }
+      ],
+      "exports": [
+        "JwtAuthGuard"
+      ],
+      "totalLines": 10,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/files/files.controller.ts": {
+      "filePath": "packages/backend/src/files/files.controller.ts",
+      "contentHash": "08febac3fc2af3e066e1b8a990c3bfa3505a5a1791a5b7f6b16779a192cf409f",
+      "functions": [],
+      "classes": [
+        {
+          "name": "FilesController",
+          "methods": [
+            "constructor",
+            "listFiles",
+            "searchFiles",
+            "listTrash",
+            "emptyTrash",
+            "batchDelete",
+            "batchMove",
+            "batchRestore",
+            "batchPurge",
+            "deleteFile",
+            "downloadFile",
+            "previewFile",
+            "restoreFile",
+            "purgeFile",
+            "updateFile"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 144
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Controller",
+            "Get",
+            "Delete",
+            "Param",
+            "UseGuards",
+            "Query",
+            "Res",
+            "Req",
+            "Patch",
+            "Body",
+            "Post"
+          ]
+        },
+        {
+          "source": "@nestjs/swagger",
+          "specifiers": [
+            "ApiTags",
+            "ApiBearerAuth",
+            "ApiOperation"
+          ]
+        },
+        {
+          "source": "express",
+          "specifiers": [
+            "Response",
+            "Request"
+          ]
+        },
+        {
+          "source": "./files.service",
+          "specifiers": [
+            "FilesService"
+          ]
+        },
+        {
+          "source": "../common/guards/jwt.guard",
+          "specifiers": [
+            "JwtAuthGuard"
+          ]
+        },
+        {
+          "source": "../common/decorators/current-user.decorator",
+          "specifiers": [
+            "CurrentUser",
+            "UserEntity"
+          ]
+        },
+        {
+          "source": "fs",
+          "specifiers": [
+            "createReadStream"
+          ]
+        }
+      ],
+      "exports": [
+        "FilesController"
+      ],
+      "totalLines": 157,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/files/files.module.ts": {
+      "filePath": "packages/backend/src/files/files.module.ts",
+      "contentHash": "91bb590e05be1f0826dba80e20698a9caab1092ca0726d681af001a3a94d8206",
+      "functions": [],
+      "classes": [
+        {
+          "name": "FilesModule",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 1
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Module"
+          ]
+        },
+        {
+          "source": "./files.controller",
+          "specifiers": [
+            "FilesController"
+          ]
+        },
+        {
+          "source": "./files.service",
+          "specifiers": [
+            "FilesService"
+          ]
+        },
+        {
+          "source": "../prisma/prisma.module",
+          "specifiers": [
+            "PrismaModule"
+          ]
+        }
+      ],
+      "exports": [
+        "FilesModule"
+      ],
+      "totalLines": 12,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/files/files.service.ts": {
+      "filePath": "packages/backend/src/files/files.service.ts",
+      "contentHash": "963afd796ff36f197b2c88a1f289517d4f704ba707e9dccc0c21f00ae2ab8b2a",
+      "functions": [],
+      "classes": [
+        {
+          "name": "FilesService",
+          "methods": [
+            "constructor",
+            "listFiles",
+            "deleteFile",
+            "downloadFile",
+            "searchFiles",
+            "previewFile",
+            "listTrashFiles",
+            "restoreFile",
+            "purgeFile",
+            "emptyTrash",
+            "renameFile",
+            "moveFile",
+            "batchDelete",
+            "batchMove",
+            "batchRestore",
+            "batchPurge"
+          ],
+          "properties": [
+            "uploadRoot"
+          ],
+          "exported": true,
+          "lineCount": 317
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable",
+            "NotFoundException"
+          ]
+        },
+        {
+          "source": "../prisma/prisma.service",
+          "specifiers": [
+            "PrismaService"
+          ]
+        },
+        {
+          "source": "fs",
+          "specifiers": [
+            "createReadStream"
+          ]
+        },
+        {
+          "source": "fs/promises",
+          "specifiers": [
+            "stat"
+          ]
+        },
+        {
+          "source": "path",
+          "specifiers": [
+            "* as path"
+          ]
+        }
+      ],
+      "exports": [
+        "FilesService"
+      ],
+      "totalLines": 325,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/folders/folders.controller.ts": {
+      "filePath": "packages/backend/src/folders/folders.controller.ts",
+      "contentHash": "94b20edb389f0d9f64df1f7e5b81d0fe4f13d7dd6e7f6eec7d499b970e200625",
+      "functions": [],
+      "classes": [
+        {
+          "name": "FoldersController",
+          "methods": [
+            "constructor",
+            "browse",
+            "createFolder",
+            "renameFolder",
+            "deleteFolder"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 40
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Controller",
+            "Get",
+            "Post",
+            "Patch",
+            "Delete",
+            "Body",
+            "Param",
+            "UseGuards",
+            "Query"
+          ]
+        },
+        {
+          "source": "@nestjs/swagger",
+          "specifiers": [
+            "ApiTags",
+            "ApiBearerAuth",
+            "ApiOperation"
+          ]
+        },
+        {
+          "source": "./folders.service",
+          "specifiers": [
+            "FoldersService"
+          ]
+        },
+        {
+          "source": "../common/guards/jwt.guard",
+          "specifiers": [
+            "JwtAuthGuard"
+          ]
+        },
+        {
+          "source": "../common/decorators/current-user.decorator",
+          "specifiers": [
+            "CurrentUser",
+            "UserEntity"
+          ]
+        }
+      ],
+      "exports": [
+        "FoldersController"
+      ],
+      "totalLines": 51,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/folders/folders.module.ts": {
+      "filePath": "packages/backend/src/folders/folders.module.ts",
+      "contentHash": "7498a26bf21f90b6cd416320b3eaa4c1b153dbb4e029f031fc35494551ad760e",
+      "functions": [],
+      "classes": [
+        {
+          "name": "FoldersModule",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 1
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Module"
+          ]
+        },
+        {
+          "source": "./folders.controller",
+          "specifiers": [
+            "FoldersController"
+          ]
+        },
+        {
+          "source": "./folders.service",
+          "specifiers": [
+            "FoldersService"
+          ]
+        },
+        {
+          "source": "../prisma/prisma.module",
+          "specifiers": [
+            "PrismaModule"
+          ]
+        }
+      ],
+      "exports": [
+        "FoldersModule"
+      ],
+      "totalLines": 12,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/folders/folders.service.ts": {
+      "filePath": "packages/backend/src/folders/folders.service.ts",
+      "contentHash": "085a35c29b637935a3a40cbffe092d821cb8e1b2ad2d1c731217a315b1e1d7a8",
+      "functions": [],
+      "classes": [
+        {
+          "name": "FoldersService",
+          "methods": [
+            "constructor",
+            "browse",
+            "createFolder",
+            "renameFolder",
+            "deleteFolder"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 118
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable",
+            "NotFoundException",
+            "ConflictException"
+          ]
+        },
+        {
+          "source": "../prisma/prisma.service",
+          "specifiers": [
+            "PrismaService"
+          ]
+        }
+      ],
+      "exports": [
+        "FoldersService"
+      ],
+      "totalLines": 123,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/main.ts": {
+      "filePath": "packages/backend/src/main.ts",
+      "contentHash": "1517cee8c2437fd70b3673e18560850d842b3859241154d2bbe3b40a298bde56",
+      "functions": [
+        {
+          "name": "bootstrap",
+          "params": [],
+          "exported": false,
+          "lineCount": 31
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@nestjs/core",
+          "specifiers": [
+            "NestFactory"
+          ]
+        },
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "ValidationPipe"
+          ]
+        },
+        {
+          "source": "@nestjs/swagger",
+          "specifiers": [
+            "SwaggerModule",
+            "DocumentBuilder"
+          ]
+        },
+        {
+          "source": "./app.module",
+          "specifiers": [
+            "AppModule"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 38,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/prisma/prisma.module.ts": {
+      "filePath": "packages/backend/src/prisma/prisma.module.ts",
+      "contentHash": "9223a0889abb0669020e94a9b8c1e68274cdc05533c1f79d84fe516450e94ebd",
+      "functions": [],
+      "classes": [
+        {
+          "name": "PrismaModule",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 1
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Global",
+            "Module"
+          ]
+        },
+        {
+          "source": "./prisma.service",
+          "specifiers": [
+            "PrismaService"
+          ]
+        }
+      ],
+      "exports": [
+        "PrismaModule"
+      ],
+      "totalLines": 10,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/prisma/prisma.service.ts": {
+      "filePath": "packages/backend/src/prisma/prisma.service.ts",
+      "contentHash": "092fb7b72bf76e2bd33dbe21228a3613df5c21383dfe961629672135c86c9508",
+      "functions": [],
+      "classes": [
+        {
+          "name": "PrismaService",
+          "methods": [
+            "onModuleInit",
+            "onModuleDestroy"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 9
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable",
+            "OnModuleInit",
+            "OnModuleDestroy"
+          ]
+        },
+        {
+          "source": "@prisma/client",
+          "specifiers": [
+            "PrismaClient"
+          ]
+        }
+      ],
+      "exports": [
+        "PrismaService"
+      ],
+      "totalLines": 14,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/share/share.controller.ts": {
+      "filePath": "packages/backend/src/share/share.controller.ts",
+      "contentHash": "31aea458b4a1cf87c79aeaaa3a441fcb5b79264501984a6ed14a9766e73354f7",
+      "functions": [],
+      "classes": [
+        {
+          "name": "ShareController",
+          "methods": [
+            "constructor",
+            "createShare",
+            "listShares",
+            "deleteShare",
+            "getShareInfo",
+            "verifyShare",
+            "downloadShare"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 101
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Controller",
+            "Get",
+            "Post",
+            "Delete",
+            "Param",
+            "Body",
+            "UseGuards",
+            "Req",
+            "Res",
+            "Query"
+          ]
+        },
+        {
+          "source": "@nestjs/swagger",
+          "specifiers": [
+            "ApiTags",
+            "ApiBearerAuth",
+            "ApiOperation"
+          ]
+        },
+        {
+          "source": "express",
+          "specifiers": [
+            "Response",
+            "Request"
+          ]
+        },
+        {
+          "source": "fs",
+          "specifiers": [
+            "createReadStream"
+          ]
+        },
+        {
+          "source": "path",
+          "specifiers": [
+            "* as path"
+          ]
+        },
+        {
+          "source": "fs/promises",
+          "specifiers": [
+            "stat"
+          ]
+        },
+        {
+          "source": "./share.service",
+          "specifiers": [
+            "ShareService"
+          ]
+        },
+        {
+          "source": "../common/guards/jwt.guard",
+          "specifiers": [
+            "JwtAuthGuard"
+          ]
+        },
+        {
+          "source": "../common/decorators/current-user.decorator",
+          "specifiers": [
+            "CurrentUser",
+            "UserEntity"
+          ]
+        }
+      ],
+      "exports": [
+        "ShareController"
+      ],
+      "totalLines": 114,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/share/share.module.ts": {
+      "filePath": "packages/backend/src/share/share.module.ts",
+      "contentHash": "eff1c535b6bcba1f18c7f70f9ce956705ed6e7132d7b19fa95a29e407ddfb183",
+      "functions": [],
+      "classes": [
+        {
+          "name": "ShareModule",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 1
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Module"
+          ]
+        },
+        {
+          "source": "./share.service",
+          "specifiers": [
+            "ShareService"
+          ]
+        },
+        {
+          "source": "./share.controller",
+          "specifiers": [
+            "ShareController"
+          ]
+        },
+        {
+          "source": "../prisma/prisma.module",
+          "specifiers": [
+            "PrismaModule"
+          ]
+        }
+      ],
+      "exports": [
+        "ShareModule"
+      ],
+      "totalLines": 13,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/share/share.service.ts": {
+      "filePath": "packages/backend/src/share/share.service.ts",
+      "contentHash": "1456d2c1515b16270aa935ab7a654fb69fa83b8fe3d22b4d444855a0f0fcce16",
+      "functions": [],
+      "classes": [
+        {
+          "name": "ShareService",
+          "methods": [
+            "constructor",
+            "createShare",
+            "getShareInfo",
+            "verifyShare",
+            "downloadShare",
+            "listShares",
+            "deleteShare"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 217
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable",
+            "NotFoundException",
+            "ForbiddenException",
+            "BadRequestException"
+          ]
+        },
+        {
+          "source": "../prisma/prisma.service",
+          "specifiers": [
+            "PrismaService"
+          ]
+        },
+        {
+          "source": "crypto",
+          "specifiers": [
+            "* as crypto"
+          ]
+        },
+        {
+          "source": "bcryptjs",
+          "specifiers": [
+            "* as bcrypt"
+          ]
+        }
+      ],
+      "exports": [
+        "ShareService"
+      ],
+      "totalLines": 227,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/static/static.middleware.ts": {
+      "filePath": "packages/backend/src/static/static.middleware.ts",
+      "contentHash": "7584022576998d446891cf4c9da254b6c62cb03e776eb343569bfc2c7a8a8e4a",
+      "functions": [],
+      "classes": [
+        {
+          "name": "SpaFallbackMiddleware",
+          "methods": [
+            "use"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 8
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable",
+            "NestMiddleware"
+          ]
+        },
+        {
+          "source": "path",
+          "specifiers": [
+            "join"
+          ]
+        }
+      ],
+      "exports": [
+        "SpaFallbackMiddleware"
+      ],
+      "totalLines": 13,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/static/static.module.ts": {
+      "filePath": "packages/backend/src/static/static.module.ts",
+      "contentHash": "9f9e125200786c0fbb5383fa56ecfe0ca8b5c4ae3daf89a0bb6f5c7f09e4c72e",
+      "functions": [],
+      "classes": [
+        {
+          "name": "StaticModule",
+          "methods": [
+            "configure"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Module",
+            "NestModule",
+            "MiddlewareConsumer",
+            "RequestMethod"
+          ]
+        },
+        {
+          "source": "@nestjs/serve-static",
+          "specifiers": [
+            "ServeStaticModule"
+          ]
+        },
+        {
+          "source": "path",
+          "specifiers": [
+            "join"
+          ]
+        },
+        {
+          "source": "./static.middleware",
+          "specifiers": [
+            "SpaFallbackMiddleware"
+          ]
+        }
+      ],
+      "exports": [
+        "StaticModule"
+      ],
+      "totalLines": 21,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/upload/dto/create-session.dto.ts": {
+      "filePath": "packages/backend/src/upload/dto/create-session.dto.ts",
+      "contentHash": "e89ef5cadb36011b5119be590319df75eb675f04cb14bf2a622b3bb9cc2edb08",
+      "functions": [],
+      "classes": [
+        {
+          "name": "CreateSessionDto",
+          "methods": [],
+          "properties": [
+            "fileName",
+            "totalSize",
+            "chunkSize",
+            "folderId"
+          ],
+          "exported": true,
+          "lineCount": 17
+        }
+      ],
+      "imports": [
+        {
+          "source": "class-validator",
+          "specifiers": [
+            "IsString",
+            "IsOptional"
+          ]
+        },
+        {
+          "source": "@nestjs/swagger",
+          "specifiers": [
+            "ApiProperty",
+            "ApiPropertyOptional"
+          ]
+        }
+      ],
+      "exports": [
+        "CreateSessionDto"
+      ],
+      "totalLines": 21,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/upload/dto/index.ts": {
+      "filePath": "packages/backend/src/upload/dto/index.ts",
+      "contentHash": "61ba97acc1735f1a51f56633da7654b567f646c8d5f4136ad0e27d92a8990d75",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/upload/upload.controller.ts": {
+      "filePath": "packages/backend/src/upload/upload.controller.ts",
+      "contentHash": "ed8dbd61f107fad13b540e30590deccecd39d7d0380b48b0a6ec54bdadfca9f5",
+      "functions": [],
+      "classes": [
+        {
+          "name": "UploadController",
+          "methods": [
+            "constructor",
+            "createSession",
+            "getSession",
+            "uploadChunk",
+            "completeUpload"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 44
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Controller",
+            "Post",
+            "Get",
+            "Put",
+            "Body",
+            "Param",
+            "UseGuards",
+            "Query",
+            "Req"
+          ]
+        },
+        {
+          "source": "@nestjs/swagger",
+          "specifiers": [
+            "ApiTags",
+            "ApiBearerAuth",
+            "ApiOperation",
+            "ApiConsumes"
+          ]
+        },
+        {
+          "source": "express",
+          "specifiers": [
+            "Request"
+          ]
+        },
+        {
+          "source": "./upload.service",
+          "specifiers": [
+            "UploadService"
+          ]
+        },
+        {
+          "source": "../common/guards/jwt.guard",
+          "specifiers": [
+            "JwtAuthGuard"
+          ]
+        },
+        {
+          "source": "../common/decorators/current-user.decorator",
+          "specifiers": [
+            "CurrentUser",
+            "UserEntity"
+          ]
+        },
+        {
+          "source": "./dto",
+          "specifiers": [
+            "CreateSessionDto"
+          ]
+        }
+      ],
+      "exports": [
+        "UploadController"
+      ],
+      "totalLines": 57,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/upload/upload.module.ts": {
+      "filePath": "packages/backend/src/upload/upload.module.ts",
+      "contentHash": "da8e84167e81d3d71c542e98414ef03b3cf3ed9c074f2ba9ca9d4c15adee0fda",
+      "functions": [],
+      "classes": [
+        {
+          "name": "UploadModule",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 1
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Module"
+          ]
+        },
+        {
+          "source": "./upload.controller",
+          "specifiers": [
+            "UploadController"
+          ]
+        },
+        {
+          "source": "./upload.service",
+          "specifiers": [
+            "UploadService"
+          ]
+        },
+        {
+          "source": "../prisma/prisma.module",
+          "specifiers": [
+            "PrismaModule"
+          ]
+        }
+      ],
+      "exports": [
+        "UploadModule"
+      ],
+      "totalLines": 12,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/src/upload/upload.service.ts": {
+      "filePath": "packages/backend/src/upload/upload.service.ts",
+      "contentHash": "ed2c26b76310f2db472cf2c61837087331db43b381fc4a5e0d83d313a6d468ab",
+      "functions": [],
+      "classes": [
+        {
+          "name": "UploadService",
+          "methods": [
+            "constructor",
+            "createSession",
+            "getSession",
+            "uploadChunk",
+            "completeUpload",
+            "mergeChunks"
+          ],
+          "properties": [
+            "uploadRoot"
+          ],
+          "exported": true,
+          "lineCount": 225
+        }
+      ],
+      "imports": [
+        {
+          "source": "@nestjs/common",
+          "specifiers": [
+            "Injectable",
+            "NotFoundException",
+            "BadRequestException"
+          ]
+        },
+        {
+          "source": "../prisma/prisma.service",
+          "specifiers": [
+            "PrismaService"
+          ]
+        },
+        {
+          "source": "express",
+          "specifiers": [
+            "Request"
+          ]
+        },
+        {
+          "source": "fs",
+          "specifiers": [
+            "createWriteStream",
+            "createReadStream"
+          ]
+        },
+        {
+          "source": "fs/promises",
+          "specifiers": [
+            "* as fs"
+          ]
+        },
+        {
+          "source": "path",
+          "specifiers": [
+            "* as path"
+          ]
+        },
+        {
+          "source": "crypto",
+          "specifiers": [
+            "randomUUID"
+          ]
+        },
+        {
+          "source": "./dto",
+          "specifiers": [
+            "CreateSessionDto"
+          ]
+        }
+      ],
+      "exports": [
+        "UploadService"
+      ],
+      "totalLines": 236,
+      "hasStructuralAnalysis": true
+    },
+    "packages/backend/tsconfig.json": {
+      "filePath": "packages/backend/tsconfig.json",
+      "contentHash": "ee4e1f77e1436f198cd1be4fadf7052682fb86d32d513696955917cd21f4635e",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 22,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/.env.example": {
+      "filePath": "packages/mobile/.env.example",
+      "contentHash": "39763917d81521269246c2acf090a50c843cab6506c5f968372203bc78829f60",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 10,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/app.config.js": {
+      "filePath": "packages/mobile/app.config.js",
+      "contentHash": "fefd01ea5dad90d48caaa647df494f31b7d69978780072c0ff7fcbdd0fe8f925",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 34,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/App.tsx": {
+      "filePath": "packages/mobile/App.tsx",
+      "contentHash": "5909e24a7be63bf8a6ea599facb8ecd89be3c53b7291b21c43fb0fcd742393cb",
+      "functions": [
+        {
+          "name": "AppNavigator",
+          "params": [],
+          "exported": false,
+          "lineCount": 28
+        },
+        {
+          "name": "App",
+          "params": [],
+          "exported": true,
+          "lineCount": 11
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "React"
+          ]
+        },
+        {
+          "source": "@react-native-async-storage/async-storage",
+          "specifiers": [
+            "AsyncStorage"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "I18nProvider"
+          ]
+        },
+        {
+          "source": "@react-navigation/native",
+          "specifiers": [
+            "NavigationContainer"
+          ]
+        },
+        {
+          "source": "@react-navigation/native-stack",
+          "specifiers": [
+            "createNativeStackNavigator"
+          ]
+        },
+        {
+          "source": "./src/context/ConfigContext",
+          "specifiers": [
+            "ConfigProvider",
+            "useConfig"
+          ]
+        },
+        {
+          "source": "./src/context/AuthContext",
+          "specifiers": [
+            "AuthProvider",
+            "useAuth"
+          ]
+        },
+        {
+          "source": "./src/screens/LoginScreen",
+          "specifiers": [
+            "LoginScreen"
+          ]
+        },
+        {
+          "source": "./src/screens/RegisterScreen",
+          "specifiers": [
+            "RegisterScreen"
+          ]
+        },
+        {
+          "source": "./src/screens/HomeScreen",
+          "specifiers": [
+            "HomeScreen"
+          ]
+        },
+        {
+          "source": "./src/screens/ServerConfigScreen",
+          "specifiers": [
+            "ServerConfigScreen"
+          ]
+        }
+      ],
+      "exports": [
+        "App"
+      ],
+      "totalLines": 59,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/index.ts": {
+      "filePath": "packages/mobile/index.ts",
+      "contentHash": "5c157f4d44972d9c84415e1e4bda595b3abcd8cf733f8a9cd20935bec3eccc42",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "expo",
+          "specifiers": [
+            "registerRootComponent"
+          ]
+        },
+        {
+          "source": "./App",
+          "specifiers": [
+            "App"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 9,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/metro.config.js": {
+      "filePath": "packages/mobile/metro.config.js",
+      "contentHash": "7d34e5878e01e7f0e726b59812aba50f9a0121ca0710ea4cf530e3e2c7e694ad",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 17,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/package.json": {
+      "filePath": "packages/mobile/package.json",
+      "contentHash": "c457483af5c9af8bd1590f96d9c4feef1b7ee85c4fc58f37552854a27e217c3e",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 31,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/README.md": {
+      "filePath": "packages/mobile/README.md",
+      "contentHash": "1dd54c76d75513ffb73ff893a73304540e925c321dd6b7abc981cdb0787a049b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 68,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/api/auth.ts": {
+      "filePath": "packages/mobile/src/api/auth.ts",
+      "contentHash": "593920ab9469bba1c052b049f87c0a8cbdea93b35ad1bba17b374ab2227beb8c",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./client",
+          "specifiers": [
+            "apiClient"
+          ]
+        },
+        {
+          "source": "@react-native-async-storage/async-storage",
+          "specifiers": [
+            "AsyncStorage"
+          ]
+        }
+      ],
+      "exports": [
+        "authApi"
+      ],
+      "totalLines": 43,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/api/browse.ts": {
+      "filePath": "packages/mobile/src/api/browse.ts",
+      "contentHash": "2a786406f150375b00b551babec383d1c6d005fb1b0439e721adee8c3777f47a",
+      "functions": [
+        {
+          "name": "browse",
+          "params": [
+            "parentId"
+          ],
+          "returnType": "Promise<BrowseResponse>",
+          "exported": true,
+          "lineCount": 5
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./client",
+          "specifiers": [
+            "apiClient"
+          ]
+        },
+        {
+          "source": "../types",
+          "specifiers": [
+            "BrowseResponse"
+          ]
+        }
+      ],
+      "exports": [
+        "browse"
+      ],
+      "totalLines": 9,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/api/client.ts": {
+      "filePath": "packages/mobile/src/api/client.ts",
+      "contentHash": "8359a6b1930b7b1ac34b2484985c444cd60af7206d24fb2e7e62cb9a1feb08e4",
+      "functions": [
+        {
+          "name": "updateApiBaseUrl",
+          "params": [
+            "url"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "axios",
+          "specifiers": [
+            "axios"
+          ]
+        },
+        {
+          "source": "@react-native-async-storage/async-storage",
+          "specifiers": [
+            "AsyncStorage"
+          ]
+        },
+        {
+          "source": "../config/api",
+          "specifiers": [
+            "getPlatformDefaultApiUrl"
+          ]
+        }
+      ],
+      "exports": [
+        "apiClient",
+        "updateApiBaseUrl"
+      ],
+      "totalLines": 41,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/api/files.ts": {
+      "filePath": "packages/mobile/src/api/files.ts",
+      "contentHash": "fff5ec3cf08572d5ae06fda1dbcce0453819e7720842781d39b5631a5ac91ef8",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./client",
+          "specifiers": [
+            "apiClient"
+          ]
+        },
+        {
+          "source": "../types",
+          "specifiers": [
+            "FileItem",
+            "Folder",
+            "BrowseResponse"
+          ]
+        }
+      ],
+      "exports": [
+        "filesApi",
+        "foldersApi"
+      ],
+      "totalLines": 91,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/api/shares.ts": {
+      "filePath": "packages/mobile/src/api/shares.ts",
+      "contentHash": "0541927a2c1fa1a8466f21b912f366ffb174b39f6bc987a6285d87dacc3be72b",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./client",
+          "specifiers": [
+            "apiClient"
+          ]
+        }
+      ],
+      "exports": [
+        "sharesApi"
+      ],
+      "totalLines": 32,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/api/upload.ts": {
+      "filePath": "packages/mobile/src/api/upload.ts",
+      "contentHash": "7d04d587ab5f1a70343dc424b52c96dbe1c0eca921940f6573aa72e1f09ba1c7",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./client",
+          "specifiers": [
+            "apiClient"
+          ]
+        },
+        {
+          "source": "../types",
+          "specifiers": [
+            "UploadSession"
+          ]
+        },
+        {
+          "source": "expo-file-system/legacy",
+          "specifiers": [
+            "* as FileSystem"
+          ]
+        }
+      ],
+      "exports": [
+        "uploadApi",
+        "CHUNK_SIZE"
+      ],
+      "totalLines": 98,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/components/ActionSheet.tsx": {
+      "filePath": "packages/mobile/src/components/ActionSheet.tsx",
+      "contentHash": "8f37b724910722fe062ab444ae030b732ce4883432762ec7d6fda97456ef1c6f",
+      "functions": [
+        {
+          "name": "ActionSheet",
+          "params": [
+            "{\n  visible,\n  title,\n  actions,\n  onClose,\n}"
+          ],
+          "exported": false,
+          "lineCount": 65
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react-native",
+          "specifiers": [
+            "Modal",
+            "View",
+            "Text",
+            "TouchableOpacity",
+            "StyleSheet",
+            "Pressable"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 150,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/components/CreateFolderModal.tsx": {
+      "filePath": "packages/mobile/src/components/CreateFolderModal.tsx",
+      "contentHash": "dbf1ef812c63386c1c8751480fab323c8b03408124ed3b7c0409019b7d38d0dd",
+      "functions": [
+        {
+          "name": "CreateFolderModal",
+          "params": [
+            "{\n  visible,\n  onClose,\n  onCreate,\n}"
+          ],
+          "exported": false,
+          "lineCount": 50
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "react-native",
+          "specifiers": [
+            "View",
+            "Text",
+            "Modal",
+            "TextInput",
+            "TouchableOpacity",
+            "StyleSheet",
+            "Pressable"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 113,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/components/FilePreviewModal.tsx": {
+      "filePath": "packages/mobile/src/components/FilePreviewModal.tsx",
+      "contentHash": "5901ad60e6dc827424ad1fd8ce5d89fd9c3cc05a0b2edd39099933160b89c10e",
+      "functions": [
+        {
+          "name": "isPreviewableImage",
+          "params": [
+            "mimeType",
+            "name"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "isPreviewableVideo",
+          "params": [
+            "mimeType",
+            "name"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "isPreviewableAudio",
+          "params": [
+            "mimeType",
+            "name"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "formatBytes",
+          "params": [
+            "n"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "FilePreviewModal",
+          "params": [
+            "{\n  file,\n  visible,\n  onClose,\n  onOpenExternal,\n}"
+          ],
+          "exported": false,
+          "lineCount": 76
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react-native",
+          "specifiers": [
+            "Modal",
+            "View",
+            "Text",
+            "Image",
+            "TouchableOpacity",
+            "StyleSheet",
+            "Pressable",
+            "SafeAreaView"
+          ]
+        },
+        {
+          "source": "../api/files",
+          "specifiers": [
+            "filesApi"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "../types",
+          "specifiers": [
+            "FileItem"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 205,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/components/ImagePreviewModal.tsx": {
+      "filePath": "packages/mobile/src/components/ImagePreviewModal.tsx",
+      "contentHash": "4c992358e8cd47d5b85c83e7b2da4c6b1269940ee509348a03750eb7014bdf66",
+      "functions": [
+        {
+          "name": "ImagePreviewModal",
+          "params": [
+            "{\n  file,\n  onClose,\n}"
+          ],
+          "exported": false,
+          "lineCount": 30
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react-native",
+          "specifiers": [
+            "Modal",
+            "Image",
+            "Text",
+            "TouchableOpacity",
+            "StyleSheet",
+            "Pressable"
+          ]
+        },
+        {
+          "source": "../types",
+          "specifiers": [
+            "FileItem"
+          ]
+        },
+        {
+          "source": "../api/files",
+          "specifiers": [
+            "filesApi"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 71,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/components/index.ts": {
+      "filePath": "packages/mobile/src/components/index.ts",
+      "contentHash": "243415e00268bccdcd366107c32ae4edff0ce1abc5eae79234e6988181c342c4",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "UploadProgressRow",
+        "ImagePreviewModal",
+        "MoveFileModal",
+        "CreateFolderModal",
+        "RenameFolderModal"
+      ],
+      "totalLines": 20,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/components/MoveFileModal.tsx": {
+      "filePath": "packages/mobile/src/components/MoveFileModal.tsx",
+      "contentHash": "fbaf59acea2a09d90d86d261375514ecf045dc99b1260ab0260dcf2bcce5eaad",
+      "functions": [
+        {
+          "name": "MoveFileModal",
+          "params": [
+            "{\n  file,\n  onClose,\n  onMoved,\n}"
+          ],
+          "exported": false,
+          "lineCount": 123
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useCallback",
+            "useEffect",
+            "useState"
+          ]
+        },
+        {
+          "source": "react-native",
+          "specifiers": [
+            "View",
+            "Text",
+            "Modal",
+            "FlatList",
+            "TouchableOpacity",
+            "StyleSheet",
+            "ActivityIndicator",
+            "SafeAreaView"
+          ]
+        },
+        {
+          "source": "../types",
+          "specifiers": [
+            "FileItem",
+            "Folder"
+          ]
+        },
+        {
+          "source": "../api/files",
+          "specifiers": [
+            "filesApi"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 214,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/components/RenameFileModal.tsx": {
+      "filePath": "packages/mobile/src/components/RenameFileModal.tsx",
+      "contentHash": "9c911ae62eb7059be3ee34728ff65f0bae202e95f196172e6b6c6d26c8eeb555",
+      "functions": [
+        {
+          "name": "RenameFileModal",
+          "params": [
+            "{\n  visible,\n  fileName,\n  onClose,\n  onRename,\n}"
+          ],
+          "exported": false,
+          "lineCount": 55
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect",
+            "useState"
+          ]
+        },
+        {
+          "source": "react-native",
+          "specifiers": [
+            "View",
+            "Text",
+            "Modal",
+            "TextInput",
+            "TouchableOpacity",
+            "StyleSheet",
+            "Pressable"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 118,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/components/RenameFolderModal.tsx": {
+      "filePath": "packages/mobile/src/components/RenameFolderModal.tsx",
+      "contentHash": "1cd4265dcd3f4b8b812500844d36ef43d2378be9ac45ba9dad5bb5d1a7b85699",
+      "functions": [
+        {
+          "name": "RenameFolderModal",
+          "params": [
+            "{\n  visible,\n  initialName,\n  onClose,\n  onRename,\n}"
+          ],
+          "exported": false,
+          "lineCount": 55
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect",
+            "useState"
+          ]
+        },
+        {
+          "source": "react-native",
+          "specifiers": [
+            "View",
+            "Text",
+            "Modal",
+            "TextInput",
+            "TouchableOpacity",
+            "StyleSheet",
+            "Pressable"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 118,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/components/ShareFileModal.tsx": {
+      "filePath": "packages/mobile/src/components/ShareFileModal.tsx",
+      "contentHash": "6c7c531c879e99c158dfdd07fac5614e1ab7406341521becf43d3ab1a9754eb9",
+      "functions": [
+        {
+          "name": "ShareFileModal",
+          "params": [
+            "{\n  file,\n  visible,\n  onClose,\n}"
+          ],
+          "exported": false,
+          "lineCount": 123
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "react-native",
+          "specifiers": [
+            "View",
+            "Text",
+            "Modal",
+            "TextInput",
+            "TouchableOpacity",
+            "StyleSheet",
+            "Pressable",
+            "ScrollView"
+          ]
+        },
+        {
+          "source": "../api/shares",
+          "specifiers": [
+            "sharesApi"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "../types",
+          "specifiers": [
+            "FileItem"
+          ]
+        },
+        {
+          "source": "../api/client",
+          "specifiers": [
+            "apiClient"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 248,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/components/UploadProgressRow.tsx": {
+      "filePath": "packages/mobile/src/components/UploadProgressRow.tsx",
+      "contentHash": "ac8fda5529eafb26775cf2bc4fa1dd94212f0d0d45d7b8b47a332b93ab004ff6",
+      "functions": [
+        {
+          "name": "UploadProgressRow",
+          "params": [
+            "{\n  item,\n  onRetry,\n}"
+          ],
+          "exported": false,
+          "lineCount": 60
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react-native",
+          "specifiers": [
+            "View",
+            "Text",
+            "TouchableOpacity",
+            "StyleSheet"
+          ]
+        },
+        {
+          "source": "../types",
+          "specifiers": [
+            "UploadProgress"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 121,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/config/api.ts": {
+      "filePath": "packages/mobile/src/config/api.ts",
+      "contentHash": "1e9f4720ad10e412214e8f9c26a225e2275413cb737c8692c396071790c63866",
+      "functions": [
+        {
+          "name": "getPlatformDefaultApiUrl",
+          "params": [],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "getBuildTimeApiUrl",
+          "params": [],
+          "returnType": "string | undefined",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "resolveApiUrl",
+          "params": [],
+          "returnType": "Promise<string>",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "getApiErrorMessage",
+          "params": [
+            "error"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "isNetworkError",
+          "params": [
+            "error"
+          ],
+          "returnType": "boolean",
+          "exported": true,
+          "lineCount": 9
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./storage",
+          "specifiers": [
+            "getStoredApiUrl"
+          ]
+        }
+      ],
+      "exports": [
+        "getPlatformDefaultApiUrl",
+        "getBuildTimeApiUrl",
+        "resolveApiUrl",
+        "getApiErrorMessage",
+        "isNetworkError"
+      ],
+      "totalLines": 62,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/config/storage.ts": {
+      "filePath": "packages/mobile/src/config/storage.ts",
+      "contentHash": "2d55d478de3e58f71634469c57ce67376de4b85c93d94808332f8050c6c58028",
+      "functions": [
+        {
+          "name": "getStoredApiUrl",
+          "params": [],
+          "returnType": "Promise<string | null>",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "setStoredApiUrl",
+          "params": [
+            "url"
+          ],
+          "returnType": "Promise<void>",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "clearStoredApiUrl",
+          "params": [],
+          "returnType": "Promise<void>",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@react-native-async-storage/async-storage",
+          "specifiers": [
+            "AsyncStorage"
+          ]
+        }
+      ],
+      "exports": [
+        "getStoredApiUrl",
+        "setStoredApiUrl",
+        "clearStoredApiUrl"
+      ],
+      "totalLines": 16,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/context/AuthContext.tsx": {
+      "filePath": "packages/mobile/src/context/AuthContext.tsx",
+      "contentHash": "5f891a3ea7dbfc0ddf9a0ca062233c57812d6858f936551b6aa6af338ead6de2",
+      "functions": [
+        {
+          "name": "AuthProvider",
+          "params": [
+            "{ children }"
+          ],
+          "exported": true,
+          "lineCount": 43
+        },
+        {
+          "name": "useAuth",
+          "params": [],
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "React",
+            "createContext",
+            "useContext",
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "../api/auth",
+          "specifiers": [
+            "authApi"
+          ]
+        },
+        {
+          "source": "../types",
+          "specifiers": [
+            "User"
+          ]
+        }
+      ],
+      "exports": [
+        "AuthProvider",
+        "useAuth"
+      ],
+      "totalLines": 66,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/context/ConfigContext.tsx": {
+      "filePath": "packages/mobile/src/context/ConfigContext.tsx",
+      "contentHash": "b1f5a3a9db30a6fc21de8aec421410d4788b026abde696b4bd8dc461fa301cbe",
+      "functions": [
+        {
+          "name": "ConfigProvider",
+          "params": [
+            "{ children }"
+          ],
+          "exported": true,
+          "lineCount": 20
+        },
+        {
+          "name": "useConfig",
+          "params": [],
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "React",
+            "createContext",
+            "useContext",
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "../config/api",
+          "specifiers": [
+            "resolveApiUrl"
+          ]
+        },
+        {
+          "source": "../api/client",
+          "specifiers": [
+            "updateApiBaseUrl"
+          ]
+        }
+      ],
+      "exports": [
+        "ConfigProvider",
+        "useConfig"
+      ],
+      "totalLines": 41,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/screens/HomeScreen.tsx": {
+      "filePath": "packages/mobile/src/screens/HomeScreen.tsx",
+      "contentHash": "1cc7821cba62bc2a40373ec6f63aca9e3aeb6ad0b9c79cd1cb7379f1222443b2",
+      "functions": [
+        {
+          "name": "isPreviewableImage",
+          "params": [
+            "mimeType",
+            "name"
+          ],
+          "returnType": "boolean",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "HomeScreen",
+          "params": [],
+          "exported": true,
+          "lineCount": 711
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "React",
+            "useCallback",
+            "useEffect",
+            "useRef",
+            "useState"
+          ]
+        },
+        {
+          "source": "react-native",
+          "specifiers": [
+            "View",
+            "Text",
+            "FlatList",
+            "TouchableOpacity",
+            "StyleSheet",
+            "RefreshControl",
+            "Alert",
+            "Image",
+            "ScrollView",
+            "SafeAreaView",
+            "Linking"
+          ]
+        },
+        {
+          "source": "expo-document-picker",
+          "specifiers": [
+            "* as DocumentPicker"
+          ]
+        },
+        {
+          "source": "expo-file-system/legacy",
+          "specifiers": [
+            "* as FileSystem"
+          ]
+        },
+        {
+          "source": "../api/files",
+          "specifiers": [
+            "filesApi",
+            "foldersApi"
+          ]
+        },
+        {
+          "source": "../api/upload",
+          "specifiers": [
+            "uploadApi",
+            "CHUNK_SIZE"
+          ]
+        },
+        {
+          "source": "../context/AuthContext",
+          "specifiers": [
+            "useAuth"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "../types",
+          "specifiers": [
+            "FileItem",
+            "Folder",
+            "UploadProgress"
+          ]
+        },
+        {
+          "source": "../components/UploadProgressRow",
+          "specifiers": [
+            "UploadProgressRow"
+          ]
+        },
+        {
+          "source": "../components/FilePreviewModal",
+          "specifiers": [
+            "FilePreviewModal"
+          ]
+        },
+        {
+          "source": "../components/ActionSheet",
+          "specifiers": [
+            "ActionSheet",
+            "ActionItem"
+          ]
+        },
+        {
+          "source": "../components/RenameFileModal",
+          "specifiers": [
+            "RenameFileModal"
+          ]
+        },
+        {
+          "source": "../components/ShareFileModal",
+          "specifiers": [
+            "ShareFileModal"
+          ]
+        },
+        {
+          "source": "../components/MoveFileModal",
+          "specifiers": [
+            "MoveFileModal"
+          ]
+        },
+        {
+          "source": "../components/CreateFolderModal",
+          "specifiers": [
+            "CreateFolderModal"
+          ]
+        },
+        {
+          "source": "../components/RenameFolderModal",
+          "specifiers": [
+            "RenameFolderModal"
+          ]
+        }
+      ],
+      "exports": [
+        "HomeScreen"
+      ],
+      "totalLines": 1213,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/screens/LoginScreen.tsx": {
+      "filePath": "packages/mobile/src/screens/LoginScreen.tsx",
+      "contentHash": "fe34e473f38a8d0dafe85a064e58d21b8c026cf9eeafe462eb41fd480c7f7655",
+      "functions": [
+        {
+          "name": "LoginScreen",
+          "params": [
+            "{ navigation }"
+          ],
+          "exported": true,
+          "lineCount": 86
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "React",
+            "useState"
+          ]
+        },
+        {
+          "source": "react-native",
+          "specifiers": [
+            "View",
+            "Text",
+            "TextInput",
+            "TouchableOpacity",
+            "StyleSheet",
+            "Alert"
+          ]
+        },
+        {
+          "source": "../context/AuthContext",
+          "specifiers": [
+            "useAuth"
+          ]
+        },
+        {
+          "source": "../context/ConfigContext",
+          "specifiers": [
+            "useConfig"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "../config/api",
+          "specifiers": [
+            "getApiErrorMessage",
+            "isNetworkError"
+          ]
+        }
+      ],
+      "exports": [
+        "LoginScreen"
+      ],
+      "totalLines": 167,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/screens/RegisterScreen.tsx": {
+      "filePath": "packages/mobile/src/screens/RegisterScreen.tsx",
+      "contentHash": "5f2335ea97a3afb45a30c182967fe4e49d08dc6f9000a38f2fa4474ecbdadf8d",
+      "functions": [
+        {
+          "name": "RegisterScreen",
+          "params": [
+            "{ navigation }"
+          ],
+          "exported": true,
+          "lineCount": 99
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "React",
+            "useState"
+          ]
+        },
+        {
+          "source": "react-native",
+          "specifiers": [
+            "View",
+            "Text",
+            "TextInput",
+            "TouchableOpacity",
+            "StyleSheet",
+            "Alert"
+          ]
+        },
+        {
+          "source": "../context/AuthContext",
+          "specifiers": [
+            "useAuth"
+          ]
+        },
+        {
+          "source": "../context/ConfigContext",
+          "specifiers": [
+            "useConfig"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "../config/api",
+          "specifiers": [
+            "getApiErrorMessage",
+            "isNetworkError"
+          ]
+        }
+      ],
+      "exports": [
+        "RegisterScreen"
+      ],
+      "totalLines": 180,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/screens/ServerConfigScreen.tsx": {
+      "filePath": "packages/mobile/src/screens/ServerConfigScreen.tsx",
+      "contentHash": "d253e6b40e52a2ef8e0e13636efb9e25d54147b00fa8b633373bc62ef8fc456b",
+      "functions": [
+        {
+          "name": "ServerConfigScreen",
+          "params": [
+            "{ navigation }"
+          ],
+          "exported": true,
+          "lineCount": 87
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "React",
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "react-native",
+          "specifiers": [
+            "View",
+            "Text",
+            "TextInput",
+            "TouchableOpacity",
+            "StyleSheet",
+            "Alert",
+            "KeyboardAvoidingView",
+            "Platform",
+            "ScrollView"
+          ]
+        },
+        {
+          "source": "../config/storage",
+          "specifiers": [
+            "setStoredApiUrl",
+            "clearStoredApiUrl"
+          ]
+        },
+        {
+          "source": "../config/api",
+          "specifiers": [
+            "getPlatformDefaultApiUrl"
+          ]
+        },
+        {
+          "source": "../api/client",
+          "specifiers": [
+            "updateApiBaseUrl"
+          ]
+        },
+        {
+          "source": "../context/ConfigContext",
+          "specifiers": [
+            "useConfig"
+          ]
+        }
+      ],
+      "exports": [
+        "ServerConfigScreen"
+      ],
+      "totalLines": 174,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/src/types/index.ts": {
+      "filePath": "packages/mobile/src/types/index.ts",
+      "contentHash": "f0becbbea73871b160db843e6079ef79194e8b49a28bd2ff28e126ea9647438a",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 62,
+      "hasStructuralAnalysis": true
+    },
+    "packages/mobile/tsconfig.json": {
+      "filePath": "packages/mobile/tsconfig.json",
+      "contentHash": "712583ff9cdb4b4e4f9b000a4a56d68db8dc1921cbfbc36d490a3a9f2be3dd72",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 7,
+      "hasStructuralAnalysis": true
+    },
+    "packages/shared/package.json": {
+      "filePath": "packages/shared/package.json",
+      "contentHash": "08018757d9ed2e40eb1db95657664cc732205e5306cc22261df1ae1b48746458",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 21,
+      "hasStructuralAnalysis": true
+    },
+    "packages/shared/prisma/migrations/20260513145536_dev/migration.sql": {
+      "filePath": "packages/shared/prisma/migrations/20260513145536_dev/migration.sql",
+      "contentHash": "74a0a68044e62383feaecba1dee6a23b66a6d7f5fe3c429a8baa150bf57e6f35",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 85,
+      "hasStructuralAnalysis": true
+    },
+    "packages/shared/prisma/migrations/20260525010042_add_share_model/migration.sql": {
+      "filePath": "packages/shared/prisma/migrations/20260525010042_add_share_model/migration.sql",
+      "contentHash": "0278d5f7a91f879651e8aa80dcfe267d9206498326391c4f13cc7ebd64f3c735",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 22,
+      "hasStructuralAnalysis": true
+    },
+    "packages/shared/prisma/migrations/20260525065042_add_deleted_at_to_file/migration.sql": {
+      "filePath": "packages/shared/prisma/migrations/20260525065042_add_deleted_at_to_file/migration.sql",
+      "contentHash": "8aca1e86f4cc352078cc6a4ab717c61c9d12f9ffe2106dec89bbdcf3f117cb2e",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 4,
+      "hasStructuralAnalysis": true
+    },
+    "packages/shared/prisma/migrations/20260526155236/migration.sql": {
+      "filePath": "packages/shared/prisma/migrations/20260526155236/migration.sql",
+      "contentHash": "e32ea571c5e93a2cced310b1422a29c1a612587fe7d8a9b1ee0fcb26ac2a76b2",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 3,
+      "hasStructuralAnalysis": true
+    },
+    "packages/shared/prisma/migrations/migration_lock.toml": {
+      "filePath": "packages/shared/prisma/migrations/migration_lock.toml",
+      "contentHash": "99836963713b4f5b269ad49af0ed3d7b0b2e336115c2f92dc9ac683d139d0900",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 4,
+      "hasStructuralAnalysis": true
+    },
+    "packages/shared/prisma/schema.prisma": {
+      "filePath": "packages/shared/prisma/schema.prisma",
+      "contentHash": "620e2fa179a1e4d4b12f1e7c954052b0093209da022d11c96d0f4e8b3be98fba",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 85,
+      "hasStructuralAnalysis": false
+    },
+    "packages/shared/src/i18n/en.ts": {
+      "filePath": "packages/shared/src/i18n/en.ts",
+      "contentHash": "ffc4aaa0b85eaf51e19502ca3a001d6661b6e7295b315a8e40ed1c56e15bfd24",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./types",
+          "specifiers": [
+            "I18nStrings"
+          ]
+        }
+      ],
+      "exports": [
+        "en"
+      ],
+      "totalLines": 82,
+      "hasStructuralAnalysis": true
+    },
+    "packages/shared/src/i18n/index.tsx": {
+      "filePath": "packages/shared/src/i18n/index.tsx",
+      "contentHash": "c379ec68426f8ae2ef549fd3bd9a9a66bf1a2d59a9778464bbc8f639bb386774",
+      "functions": [
+        {
+          "name": "I18nProvider",
+          "params": [
+            "{\n  children,\n  storage,\n}"
+          ],
+          "exported": true,
+          "lineCount": 30
+        },
+        {
+          "name": "useI18n",
+          "params": [],
+          "returnType": "I18nContextType",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "tFormat",
+          "params": [
+            "template",
+            "values"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "React",
+            "createContext",
+            "useContext",
+            "useState",
+            "useCallback",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "./types",
+          "specifiers": [
+            "Lang",
+            "I18nContextType",
+            "I18nStrings"
+          ]
+        },
+        {
+          "source": "./zh-CN",
+          "specifiers": [
+            "zhCN"
+          ]
+        },
+        {
+          "source": "./en",
+          "specifiers": [
+            "en"
+          ]
+        }
+      ],
+      "exports": [
+        "I18nProvider",
+        "useI18n",
+        "tFormat"
+      ],
+      "totalLines": 56,
+      "hasStructuralAnalysis": true
+    },
+    "packages/shared/src/i18n/types.ts": {
+      "filePath": "packages/shared/src/i18n/types.ts",
+      "contentHash": "bcb06547edcaa7f94dc51766c7da4b63b36f317dcd6ce71a5c849f24d85858bd",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 56,
+      "hasStructuralAnalysis": true
+    },
+    "packages/shared/src/i18n/zh-CN.ts": {
+      "filePath": "packages/shared/src/i18n/zh-CN.ts",
+      "contentHash": "6396f696a61d981fb50574971a56cba2af6f961284bbaf5944d28ef237525b2c",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./types",
+          "specifiers": [
+            "I18nStrings"
+          ]
+        }
+      ],
+      "exports": [
+        "zhCN"
+      ],
+      "totalLines": 82,
+      "hasStructuralAnalysis": true
+    },
+    "packages/shared/src/utils.ts": {
+      "filePath": "packages/shared/src/utils.ts",
+      "contentHash": "0654a0ba272cb837588e2609f22d4b186bd6ec5a0ebd1e77f54e30213ce793c5",
+      "functions": [
+        {
+          "name": "formatBytes",
+          "params": [
+            "n"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "isPreviewableImage",
+          "params": [
+            "mimeType",
+            "name"
+          ],
+          "returnType": "boolean",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "isPreviewableVideo",
+          "params": [
+            "mimeType",
+            "name"
+          ],
+          "returnType": "boolean",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "isPreviewableAudio",
+          "params": [
+            "mimeType",
+            "name"
+          ],
+          "returnType": "boolean",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "isPreviewable",
+          "params": [
+            "mimeType",
+            "name"
+          ],
+          "returnType": "boolean",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "formatBytes",
+        "isPreviewableImage",
+        "isPreviewableVideo",
+        "isPreviewableAudio",
+        "isPreviewable"
+      ],
+      "totalLines": 32,
+      "hasStructuralAnalysis": true
+    },
+    "packages/shared/tsconfig.json": {
+      "filePath": "packages/shared/tsconfig.json",
+      "contentHash": "10ed016b8f198a7d04f87f7aa3699ef0a5f0a869853b290119018eb552c6e976",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 15,
+      "hasStructuralAnalysis": true
+    },
+    "packages/shared/types/index.ts": {
+      "filePath": "packages/shared/types/index.ts",
+      "contentHash": "de14a0d079a90a9fc473a64c30e4c297d70311797aa4c7b5b7b0c1aa49135b11",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 92,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/.env.example": {
+      "filePath": "packages/web/.env.example",
+      "contentHash": "01cfe7a18644e64f3ee0a279aff37d713af74bc0a1c329ba8e07f4d3cd7480b2",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 22,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/index.html": {
+      "filePath": "packages/web/index.html",
+      "contentHash": "2ad1de0a66a7b86d94bed5cabed18f072ec63a298ea11c0e8b6683b770170504",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 14,
+      "hasStructuralAnalysis": false
+    },
+    "packages/web/package.json": {
+      "filePath": "packages/web/package.json",
+      "contentHash": "02c6a55310de90933b7c6e837a762859a15cd5b74803e916835144b35fe285ec",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 40,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/postcss.config.mjs": {
+      "filePath": "packages/web/postcss.config.mjs",
+      "contentHash": "ab4805b77935e8d8a2036e5de3d3a15d6e21229e8e3a1a4aea10b09327709460",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 9,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/README.md": {
+      "filePath": "packages/web/README.md",
+      "contentHash": "794a36558e06fecc6280d8bb01c4e3d2f43420a1f789049066a5e22d492f3d1e",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 58,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/api/auth.ts": {
+      "filePath": "packages/web/src/api/auth.ts",
+      "contentHash": "1c2981f74e7e34dfd22f6149b64e0d818c65675452dc7e0a4fa38883a20b5725",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./client",
+          "specifiers": [
+            "apiClient"
+          ]
+        },
+        {
+          "source": "../types",
+          "specifiers": [
+            "LoginCredentials",
+            "RegisterData",
+            "AuthResponse"
+          ]
+        }
+      ],
+      "exports": [
+        "authApi"
+      ],
+      "totalLines": 25,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/api/client.ts": {
+      "filePath": "packages/web/src/api/client.ts",
+      "contentHash": "50e06a00f56db948b6ec113e2c68b33bd799540a4a05263dee250679cf663f99",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "axios",
+          "specifiers": [
+            "axios"
+          ]
+        }
+      ],
+      "exports": [
+        "apiClient"
+      ],
+      "totalLines": 38,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/api/files.ts": {
+      "filePath": "packages/web/src/api/files.ts",
+      "contentHash": "11eea52a7c74d9e8072add97d084efa7dad9101503ad7994b035566e4f06eb1c",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./client",
+          "specifiers": [
+            "apiClient"
+          ]
+        },
+        {
+          "source": "../types",
+          "specifiers": [
+            "Folder",
+            "BrowseResponse",
+            "CreateFolderRequest"
+          ]
+        }
+      ],
+      "exports": [
+        "filesApi",
+        "foldersApi"
+      ],
+      "totalLines": 87,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/api/shares.ts": {
+      "filePath": "packages/web/src/api/shares.ts",
+      "contentHash": "6541e580dfea7a800271d602ef886aa9f4082c7415ad6dbc99448ee8fab33aae",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./client",
+          "specifiers": [
+            "apiClient"
+          ]
+        }
+      ],
+      "exports": [
+        "sharesApi"
+      ],
+      "totalLines": 63,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/api/upload.ts": {
+      "filePath": "packages/web/src/api/upload.ts",
+      "contentHash": "4e061a14a1eb963c99a88d5d5360eac89ff914735cb72f9ba12523305e53c422",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "./client",
+          "specifiers": [
+            "apiClient"
+          ]
+        },
+        {
+          "source": "../types",
+          "specifiers": [
+            "UploadSession"
+          ]
+        }
+      ],
+      "exports": [
+        "uploadApi",
+        "CHUNK_SIZE"
+      ],
+      "totalLines": 49,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/App.tsx": {
+      "filePath": "packages/web/src/App.tsx",
+      "contentHash": "78d4efcb9c7335fcf0ad795d753a08b805b6d4a871a65b096e63562c5e016863",
+      "functions": [
+        {
+          "name": "PrivateRoute",
+          "params": [
+            "{ children }"
+          ],
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "PublicRoute",
+          "params": [
+            "{ children }"
+          ],
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "App",
+          "params": [],
+          "exported": false,
+          "lineCount": 40
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Routes",
+            "Route",
+            "Navigate"
+          ]
+        },
+        {
+          "source": "./context/AuthContext",
+          "specifiers": [
+            "useAuth"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        },
+        {
+          "source": "./pages/LoginPage",
+          "specifiers": [
+            "LoginPage"
+          ]
+        },
+        {
+          "source": "./pages/RegisterPage",
+          "specifiers": [
+            "RegisterPage"
+          ]
+        },
+        {
+          "source": "./pages/FilesPage",
+          "specifiers": [
+            "FilesPage"
+          ]
+        },
+        {
+          "source": "./pages/HomePage",
+          "specifiers": [
+            "HomePage"
+          ]
+        },
+        {
+          "source": "./pages/SharePage",
+          "specifiers": [
+            "SharePage"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 81,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/components/index.ts": {
+      "filePath": "packages/web/src/components/index.ts",
+      "contentHash": "68abe63420122aa74dd4dea04bba5faffc995263d22fbbd581a299f7915ed21a",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "PreviewThumb",
+        "MoveFileModal",
+        "ShareModal",
+        "MediaPreview",
+        "LangSwitcher"
+      ],
+      "totalLines": 20,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/components/LangSwitcher.tsx": {
+      "filePath": "packages/web/src/components/LangSwitcher.tsx",
+      "contentHash": "d51c2a5ccf43278984c67e151b76d7525541cdcfa5d03fe3052bc586c7e0e652",
+      "functions": [
+        {
+          "name": "LangSwitcher",
+          "params": [],
+          "exported": true,
+          "lineCount": 13
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        }
+      ],
+      "exports": [
+        "LangSwitcher"
+      ],
+      "totalLines": 16,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/components/MediaPreview.tsx": {
+      "filePath": "packages/web/src/components/MediaPreview.tsx",
+      "contentHash": "b135246e69d757cadc9ec35d97aa2e64c29a53fbf9afac0b1444ea69e2abc848",
+      "functions": [
+        {
+          "name": "MediaPreview",
+          "params": [
+            "{ file, onClose }"
+          ],
+          "exported": false,
+          "lineCount": 56
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect"
+          ]
+        },
+        {
+          "source": "../types",
+          "specifiers": [
+            "FileItem"
+          ]
+        },
+        {
+          "source": "../api/files",
+          "specifiers": [
+            "filesApi"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/utils",
+          "specifiers": [
+            "isPreviewableVideo",
+            "isPreviewableAudio"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 65,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/components/MoveFileModal.tsx": {
+      "filePath": "packages/web/src/components/MoveFileModal.tsx",
+      "contentHash": "b85062623b42a536e088981bf5db3571c2d5009decaf49bccac3ebd56520ee92",
+      "functions": [
+        {
+          "name": "MoveFileModal",
+          "params": [
+            "{\n  file,\n  onClose,\n  onMoved,\n}"
+          ],
+          "exported": false,
+          "lineCount": 148
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useCallback",
+            "useEffect",
+            "useState"
+          ]
+        },
+        {
+          "source": "../types",
+          "specifiers": [
+            "FileItem",
+            "Folder"
+          ]
+        },
+        {
+          "source": "../api/files",
+          "specifiers": [
+            "filesApi"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 156,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/components/PreviewThumb.tsx": {
+      "filePath": "packages/web/src/components/PreviewThumb.tsx",
+      "contentHash": "a56d27fd0c416d27e5c8c9891ce813c490cd277fba1a44f4e3a9ccf5dfc02a41",
+      "functions": [
+        {
+          "name": "PreviewThumb",
+          "params": [
+            "{ file, onOpen }"
+          ],
+          "exported": false,
+          "lineCount": 50
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "../types",
+          "specifiers": [
+            "FileItem"
+          ]
+        },
+        {
+          "source": "../api/files",
+          "specifiers": [
+            "filesApi"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/utils",
+          "specifiers": [
+            "isPreviewableVideo",
+            "isPreviewableAudio",
+            "isPreviewableImage"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 59,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/components/ShareModal.tsx": {
+      "filePath": "packages/web/src/components/ShareModal.tsx",
+      "contentHash": "fc8219e01569619594ee439989b0ea537368a46e5f219d4f5dd482e266fc1623",
+      "functions": [
+        {
+          "name": "ShareModal",
+          "params": [
+            "{ file, onClose }"
+          ],
+          "exported": false,
+          "lineCount": 162
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect",
+            "useState"
+          ]
+        },
+        {
+          "source": "../types",
+          "specifiers": [
+            "FileItem"
+          ]
+        },
+        {
+          "source": "../api/shares",
+          "specifiers": [
+            "sharesApi"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 170,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/context/AuthContext.tsx": {
+      "filePath": "packages/web/src/context/AuthContext.tsx",
+      "contentHash": "71bb78984e199e9e8b9e3a1e440285a06384b2a165d198ab56cb5c1fc495d49a",
+      "functions": [
+        {
+          "name": "AuthProvider",
+          "params": [
+            "{ children }"
+          ],
+          "exported": true,
+          "lineCount": 49
+        },
+        {
+          "name": "useAuth",
+          "params": [],
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "React",
+            "createContext",
+            "useContext",
+            "useState",
+            "useEffect"
+          ]
+        },
+        {
+          "source": "../api/auth",
+          "specifiers": [
+            "authApi"
+          ]
+        },
+        {
+          "source": "../types",
+          "specifiers": [
+            "User"
+          ]
+        }
+      ],
+      "exports": [
+        "AuthProvider",
+        "useAuth"
+      ],
+      "totalLines": 72,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/index.css": {
+      "filePath": "packages/web/src/index.css",
+      "contentHash": "9d7ffb00a8d0db2a214164edc82175ea0290561d616c3a825bee232f62915a51",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 18,
+      "hasStructuralAnalysis": false
+    },
+    "packages/web/src/main.tsx": {
+      "filePath": "packages/web/src/main.tsx",
+      "contentHash": "c8e1e7e74cd6aafdd5b2a4e81aad9881fa0f3cfc80ee850ec3b6190903d1de76",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "StrictMode"
+          ]
+        },
+        {
+          "source": "react-dom/client",
+          "specifiers": [
+            "createRoot"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "BrowserRouter"
+          ]
+        },
+        {
+          "source": "./context/AuthContext",
+          "specifiers": [
+            "AuthProvider"
+          ]
+        },
+        {
+          "source": "./App",
+          "specifiers": [
+            "App"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "I18nProvider"
+          ]
+        },
+        {
+          "source": "./index.css",
+          "specifiers": []
+        }
+      ],
+      "exports": [],
+      "totalLines": 20,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/pages/FilesPage.tsx": {
+      "filePath": "packages/web/src/pages/FilesPage.tsx",
+      "contentHash": "c6327dc6f5335bcc0957c7892acc3c1a1fa3091ce93ac6828108abd52afee637",
+      "functions": [
+        {
+          "name": "FilesPage",
+          "params": [],
+          "exported": true,
+          "lineCount": 1008
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useCallback",
+            "useEffect",
+            "useRef",
+            "useState"
+          ]
+        },
+        {
+          "source": "../context/AuthContext",
+          "specifiers": [
+            "useAuth"
+          ]
+        },
+        {
+          "source": "../api/files",
+          "specifiers": [
+            "filesApi",
+            "foldersApi"
+          ]
+        },
+        {
+          "source": "../api/upload",
+          "specifiers": [
+            "uploadApi",
+            "CHUNK_SIZE"
+          ]
+        },
+        {
+          "source": "../types",
+          "specifiers": [
+            "FileItem",
+            "Folder",
+            "UploadProgress"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/utils",
+          "specifiers": [
+            "formatBytes",
+            "isPreviewable"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n",
+            "tFormat"
+          ]
+        },
+        {
+          "source": "../components/PreviewThumb",
+          "specifiers": [
+            "PreviewThumb"
+          ]
+        },
+        {
+          "source": "../components/MoveFileModal",
+          "specifiers": [
+            "MoveFileModal"
+          ]
+        },
+        {
+          "source": "../components/ShareModal",
+          "specifiers": [
+            "ShareModal"
+          ]
+        },
+        {
+          "source": "../components/MediaPreview",
+          "specifiers": [
+            "MediaPreview"
+          ]
+        }
+      ],
+      "exports": [
+        "FilesPage"
+      ],
+      "totalLines": 1020,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/pages/HomePage.tsx": {
+      "filePath": "packages/web/src/pages/HomePage.tsx",
+      "contentHash": "cb97e3588dd4dafabf89fea7d47eee61977ef804cca237b074b973a7dbddaaf3",
+      "functions": [
+        {
+          "name": "HomePage",
+          "params": [],
+          "exported": true,
+          "lineCount": 27
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Link"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        }
+      ],
+      "exports": [
+        "HomePage"
+      ],
+      "totalLines": 30,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/pages/LoginPage.tsx": {
+      "filePath": "packages/web/src/pages/LoginPage.tsx",
+      "contentHash": "fadf8185c909ec517c66685260bd8cd868c202ff03a96fe7f4f542155ad3b8f8",
+      "functions": [
+        {
+          "name": "LoginPage",
+          "params": [],
+          "exported": true,
+          "lineCount": 70
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Link",
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "../context/AuthContext",
+          "specifiers": [
+            "useAuth"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        }
+      ],
+      "exports": [
+        "LoginPage"
+      ],
+      "totalLines": 75,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/pages/RegisterPage.tsx": {
+      "filePath": "packages/web/src/pages/RegisterPage.tsx",
+      "contentHash": "1a51f65e9125caf25ce3e305aec9411f096ccf40bfcc4c875a95f0db85e8fab1",
+      "functions": [
+        {
+          "name": "RegisterPage",
+          "params": [],
+          "exported": true,
+          "lineCount": 88
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "Link",
+            "useNavigate"
+          ]
+        },
+        {
+          "source": "../context/AuthContext",
+          "specifiers": [
+            "useAuth"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n"
+          ]
+        }
+      ],
+      "exports": [
+        "RegisterPage"
+      ],
+      "totalLines": 93,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/pages/SharePage.tsx": {
+      "filePath": "packages/web/src/pages/SharePage.tsx",
+      "contentHash": "2f716bc91aab0b673026625e8d0b6453ebbad0461db431cffc03d00a6f52c4e9",
+      "functions": [
+        {
+          "name": "SharePage",
+          "params": [],
+          "exported": true,
+          "lineCount": 127
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect",
+            "useState"
+          ]
+        },
+        {
+          "source": "react-router-dom",
+          "specifiers": [
+            "useParams",
+            "useSearchParams"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/i18n",
+          "specifiers": [
+            "useI18n",
+            "tFormat"
+          ]
+        },
+        {
+          "source": "../api/shares",
+          "specifiers": [
+            "sharesApi",
+            "ShareInfo"
+          ]
+        },
+        {
+          "source": "@smart-files/shared/src/utils",
+          "specifiers": [
+            "formatBytes"
+          ]
+        }
+      ],
+      "exports": [
+        "SharePage"
+      ],
+      "totalLines": 133,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/types/index.ts": {
+      "filePath": "packages/web/src/types/index.ts",
+      "contentHash": "2199c9bd6bebc8070784807bbeac76e4e5812017669d4d9c8836635ed6ba9ae5",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 60,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/src/vite-env.d.ts": {
+      "filePath": "packages/web/src/vite-env.d.ts",
+      "contentHash": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/tsconfig.json": {
+      "filePath": "packages/web/tsconfig.json",
+      "contentHash": "e19b78464a8fa72e9950d1075f539af3b409cd524096dd398826d9008c5d34d9",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 26,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/tsconfig.node.json": {
+      "filePath": "packages/web/tsconfig.node.json",
+      "contentHash": "9e2abb169ea87b7190613a1d4da57ca608463a453bd4231fa3aeee5e308370dd",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 11,
+      "hasStructuralAnalysis": true
+    },
+    "packages/web/vite.config.ts": {
+      "filePath": "packages/web/vite.config.ts",
+      "contentHash": "579c7a51fe670e3a652844856e924edfce945800129f4e83af2a870e84d80f89",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "vite",
+          "specifiers": [
+            "defineConfig"
+          ]
+        },
+        {
+          "source": "@vitejs/plugin-react",
+          "specifiers": [
+            "react"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 18,
+      "hasStructuralAnalysis": true
+    },
+    "podman-compose.yml": {
+      "filePath": "podman-compose.yml",
+      "contentHash": "0a265491f08dee8b9cb097a65d2ddd7c87dcf653921ef9c17229009e230dd16d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 34,
+      "hasStructuralAnalysis": true
+    },
+    "README.md": {
+      "filePath": "README.md",
+      "contentHash": "c6ed0120c5dd34785a95026449cc1e97921d49a20d19d39df98424a400a4ade3",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 121,
+      "hasStructuralAnalysis": true
+    }
+  }
+}
