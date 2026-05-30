@@ -39,7 +39,7 @@ npm start
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `EXPO_PUBLIC_API_URL` | Backend API URL | `http://localhost:4000` |
+| `EXPO_PUBLIC_API_URL` | Backend API URL (must include `/api` path) | `http://localhost:4000/api` |
 
 ## Project Structure
 

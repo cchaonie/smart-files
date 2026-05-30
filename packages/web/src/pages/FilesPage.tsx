@@ -5,7 +5,6 @@ import { uploadApi, CHUNK_SIZE } from '../api/upload'
 import type { FileItem, Folder, UploadProgress } from '../types'
 import { formatBytes, isPreviewable } from '@smart-files/shared/src/utils'
 import { useI18n, tFormat } from '@smart-files/shared/src/i18n'
-import { LangSwitcher } from '../components/LangSwitcher'
 import PreviewThumb from '../components/PreviewThumb'
 import MoveFileModal from '../components/MoveFileModal'
 import ShareModal from '../components/ShareModal'
@@ -45,8 +44,8 @@ export function FilesPage() {
   }> | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const nextUploadId = useRef(0);
   const filesByItemId = useRef<Map<number, File>>(new Map());
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Multi-select state
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
@@ -95,7 +94,7 @@ export function FilesPage() {
       await filesApi.batchDelete(Array.from(selectedFileIds));
       setSelectedFileIds(new Set());
       await loadBrowse();
-    } catch (err) { alert(err instanceof Error ? err.message : 'Batch delete failed'); }
+    } catch (err) { alert(err instanceof Error ? err.message : t.batchDeleteFailed); }
   }
 
   async function handleBatchRestore() {
@@ -103,7 +102,7 @@ export function FilesPage() {
       await filesApi.batchRestore(Array.from(selectedTrashIds));
       setSelectedTrashIds(new Set());
       await loadTrash();
-    } catch (err) { alert(err instanceof Error ? err.message : 'Batch restore failed'); }
+    } catch (err) { alert(err instanceof Error ? err.message : t.batchRestoreFailed); }
   }
 
   async function handleBatchPurge() {
@@ -112,7 +111,7 @@ export function FilesPage() {
       await filesApi.batchPurge(Array.from(selectedTrashIds));
       setSelectedTrashIds(new Set());
       await loadTrash();
-    } catch (err) { alert(err instanceof Error ? err.message : 'Batch purge failed'); }
+    } catch (err) { alert(err instanceof Error ? err.message : t.batchPurgeFailed); }
   }
 
   // Escape to deselect
@@ -132,7 +131,7 @@ export function FilesPage() {
       setFolders(data.folders);
       setFiles(data.files);
     } catch (e) {
-      setListError(e instanceof Error ? e.message : 'Failed to load');
+      setListError(e instanceof Error ? e.message : t.failedToLoad);
       setFolders([]);
       setFiles([]);
     } finally {
@@ -178,11 +177,17 @@ export function FilesPage() {
   async function loadTrash() {
     setTrashLoading(true);
     try {
-      const 
+      const files = await filesApi.listTrash();
+      setTrashFiles(files);
+    } catch {
+      setTrashFiles([]);
+    } finally {
+      setTrashLoading(false);
+    }
+  }
 
-... [OUTPUT TRUNCATED - 308 chars omitted out of 50308 total] ...
-
-eList = e.target.files;
+  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const fileList = e.target.files;
     const files = fileList && fileList.length > 0 ? Array.from(fileList) : [];
 
     e.target.value = '';
@@ -207,7 +212,131 @@ eList = e.target.files;
       await filesApi.deleteFile(id);
       await loadBrowse();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Delete failed');
+      alert(e instanceof Error ? e.message : t.deleteFailed);
+    }
+  }
+
+  async function runUpload(file: File, itemId: number) {
+    try {
+      setUploadItems(prev => prev.map(item => item.id === itemId ? { ...item, status: 'uploading' } : item));
+      const session = await uploadApi.createSession(file.name, file.size, currentParentId ?? undefined);
+      persistKeyRef.current.set(itemId, session.uploadId);
+
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+      const uploadedChunks = new Set<number>();
+
+      while (uploadedChunks.size < totalChunks && !abortRef.current) {
+        while (pausedRef.current && !abortRef.current) {
+          await new Promise(r => setTimeout(r, 200));
+        }
+        if (abortRef.current) break;
+
+        const nextIndex = uploadedChunks.size;
+        const start = nextIndex * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const chunk = file.slice(start, end);
+        const arrayBuffer = await chunk.arrayBuffer();
+
+        try {
+          await uploadApi.uploadChunk(session.uploadId, nextIndex, arrayBuffer);
+          uploadedChunks.add(nextIndex);
+          const progress = Math.round((uploadedChunks.size / totalChunks) * 100);
+          setUploadItems(prev => prev.map(item => item.id === itemId ? { ...item, progress } : item));
+        } catch {
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+
+      if (!abortRef.current) {
+        await uploadApi.completeUpload(session.uploadId, file.type);
+        setUploadItems(prev => prev.map(item => item.id === itemId ? { ...item, status: 'done', progress: 100 } : item));
+      } else {
+        setUploadItems(prev => prev.map(item => item.id === itemId ? { ...item, status: 'error', error: t.aborted } : item));
+      }
+    } catch (e) {
+      setUploadItems(prev => prev.map(item => item.id === itemId ? { ...item, status: 'error', error: e instanceof Error ? e.message : t.uploadFailed } : item));
+    }
+  }
+
+  async function runUploadQueue(files: File[]) {
+    const items: UploadProgress[] = files.map((file, i) => {
+      const id = Date.now() + i;
+      filesByItemId.current.set(id, file);
+      return { id, name: file.name, progress: 0, status: 'pending' as const };
+    });
+    setUploadItems(prev => [...prev, ...items]);
+
+    const running = new Set<Promise<void>>();
+    for (const item of items) {
+      const task = runUpload(filesByItemId.current.get(item.id)!, item.id).then(() => { running.delete(task); });
+      running.add(task);
+      if (running.size >= parallelCount) {
+        await Promise.race(running);
+      }
+    }
+    await Promise.all(running);
+    await loadBrowse();
+  }
+
+  async function handleRestore(id: string) {
+    try {
+      await filesApi.restoreFile(id);
+      await loadTrash();
+    } catch {
+      alert(t.restoreFailed);
+    }
+  }
+
+  async function handlePurge(id: string) {
+    if (!confirm(t.confirmDeleteTitle)) return;
+    try {
+      await filesApi.purgeFile(id);
+      await loadTrash();
+    } catch {
+      alert(t.deleteFailed);
+    }
+  }
+
+  async function handleEmptyTrash() {
+    if (!confirm(t.deleteSelectedConfirm.replace('{n}', String(trashFiles?.length ?? 0)))) return;
+    try {
+      await filesApi.emptyTrash();
+      await loadTrash();
+    } catch {
+      alert(t.batchPurgeFailed);
+    }
+  }
+
+  async function createFolder(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newFolderName.trim()) return;
+    try {
+      await foldersApi.createFolder({ name: newFolderName.trim(), parentId: currentParentId ?? undefined });
+      setNewFolderName('');
+      await loadBrowse();
+    } catch {
+      alert(t.createFolderFailed);
+    }
+  }
+
+  async function renameFolder(folder: Folder) {
+    const name = prompt(t.renameFolder, folder.name);
+    if (!name || name === folder.name) return;
+    try {
+      await foldersApi.renameFolder(folder.id, name);
+      await loadBrowse();
+    } catch {
+      alert(t.renameFailed);
+    }
+  }
+
+  async function deleteFolder(folder: Folder) {
+    if (!confirm(tFormat(t.deleteFolderConfirm, { name: folder.name }))) return;
+    try {
+      await foldersApi.deleteFolder(folder.id);
+      await loadBrowse();
+    } catch {
+      alert(t.deleteFailed);
     }
   }
 
@@ -218,10 +347,10 @@ eList = e.target.files;
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-            Your files
+            {t.yourFiles}
           </h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Folders, chunked uploads with resume, and per-directory storage.
+            {t.filesSubtitle}
           </p>
         </div>
         <button
@@ -242,7 +371,7 @@ eList = e.target.files;
           }}
           className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
         >
-          Sign out
+          {t.signOut}
         </button>
       </header>
 
@@ -293,7 +422,7 @@ eList = e.target.files;
         <section className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-6 dark:border-zinc-700 dark:bg-zinc-900/40">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-medium text-zinc-900 dark:text-zinc-50">
-              🗑️ Trash
+              🗑️ {t.trashTitle}
             </h2>
             {trashFiles && trashFiles.length > 0 && (
               <button
@@ -301,7 +430,7 @@ eList = e.target.files;
                 onClick={() => void handleEmptyTrash()}
                 className="rounded-lg border border-red-300 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"
               >
-                Empty trash
+                {t.emptyTrash}
               </button>
             )}
           </div>
@@ -314,28 +443,28 @@ eList = e.target.files;
             {selectedTrashIds.size > 0 && (
               <div className="mb-3 flex items-center gap-3 rounded-lg border border-zinc-300 bg-zinc-100 px-4 py-2 dark:border-zinc-600 dark:bg-zinc-800">
                 <span className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
-                  {selectedTrashIds.size} selected
+                  {tFormat(t.selectedCount, { n: selectedTrashIds.size })}
                 </span>
                 <button
                   type="button"
                   className="text-sm text-green-600 underline dark:text-green-400"
                   onClick={() => void handleBatchRestore()}
                 >
-                  Restore
+                  {t.restore}
                 </button>
                 <button
                   type="button"
                   className="text-sm text-red-600 underline dark:text-red-400"
                   onClick={() => void handleBatchPurge()}
                 >
-                  Delete permanently
+                  {t.deletePermanently}
                 </button>
                 <button
                   type="button"
                   className="text-sm text-zinc-600 underline dark:text-zinc-400"
                   onClick={() => setSelectedTrashIds(new Set())}
                 >
-                  Deselect
+                  {t.deselect}
                 </button>
               </div>
             )}
@@ -366,7 +495,7 @@ eList = e.target.files;
                       </td>
                       <td className="px-4 py-2 text-zinc-900 dark:text-zinc-100">{f.name}</td>
                       <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
-                        {f.folderName || 'Root'}
+                        {f.folderName || t.root}
                       </td>
                       <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
                         {formatBytes(BigInt(f.size))}
@@ -381,14 +510,14 @@ eList = e.target.files;
                             className="text-green-600 underline dark:text-green-400"
                             onClick={() => void handleRestore(f.id)}
                           >
-                            Restore
+                            {t.restore}
                           </button>
                           <button
                             type="button"
                             className="text-red-600 underline dark:text-red-400"
                             onClick={() => void handlePurge(f.id)}
                           >
-                            Delete permanently
+                            {t.deletePermanently}
                           </button>
                         </div>
                       </td>
@@ -409,11 +538,11 @@ eList = e.target.files;
       <section className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
         <form className="flex flex-wrap items-end gap-2" onSubmit={createFolder}>
           <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs text-zinc-600 dark:text-zinc-400">
-            New folder
+            {t.newFolder}
             <input
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
-              placeholder="Folder name"
+              placeholder={t.folderName}
               className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-50"
             />
           </label>
@@ -421,7 +550,7 @@ eList = e.target.files;
             type="submit"
             className="rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900"
           >
-            Create
+            {t.create}
           </button>
         </form>
       </section>
@@ -440,20 +569,20 @@ eList = e.target.files;
           className="flex cursor-pointer flex-col items-center gap-2 text-center"
         >
           <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
-            Upload into this folder
+            {t.uploadIntoFolder}
           </span>
           <span className="text-xs text-zinc-500">
-            Chunks: {CHUNK_SIZE / (1024 * 1024)} MB · Pause/resume supported
+            {tFormat(t.chunkInfo, { n: CHUNK_SIZE / (1024 * 1024) })}
           </span>
           <span className="mt-2 rounded-full bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900">
-            Choose files
+            {t.chooseFiles}
           </span>
         </label>
         {uploadItems.length > 0 ? (
           <div className="mt-4 space-y-3">
             <div className="flex items-center justify-between border-b border-zinc-200 pb-2 dark:border-zinc-700">
               <span className="text-xs text-zinc-600 dark:text-zinc-400">
-                Parallel uploads
+                {t.parallelUploads}
               </span>
               <div className="flex items-center gap-2">
                 <button
@@ -486,12 +615,12 @@ eList = e.target.files;
                   />
                   <span className="truncate pr-2">
                     {item.status === 'done'
-                      ? 'Done'
+                      ? t.done
                       : item.status === 'error'
-                      ? 'Error'
+                      ? t.error
                       : item.status === 'uploading'
-                      ? 'Uploading'
-                      : 'Pending'}
+                      ? t.uploading
+                      : t.pending}
                     {' · '}
                     {item.name}
                   </span>
@@ -521,7 +650,7 @@ eList = e.target.files;
                       className="rounded-md border border-red-300 px-2 py-0.5 text-xs text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"
                       onClick={() => void retryUpload(item.id)}
                     >
-                      Retry
+                      {t.retry}
                     </button>
                   </div>
                 ) : null}
@@ -535,7 +664,7 @@ eList = e.target.files;
                   pausedRef.current = !pausedRef.current;
                 }}
               >
-                Pause / resume
+                {t.pauseResume}
               </button>
               <button
                 type="button"
@@ -549,7 +678,7 @@ eList = e.target.files;
                   persistKeyRef.current.clear();
                 }}
               >
-                Cancel all
+                {t.cancelAll}
               </button>
               <button
                 type="button"
@@ -561,7 +690,7 @@ eList = e.target.files;
                   if (allDone) setUploadItems([]);
                 }}
               >
-                Clear completed
+                {t.clearCompleted}
               </button>
             </div>
           </div>
@@ -571,41 +700,41 @@ eList = e.target.files;
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-medium text-zinc-900 dark:text-zinc-50">
-            Contents
+            {t.contents}
           </h2>
           <button
             type="button"
             onClick={() => void loadBrowse()}
             className="text-sm text-zinc-600 underline dark:text-zinc-400"
           >
-            Refresh
+            {t.refresh}
           </button>
         </div>
         {listError ? <p className="text-sm text-red-600">{listError}</p> : null}
         {loading ? (
           <p className="text-sm text-zinc-500">{t.loadingElipsis}</p>
         ) : empty ? (
-          <p className="text-sm text-zinc-500">This folder is empty.</p>
+          <p className="text-sm text-zinc-500">{t.folderEmpty}</p>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
             {selectedFileIds.size > 0 && (
               <div className="mb-3 flex items-center gap-3 rounded-lg border border-zinc-300 bg-zinc-100 px-4 py-2 dark:border-zinc-600 dark:bg-zinc-800">
                 <span className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
-                  {selectedFileIds.size} selected
+                  {tFormat(t.selectedCount, { n: selectedFileIds.size })}
                 </span>
                 <button
                   type="button"
                   className="text-sm text-red-600 underline dark:text-red-400"
                   onClick={() => void handleBatchDelete()}
                 >
-                  Delete
+                  {t.delete}
                 </button>
                 <button
                   type="button"
                   className="text-sm text-zinc-600 underline dark:text-zinc-400"
                   onClick={clearAllSelections}
                 >
-                  Deselect all
+                  {t.deselect}
                 </button>
               </div>
             )}
@@ -621,19 +750,19 @@ eList = e.target.files;
                     />
                   </th>
                   <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
-                    Preview
+                    {t.preview}
                   </th>
                   <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
-                    Name
+                    {t.colName}
                   </th>
                   <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
-                    Size
+                    {t.colSize}
                   </th>
                   <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
-                    Added
+                    {t.colAdded}
                   </th>
                   <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
-                    Actions
+                    {t.colActions}
                   </th>
                 </tr>
               </thead>
@@ -646,7 +775,7 @@ eList = e.target.files;
                     <td className="px-4 py-2 align-middle text-zinc-400">—</td>
                     <td className="px-4 py-2 text-zinc-900 dark:text-zinc-100">
                       <span className="mr-2 rounded bg-zinc-200 px-1.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
-                        Folder
+                        {t.folderLabel}
                       </span>
                       {folder.name}
                     </td>
@@ -666,21 +795,21 @@ eList = e.target.files;
                             ])
                           }
                         >
-                          Open
+                          {t.open}
                         </button>
                         <button
                           type="button"
                           className="text-zinc-700 underline dark:text-zinc-300"
                           onClick={() => void renameFolder(folder)}
                         >
-                          Rename
+                          {t.rename}
                         </button>
                         <button
                           type="button"
                           className="text-red-600 underline dark:text-red-400"
                           onClick={() => void deleteFolder(folder)}
                         >
-                          Delete
+                          {t.delete}
                         </button>
                       </div>
                     </td>
@@ -721,7 +850,7 @@ eList = e.target.files;
                             className="text-zinc-900 underline dark:text-zinc-100"
                             onClick={() => setPreviewFile(f)}
                           >
-                            Preview
+                            {t.preview}
                           </button>
                         ) : null}
                         <button
@@ -729,40 +858,40 @@ eList = e.target.files;
                           className="text-zinc-700 underline dark:text-zinc-300"
                           onClick={() => setShareTarget(f)}
                         >
-                          Share
+                          {t.share}
                         </button>
                         <button
                           type="button"
                           className="text-zinc-700 underline dark:text-zinc-300"
                           onClick={() => setMoveTarget(f)}
                         >
-                          Move
+                          {t.moveFile}
                         </button>
                         <a
                           href={filesApi.downloadUrl(f.id)}
                           className="text-zinc-900 underline dark:text-zinc-100"
                           download={f.name}
                         >
-                          Download
+                          {t.download}
                         </a>
                         <button
                           type="button"
                           className="text-zinc-700 underline dark:text-zinc-300"
                           onClick={() => {
-                            const name = window.prompt('New name', f.name);
+                            const name = window.prompt(t.newNamePrompt, f.name);
                             if (name && name.trim()) {
                               filesApi.renameFile(f.id, name.trim()).then(() => loadBrowse());
                             }
                           }}
                         >
-                          Rename
+                          {t.rename}
                         </button>
                         <button
                           type="button"
                           className="text-red-600 underline dark:text-red-400"
                           onClick={() => void removeFile(f.id)}
                         >
-                          Delete
+                          {t.delete}
                         </button>
                       </div>
                     </td>
@@ -791,39 +920,39 @@ eList = e.target.files;
         <section>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-lg font-medium text-zinc-900 dark:text-zinc-50">
-              Search results
+              {t.searchResults}
             </h2>
             <button
               type="button"
               onClick={clearSearch}
               className="text-sm text-zinc-600 underline dark:text-zinc-400"
             >
-              Clear search
+              {t.clearSearch}
             </button>
           </div>
           {searchLoading ? (
-            <p className="text-sm text-zinc-500">Searching…</p>
+            <p className="text-sm text-zinc-500">{t.searching}</p>
           ) : searchResults.length === 0 ? (
-            <p className="text-sm text-zinc-500">No matching files found.</p>
+            <p className="text-sm text-zinc-500">{t.noMatchingFiles}</p>
           ) : (
             <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
               <table className="w-full min-w-[36rem] text-left text-sm">
                 <thead className="bg-zinc-50 dark:bg-zinc-900">
                   <tr>
                     <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
-                      Name
+                      {t.colName}
                     </th>
                     <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
-                      Folder
+                      {t.colFolder}
                     </th>
                     <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
-                      Size
+                      {t.colSize}
                     </th>
                     <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
-                      Added
+                      {t.colAdded}
                     </th>
                     <th className="px-4 py-2 font-medium text-zinc-700 dark:text-zinc-300">
-                      Actions
+                      {t.colActions}
                     </th>
                   </tr>
                 </thead>
@@ -849,7 +978,7 @@ eList = e.target.files;
                                 // This is a simple approach: just set the folder
                                 setSearchResults(null);
                                 setSearchQuery('');
-                                setPath([{ id: f.folderId, name: f.folderName || 'Unknown' }]);
+                                setPath([{ id: f.folderId, name: f.folderName || t.unknownFolder }]);
                               }
                             }}
                           >
@@ -872,7 +1001,7 @@ eList = e.target.files;
                             className="text-zinc-900 underline dark:text-zinc-100"
                             download={f.name}
                           >
-                            Download
+                            {t.download}
                           </a>
                         </div>
                       </td>

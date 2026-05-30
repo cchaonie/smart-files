@@ -13,6 +13,18 @@
   },
   "scripts": {
     "db:start": "podman run -d --name smart-files-db -p 5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=smartfiles -v smart-files-postgres:/var/lib/postgresql/data --replace postgres:16-alpine",
-    "db:stop": "podman stop smart-files-db && podman rm smart-files-db"
+    "db:stop": "podman stop smart-files-db && podman rm smart-files-db",
+    "db:wait": "sleep 2",
+    "dev": "npm-run-all -s db:start db:wait -p dev:*",
+    "dev:backend": "cd packages/backend && npm run start:dev",
+    "dev:web": "cd packages/web && npm run dev",
+    "prd": "npm-run-all -s db:start db:wait prd:build -p prd:backend",
+    "prd:build": "npm-run-all -p prd:webbuild prd:backendbuild",
+    "prd:webbuild": "cd packages/web && npm run build",
+    "prd:backendbuild": "cd packages/backend && npm run build",
+    "prd:backend": "cd packages/backend && npm run start:prod"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5"
   }
 }

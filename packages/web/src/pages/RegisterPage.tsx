@@ -84,7 +84,7 @@ export function RegisterPage() {
         <p className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-400">
           {t.hasAccount}{' '}
           <Link to="/login" className="font-medium text-zinc-900 underline dark:text-zinc-100">
-            Sign in
+            {t.signInLink}
           </Link>
         </p>
       </div>

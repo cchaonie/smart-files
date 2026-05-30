@@ -104,7 +104,7 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
 
       <TouchableOpacity onPress={() => navigation.navigate('ServerConfig')}>
         <Text style={styles.configLink}>
-          {t.serverLabel}: {apiUrl || 'loading...'}
+          {t.serverLabel}: {apiUrl || t.loadingElipsis}
         </Text>
         <Text style={styles.configSubtext}>{t.tapToConfigure}</Text>
       </TouchableOpacity>
