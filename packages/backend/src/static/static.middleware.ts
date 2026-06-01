@@ -1,5 +1,6 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { join } from 'path';
+import { existsSync, statSync } from 'fs';
 
 @Injectable()
 export class SpaFallbackMiddleware implements NestMiddleware {
@@ -7,6 +8,14 @@ export class SpaFallbackMiddleware implements NestMiddleware {
     if (req.path.startsWith('/api')) {
       return next();
     }
-    res.sendFile(join(process.cwd(), '..', 'web', 'dist', 'index.html'));
+
+    const webDistPath = join(process.cwd(), '..', 'web', 'dist');
+    const filePath = join(webDistPath, req.path);
+
+    if (existsSync(filePath) && statSync(filePath).isFile()) {
+      return res.sendFile(filePath);
+    }
+
+    res.sendFile(join(webDistPath, 'index.html'));
   }
 }
