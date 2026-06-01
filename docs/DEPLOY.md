@@ -4,13 +4,16 @@
 
 ## 部署架构
 
-统一服务架构：
+```
+用户 → Nginx (80/443) → 静态文件 (SPA)
+                      → /api/* → NestJS (容器 :4000) → PostgreSQL (容器 :5432)
+```
 
-- **统一服务**: NestJS API + Vite React 静态文件 (`packages/backend` 托管前后端)
-  - 端口: 4000
+- **Nginx**: 宿主机上运行，直接提供前端静态文件和 API 反向代理
+- **NestJS API**: 容器运行，仅处理 `/api/*` 业务逻辑
+  - 端口: 4000（仅 localhost 暴露，不对外）
   - 环境: `DATABASE_URL`, `JWT_SECRET`, `UPLOAD_ROOT`, `PORT`, `CORS_ORIGIN`
-  - 前端构建产物通过 `@nestjs/serve-static` 托管，API 统一在 `/api` 前缀下
-- **数据库**: PostgreSQL
+- **PostgreSQL**: 容器运行，数据持久化到 `./data/postgres`
 - **文件存储**: 共享卷挂载到 `./data/storage`
 
 容器运行时: Podman (无守护进程，rootless 支持)  
@@ -85,7 +88,19 @@ podman --version
 podman-compose --version
 ```
 
-#### 2. 配置非 root 用户（推荐）
+#### 2. 安装 Nginx
+
+**RHEL / CentOS / Fedora:**
+```bash
+sudo dnf install -y nginx
+```
+
+**Ubuntu / Debian:**
+```bash
+sudo apt-get install -y nginx
+```
+
+#### 3. 配置非 root 用户（推荐）
 
 ```bash
 # 创建用户
@@ -98,15 +113,48 @@ sudo usermod -aG systemd-journal smartfiles
 sudo su - smartfiles
 ```
 
+### 构建前端
+
+在项目根目录构建前端静态文件：
+
+```bash
+npm ci
+npm run build -w packages/web
+```
+
+构建产物位于 `packages/web/dist/`，需要部署到 nginx 静态文件目录。
+
 ### 构建生产镜像
 
-从项目根目录构建统一镜像：
+从项目根目录构建后端镜像：
 
 ```bash
 podman build -t smart-files:latest .
 ```
 
-Dockerfile 已位于项目根目录，多阶段构建同时编译前后端，最终镜像仅包含生产依赖和构建产物。
+### 部署静态文件
+
+将前端构建产物拷贝到 nginx 静态文件目录：
+
+```bash
+sudo mkdir -p /opt/smart-files/web-dist
+sudo cp -r packages/web/dist/* /opt/smart-files/web-dist/
+```
+
+### 配置 Nginx
+
+将项目中的 `nginx.conf` 拷贝到 nginx 配置目录：
+
+```bash
+sudo cp nginx.conf /etc/nginx/conf.d/smart-files.conf
+```
+
+确认 nginx 配置中 `root` 路径与实际部署路径一致，然后重载：
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
 
 ### 使用 podman-compose 部署
 
@@ -125,27 +173,28 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
 
   backend:
     image: smart-files:latest
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "4000:4000"
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/smartfiles?schema=public
       JWT_SECRET: ${JWT_SECRET}
       UPLOAD_ROOT: /data/storage
       MAX_FILE_SIZE_BYTES: ${MAX_FILE_SIZE_BYTES:-10737418240}
       PORT: 4000
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4000}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
     volumes:
       - ./data/storage:/data/storage:Z
     depends_on:
       - db
     restart: unless-stopped
 ```
+
+注意：backend 服务不再需要对外暴露端口，nginx 通过 Podman 网络或 localhost 直连即可。如果需要从宿主机访问 backend 端口（例如调试），可以加上 `ports: - "127.0.0.1:4000:4000"` 仅绑定 localhost。
 
 部署命令：
 
@@ -159,18 +208,12 @@ podman-compose -f podman-compose.yml up --build -d
 ```
 
 启动后访问：
-- UI 界面: http://localhost:4000
-- API 文档: http://localhost:4000/api/docs
+- UI 界面: http://localhost
+- API 文档: http://localhost/api/docs
 
-### 使用反向代理（推荐）
+### 使用 HTTPS（推荐）
 
-生产环境建议使用 Nginx 或 Caddy 作为反向代理：
-
-```
-用户 -> Nginx (443) -> Smart Files 统一服务 (4000)
-```
-
-Nginx 配置示例：
+生产环境建议配置 SSL 证书：
 
 ```nginx
 server {
@@ -183,12 +226,22 @@ server {
     listen 443 ssl http2;
     server_name your-domain.com;
 
-    # SSL 配置...
+    ssl_certificate     /etc/ssl/certs/your-domain.crt;
+    ssl_certificate_key /etc/ssl/private/your-domain.key;
 
-    location / {
+    root /opt/smart-files/web-dist;
+    index index.html;
+
+    location /api/ {
         proxy_pass http://localhost:4000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
     }
 }
 ```
@@ -236,6 +289,9 @@ podman logs -f smart-files-backend
 
 # 查看数据库日志
 podman logs -f smart-files-db
+
+# 查看 nginx 日志
+sudo journalctl -u nginx -f
 ```
 
 ### 常见命令
@@ -274,22 +330,16 @@ podman exec smart-files-backend npx prisma migrate status
 
 | 服务 | 默认端口 |
 |------|---------|
-| 统一服务 (API + UI) | 4000 |
+| Nginx | 80 / 443 |
+| NestJS API | 4000（仅 localhost） |
 | DB | 5432 |
-
-修改 `podman-compose.yml` 中的端口映射：
-
-```yaml
-ports:
-  - "8080:4000"  # 统一服务使用 8080
-```
 
 ## 安全建议
 
 1. **使用非 root 用户运行容器**（Podman 默认支持）
 2. **定期备份数据**
-3. **配置防火墙**，只开放必要的端口（通常是 80/443）
-4. **使用 HTTPS**，通过反向代理（如 Nginx/Caddy）
+3. **配置防火墙**，只开放必要的端口（80/443）
+4. **使用 HTTPS**，通过 nginx 配置 SSL 证书
 5. **定期更新**基础镜像和依赖
 6. **使用强密码**生成 `JWT_SECRET` 和 `POSTGRES_PASSWORD`
 
