@@ -2,7 +2,7 @@ name: Build and Release Android APK
 
 on:
   release:
-    types: [published]
+    types: [created]
   workflow_dispatch:
     inputs:
       tag_name:
@@ -87,6 +87,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.apk.outputs.path }}
-          tag_name: ${{ github.event.inputs.tag_name || '' }}
+          tag_name: ${{ github.event.release.tag_name || github.event.inputs.tag_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
