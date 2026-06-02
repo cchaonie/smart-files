@@ -14,7 +14,8 @@
       "Bash(echo \"EXIT: $?\")",
       "Bash(npx expo:*)",
       "Bash(echo \"WEB EXIT: $?\")",
-      "Bash(echo \"MOBILE EXIT: $?\")"
+      "Bash(echo \"MOBILE EXIT: $?\")",
+      "Bash(node *)"
     ]
   }
 }

@@ -5,8 +5,6 @@ import { AuthModule } from './auth/auth.module';
 import { FilesModule } from './files/files.module';
 import { UploadModule } from './upload/upload.module';
 import { FoldersModule } from './folders/folders.module';
-import { StaticModule } from './static/static.module';
-
 import { ShareModule } from './share/share.module';
 
 @Module({
@@ -17,7 +15,6 @@ import { ShareModule } from './share/share.module';
     FilesModule,
     UploadModule,
     FoldersModule,
-    StaticModule,
     ShareModule,
   ],
 })

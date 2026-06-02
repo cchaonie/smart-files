@@ -11,3 +11,8 @@ coverage
 .nyc_output
 playwright-report
 test-results
+node_modules
+.env.local
+dist
+prisma/migrations
+npm-debug.log
