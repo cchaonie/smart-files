@@ -1,8 +1,15 @@
+const version = process.env.APP_VERSION || require('./package.json').version;
+const isReleaseBuild = process.env.RELEASE_BUILD === 'true';
+
+// Build a monotonic version code from semver (e.g. "1.2.3" → 1002003)
+const parts = version.split('.').map(n => (isNaN(Number(n)) ? 0 : Number(n)));
+const versionCode = (parts[0] || 1) * 100000 + (parts[1] || 0) * 1000 + (parts[2] || 0);
+
 export default {
   expo: {
-    name: 'mobile',
+    name: isReleaseBuild ? 'Smart Files' : 'mobile',
     slug: 'mobile',
-    version: '1.0.0',
+    version,
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
@@ -20,11 +27,22 @@ export default {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#ffffff',
       },
+      versionCode,
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
-      // Allow cleartext HTTP traffic (required for dev servers using http://).
-      // Remove or set to false for production builds that use HTTPS.
-      usesCleartextTraffic: true,
+      // Allow cleartext HTTP in dev; enforce HTTPS in production builds
+      usesCleartextTraffic: !isReleaseBuild,
+      // Release signing config — environment variables set by CI
+      ...(isReleaseBuild
+        ? {
+            keystore: {
+              keystorePath: process.env.ANDROID_KEYSTORE_PATH || 'release.keystore',
+              keystorePassword: process.env.ANDROID_KEYSTORE_PASSWORD || '',
+              keyAlias: process.env.ANDROID_KEY_ALIAS || 'release',
+              keyPassword: process.env.ANDROID_KEY_PASSWORD || '',
+            },
+          }
+        : {}),
     },
     web: {
       favicon: './assets/favicon.png',
