@@ -20,9 +20,11 @@ export default {
       backgroundColor: '#ffffff',
     },
     ios: {
+      bundleIdentifier: 'life.inkxel.smartfiles',
       supportsTablet: true,
     },
     android: {
+      package: 'life.inkxel.smartfiles',
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#ffffff',
