@@ -1,16 +1,14 @@
 name: Build and Release Android APK
 
-# 只保留手动触发，可选再加tag推送触发：tags: ['v*']
 on:
+  push:
+    tags: ['v*']
   workflow_dispatch:
     inputs:
       tag_name:
         description: 'Release tag to build (e.g. v1.0.0)'
         required: true
         type: string
-  # push:
-  #   tags:
-  #     - 'v*.*.*'
 
 permissions:
   contents: write
