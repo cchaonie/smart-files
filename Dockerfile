@@ -24,12 +24,15 @@ FROM node:20-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
 
-# 从 builder 复制 node_modules（含生产依赖）
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/packages/backend/node_modules ./packages/backend/node_modules
-COPY --from=builder /app/packages/shared/node_modules ./packages/shared/node_modules
-COPY --from=builder /app/packages/web/node_modules ./packages/web/node_modules
-COPY --from=builder /app/packages/mobile/node_modules ./packages/mobile/node_modules
+# 拷贝依赖清单
+COPY package*.json ./
+COPY packages/backend/package*.json ./packages/backend/
+COPY packages/shared/package*.json ./packages/shared/
+COPY packages/web/package*.json ./packages/web/
+COPY packages/mobile/package*.json ./packages/mobile/
+
+# 仅安装生产依赖（使用 install 而非 ci，避免 workspaces lockfile 严格校验）
+RUN npm install --production
 
 # 拷贝后端编译产物
 COPY --from=builder /app/packages/backend/dist ./packages/backend/dist
