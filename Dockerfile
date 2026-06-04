@@ -6,6 +6,8 @@ WORKDIR /app
 COPY package*.json ./
 COPY packages/backend/package*.json ./packages/backend/
 COPY packages/shared/package*.json ./packages/shared/
+COPY packages/web/package*.json ./packages/web/
+COPY packages/mobile/package*.json ./packages/mobile/
 
 # 完整安装所有依赖(包含开发依赖)
 RUN npm ci
@@ -26,6 +28,8 @@ ENV NODE_ENV=production
 COPY package*.json ./
 COPY packages/backend/package*.json ./packages/backend/
 COPY packages/shared/package*.json ./packages/shared/
+COPY packages/web/package*.json ./packages/web/
+COPY packages/mobile/package*.json ./packages/mobile/
 RUN npm ci --omit=dev
 
 # 拷贝后端编译产物
