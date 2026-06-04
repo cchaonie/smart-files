@@ -5,6 +5,8 @@ test-uploads/
 coverage/
 .nyc_output/
 
+data
+
 # Test database
 *.db
 *.sqlite
