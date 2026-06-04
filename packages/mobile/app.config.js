@@ -46,6 +46,9 @@ export default {
           }
         : {}),
     },
+    plugins: [
+      './plugins/withNetworkSecurityConfig',
+    ],
     web: {
       favicon: './assets/favicon.png',
     },
