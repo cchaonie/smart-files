@@ -1,13 +1,12 @@
-import {
-  type ConfigPlugin,
+const {
   withAndroidManifest,
   withDangerousMod,
   AndroidConfig,
-} from "expo/config-plugins";
-import * as fs from "fs";
-import * as path from "path";
+} = require("expo/config-plugins");
+const fs = require("fs");
+const path = require("path");
 
-const withNetworkSecurityConfig: ConfigPlugin = (config) => {
+const withNetworkSecurityConfig = (config) => {
   // Step 1: Add android:networkSecurityConfig to AndroidManifest.xml
   config = withAndroidManifest(config, (config) => {
     const androidManifest = config.modResults;
@@ -31,13 +30,11 @@ const withNetworkSecurityConfig: ConfigPlugin = (config) => {
       fs.mkdirSync(resXmlDir, { recursive: true });
       fs.mkdirSync(resRawDir, { recursive: true });
 
-      // Copy network security config XML
       fs.copyFileSync(
         path.join(projectRoot, "assets/network_security_config.xml"),
         path.join(resXmlDir, "network_security_config.xml")
       );
 
-      // Copy CA certificate
       fs.copyFileSync(
         path.join(projectRoot, "assets/ca.pem"),
         path.join(resRawDir, "ca.pem")
@@ -50,4 +47,4 @@ const withNetworkSecurityConfig: ConfigPlugin = (config) => {
   return config;
 };
 
-export default withNetworkSecurityConfig;
+module.exports = withNetworkSecurityConfig;
