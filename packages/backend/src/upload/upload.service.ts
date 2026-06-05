@@ -4,7 +4,6 @@ import { RequestLike } from '../common/types/http';
 import { createWriteStream, createReadStream } from 'fs';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { randomUUID } from 'crypto';
 import { CreateSessionDto } from './dto';
 
 @Injectable()
@@ -13,6 +12,59 @@ export class UploadService {
 
   constructor(private prisma: PrismaService) {
     this.uploadRoot = process.env.UPLOAD_ROOT || './data/storage';
+  }
+
+  /**
+   * Sanitize a filename for safe filesystem use:
+   * - Strip path separators and null bytes
+   * - Remove leading dots/dashes to prevent hidden files / CLI injection
+   * - Collapse whitespace runs
+   * - Truncate to 200 chars (leaving room for counter suffix)
+   */
+  private sanitizeFileName(name: string): string {
+    let safe = name
+      .replace(/[/\\\0<>:"|?*]/g, '_')     // Replace dangerous chars with _
+      .replace(/^[ ._-]+/, '')              // Strip leading dots/dashes/underscores/spaces
+      .replace(/\s+/g, ' ')                 // Collapse whitespace
+      .trim();
+
+    if (!safe) safe = 'unnamed';
+
+    // Keep extension intact, truncate base name to 200 chars max
+    const ext = path.extname(safe);
+    const base = path.basename(safe, ext);
+    return base.slice(0, 200) + ext;
+  }
+
+  /**
+   * Resolve a storage path for the given userId + filename, handling collisions
+   * by appending a numeric suffix (e.g. "photo (1).jpg").
+   */
+  private async resolveStoragePath(userId: string, fileName: string): Promise<string> {
+    const safeName = this.sanitizeFileName(fileName);
+    const userDir = path.join(this.uploadRoot, 'files', userId);
+    await fs.mkdir(userDir, { recursive: true });
+
+    let storageKey = safeName;
+    let destPath = path.join(userDir, storageKey);
+    let counter = 1;
+
+    while (true) {
+      try {
+        await fs.access(destPath);
+        // File exists — append counter suffix
+        const ext = path.extname(safeName);
+        const base = path.basename(safeName, ext);
+        storageKey = `${base} (${counter})${ext}`;
+        destPath = path.join(userDir, storageKey);
+        counter++;
+      } catch {
+        // File doesn't exist — good to use
+        break;
+      }
+    }
+
+    return destPath;
   }
 
   async createSession(userId: string, dto: CreateSessionDto) {
@@ -150,8 +202,8 @@ export class UploadService {
     }
 
     // Merge chunks
-    const storageKey = randomUUID();
-    const destPath = path.join(this.uploadRoot, 'files', userId, storageKey);
+    const destPath = await this.resolveStoragePath(userId, session.fileName);
+    const storageKey = path.basename(destPath);
     await fs.mkdir(path.dirname(destPath), { recursive: true });
 
     const tempDir = path.join(this.uploadRoot, 'tmp', userId, sessionId);
