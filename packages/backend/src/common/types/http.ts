@@ -6,6 +6,7 @@ import { Readable, Writable } from 'stream';
  */
 export interface RequestLike extends Readable {
   headers: Record<string, string | string[] | undefined>;
+  body?: any;
 }
 
 /**

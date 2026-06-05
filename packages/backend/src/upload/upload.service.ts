@@ -150,17 +150,15 @@ export class UploadService {
       throw new BadRequestException('Invalid chunk index');
     }
 
-    // Save chunk
     const tempDir = path.join(this.uploadRoot, 'tmp', userId, sessionId);
     const chunkPath = path.join(tempDir, String(chunkIndex));
 
-    await new Promise<void>((resolve, reject) => {
-      const writeStream = createWriteStream(chunkPath);
-      req.pipe(writeStream);
-      writeStream.on('finish', resolve);
-      writeStream.on('error', reject);
-      req.on('error', reject);
-    });
+    // bodyParser.raw() already consumed the stream into req.body — write directly
+    const buffer = req.body as Buffer;
+    if (!buffer || buffer.length === 0) {
+      throw new BadRequestException('Empty chunk data');
+    }
+    await fs.writeFile(chunkPath, buffer);
 
     // Update received chunks
     const receivedIndexes = session.receivedChunkIndexes || [];

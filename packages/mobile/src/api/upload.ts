@@ -3,7 +3,7 @@ import apiClient from './client';
 import { UploadSession } from '../types';
 import * as FileSystem from 'expo-file-system/legacy';
 
-const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
+const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB — 5MB was too chatty for large files
 
 export const uploadApi = {
   createSession: async (
