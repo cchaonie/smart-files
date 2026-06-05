@@ -1,4 +1,5 @@
-import { Modal, View, Text, Image, TouchableOpacity, StyleSheet, Pressable, SafeAreaView } from 'react-native'
+import { Modal, View, Text, Image, TouchableOpacity, StyleSheet, Pressable } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { filesApi } from '../api/files'
 import { useI18n } from '@smart-files/shared/src/i18n'
 import type { FileItem } from '../types'
