@@ -129,7 +129,7 @@ export function LoginPage() {
                       value={email}
                       onChange={e => setEmail(e.target.value)}
                       className='block w-full rounded-xl border border-zinc-300 bg-white/50 py-3 pl-10 pr-4 text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:border-zinc-900 focus:bg-white focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-600 dark:bg-zinc-800/50 dark:text-zinc-50 dark:focus:border-zinc-400 dark:focus:bg-zinc-800 dark:focus:ring-zinc-400/10'
-                      placeholder='you@example.com'
+                      placeholder={t.emailPlaceholder}
                     />
                   </div>
                 </div>
@@ -154,7 +154,7 @@ export function LoginPage() {
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       className='block w-full rounded-xl border border-zinc-300 bg-white/50 py-3 pl-10 pr-12 text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:border-zinc-900 focus:bg-white focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-600 dark:bg-zinc-800/50 dark:text-zinc-50 dark:focus:border-zinc-400 dark:focus:bg-zinc-800 dark:focus:ring-zinc-400/10'
-                      placeholder='Enter your password'
+                      placeholder={t.passwordPlaceholder}
                     />
                     <button
                       type='button'

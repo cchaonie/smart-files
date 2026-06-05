@@ -137,10 +137,10 @@ export function RegisterPage() {
                     <CheckCircleIcon className='h-8 w-8 text-emerald-600 dark:text-emerald-400' />
                   </div>
                   <p className='text-zinc-700 dark:text-zinc-300'>
-                    Account created successfully!
+                    {t.accountCreated}
                   </p>
                   <p className='text-sm text-zinc-500'>
-                    Redirecting to your files...
+                    {t.redirectingToFiles}
                   </p>
                 </motion.div>
               ) : (
@@ -166,7 +166,7 @@ export function RegisterPage() {
                           value={name}
                           onChange={e => setName(e.target.value)}
                           className='block w-full rounded-xl border border-zinc-300 bg-white/50 py-3 pl-10 pr-4 text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:border-zinc-900 focus:bg-white focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-600 dark:bg-zinc-800/50 dark:text-zinc-50 dark:focus:border-zinc-400 dark:focus:bg-zinc-800 dark:focus:ring-zinc-400/10'
-                          placeholder='Your name'
+                          placeholder={t.namePlaceholder}
                         />
                       </div>
                     </div>
@@ -191,7 +191,7 @@ export function RegisterPage() {
                           value={email}
                           onChange={e => setEmail(e.target.value)}
                           className='block w-full rounded-xl border border-zinc-300 bg-white/50 py-3 pl-10 pr-4 text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:border-zinc-900 focus:bg-white focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-600 dark:bg-zinc-800/50 dark:text-zinc-50 dark:focus:border-zinc-400 dark:focus:bg-zinc-800 dark:focus:ring-zinc-400/10'
-                          placeholder='you@example.com'
+                          placeholder={t.emailPlaceholder}
                         />
                       </div>
                     </div>
@@ -217,7 +217,7 @@ export function RegisterPage() {
                           value={password}
                           onChange={e => setPassword(e.target.value)}
                           className='block w-full rounded-xl border border-zinc-300 bg-white/50 py-3 pl-10 pr-12 text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:border-zinc-900 focus:bg-white focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-600 dark:bg-zinc-800/50 dark:text-zinc-50 dark:focus:border-zinc-400 dark:focus:bg-zinc-800 dark:focus:ring-zinc-400/10'
-                          placeholder='Create a password'
+                          placeholder={t.passwordCreatePlaceholder}
                         />
                         <button
                           type='button'
@@ -257,10 +257,10 @@ export function RegisterPage() {
                           </div>
                           <p className='mt-1 text-xs text-zinc-500'>
                             {passwordStrength === 'strong'
-                              ? 'Strong password'
+                              ? t.passwordStrengthStrong
                               : passwordStrength === 'medium'
-                                ? 'Good, but could be stronger'
-                                : 'Password must be at least 6 characters'}
+                                ? t.passwordStrengthMedium
+                                : t.passwordMinLength}
                           </p>
                         </motion.div>
                       )}

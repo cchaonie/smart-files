@@ -79,4 +79,12 @@ export const en: I18nStrings = {
   clearCompleted: 'Clear completed', folderLabel: 'Folder',
   newNamePrompt: 'New name', expiresPrefix: 'Expires',
   colAdded: 'Added', unknownFolder: 'Unknown',
+  emailPlaceholder: 'you@example.com',
+  passwordPlaceholder: 'Enter your password',
+  passwordCreatePlaceholder: 'Create a password',
+  namePlaceholder: 'Your name',
+  accountCreated: 'Account created successfully!',
+  redirectingToFiles: 'Redirecting to your files...',
+  passwordStrengthStrong: 'Strong password',
+  passwordStrengthMedium: 'Good, but could be stronger',
 };

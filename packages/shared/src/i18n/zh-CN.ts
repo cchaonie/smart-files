@@ -79,4 +79,12 @@ export const zhCN: I18nStrings = {
   clearCompleted: '清除已完成', folderLabel: '文件夹',
   newNamePrompt: '新名称', expiresPrefix: '有效期至',
   colAdded: '添加时间', unknownFolder: '未知',
+  emailPlaceholder: 'you@example.com',
+  passwordPlaceholder: '请输入密码',
+  passwordCreatePlaceholder: '设置密码',
+  namePlaceholder: '您的名字',
+  accountCreated: '账号创建成功！',
+  redirectingToFiles: '正在跳转到文件页...',
+  passwordStrengthStrong: '强密码',
+  passwordStrengthMedium: '还可以更强',
 };

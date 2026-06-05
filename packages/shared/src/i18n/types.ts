@@ -47,6 +47,10 @@ export interface I18nStrings {
   cancelAll: string; clearCompleted: string; folderLabel: string;
   newNamePrompt: string; expiresPrefix: string; colAdded: string;
   unknownFolder: string;
+  emailPlaceholder: string; passwordPlaceholder: string;
+  passwordCreatePlaceholder: string; namePlaceholder: string;
+  accountCreated: string; redirectingToFiles: string;
+  passwordStrengthStrong: string; passwordStrengthMedium: string;
 }
 
 export interface I18nContextType {
