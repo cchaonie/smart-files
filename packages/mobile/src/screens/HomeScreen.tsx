@@ -794,7 +794,8 @@ const styles = StyleSheet.create({
 
   // Breadcrumb
   breadcrumbBar: {
-    maxHeight: 40,
+    height: 40,
+    flexShrink: 0,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
@@ -802,7 +803,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   breadcrumbLink: {
     color: '#007AFF',
