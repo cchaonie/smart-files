@@ -24,11 +24,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const token = await authApi.getToken();
       if (token) {
-        // Token exists, user is considered authenticated
-        // You might want to fetch user details here
+        // Token exists — verify it's still valid and restore user session
+        const user = await authApi.getProfile();
+        setUser(user);
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
+      // Token expired or invalid — clear it
+      await authApi.logout();
+      console.error('Auth check failed, session cleared:', error);
     } finally {
       setIsLoading(false);
     }

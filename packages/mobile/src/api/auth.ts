@@ -39,4 +39,9 @@ export const authApi = {
   getToken: async (): Promise<string | null> => {
     return AsyncStorage.getItem('access_token');
   },
+
+  getProfile: async (): Promise<AuthResponse['user']> => {
+    const response = await apiClient.get<AuthResponse['user']>('/auth/me');
+    return response.data;
+  },
 };
