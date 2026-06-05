@@ -10,7 +10,7 @@ async function bootstrap() {
   // Increase body parser limits for chunked uploads (default is 100kb — causes 413)
   app.use(bodyParser.json({ limit: '50mb' }));
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
-  app.use(bodyParser.raw({ type: 'application/octet-stream', limit: '20mb' }));
+  app.use(bodyParser.raw({ type: 'application/octet-stream', limit: '50mb' }));
 
   app.setGlobalPrefix('api');
 

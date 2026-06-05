@@ -87,4 +87,7 @@ export const zhCN: I18nStrings = {
   redirectingToFiles: '正在跳转到文件页...',
   passwordStrengthStrong: '强密码',
   passwordStrengthMedium: '还可以更强',
+  homeBadge: '个人免费使用',
+  homeTitle: '无限文件存储',
+  homeStart: '免费开始上传',
 };

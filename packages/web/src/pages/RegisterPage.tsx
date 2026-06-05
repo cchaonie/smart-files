@@ -106,7 +106,7 @@ export function RegisterPage() {
           className='w-full max-w-md'
         >
           {/* Glassmorphism card */}
-          <div className='relative overflow-hidden rounded-3xl border border-zinc-200/50 bg-white/80 p-8 shadow-xl backdrop-blur-xl dark:border-zinc-700/50 dark:bg-zinc-900/80 sm:p-4'>
+          <div className='relative overflow-hidden rounded-3xl border border-zinc-200/50 bg-white/80 p-8 shadow-xl backdrop-blur-xl dark:border-zinc-700/50 dark:bg-zinc-900/80 sm:p-6'>
             {/* Subtle gradient overlay */}
             <div
               className='pointer-events-none absolute inset-0 opacity-50'

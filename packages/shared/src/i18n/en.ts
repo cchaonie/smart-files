@@ -87,4 +87,7 @@ export const en: I18nStrings = {
   redirectingToFiles: 'Redirecting to your files...',
   passwordStrengthStrong: 'Strong password',
   passwordStrengthMedium: 'Good, but could be stronger',
+  homeBadge: 'Free for personal use',
+  homeTitle: 'File storage without limits',
+  homeStart: 'Start uploading free',
 };

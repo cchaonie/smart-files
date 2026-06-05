@@ -99,28 +99,25 @@ export function HomePage() {
                   style={{ backgroundColor: ACCENT.light }}
                 />
               </span>
-              Free for personal use
+              {t.homeBadge}
             </div>
 
             <h1 className='text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-5xl lg:text-6xl'>
-              File storage
-              <br />
-              <span style={{ color: ACCENT.light }}>without limits</span>
+              {t.homeTitle}
             </h1>
 
             <p className='mt-6 max-w-md text-lg leading-relaxed text-zinc-600 dark:text-zinc-400'>
-              Upload gigabytes with confidence. Pause and resume anytime. Your
-              files, your folders, your rules.
+              {t.homeTagline}
             </p>
 
             <div className='mt-8 flex flex-wrap gap-3'>
               <AnimatedButton to='/register'>
-                Start uploading free
+                {t.homeStart}
               </AnimatedButton>
             </div>
             <div className='mt-8 flex flex-wrap gap-3'>
               <AnimatedButton to='/login' variant='secondary'>
-                Sign in
+                {t.signIn}
               </AnimatedButton>
             </div>
           </motion.div>

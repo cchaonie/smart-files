@@ -51,6 +51,7 @@ export interface I18nStrings {
   passwordCreatePlaceholder: string; namePlaceholder: string;
   accountCreated: string; redirectingToFiles: string;
   passwordStrengthStrong: string; passwordStrengthMedium: string;
+  homeBadge: string; homeTitle: string; homeStart: string;
 }
 
 export interface I18nContextType {
