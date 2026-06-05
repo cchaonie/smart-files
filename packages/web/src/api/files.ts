@@ -17,7 +17,9 @@ export const filesApi = {
   },
 
   previewUrl: (id: string): string => {
-    return `${apiClient.defaults.baseURL}/files/${id}/preview`;
+    const token = localStorage.getItem('access_token');
+    const url = `${apiClient.defaults.baseURL}/files/${id}/preview`;
+    return token ? `${url}?token=${encodeURIComponent(token)}` : url;
   },
 
   search: async (q: string) => {

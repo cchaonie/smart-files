@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   View, Text, Modal, FlatList, TouchableOpacity, StyleSheet,
-  ActivityIndicator, SafeAreaView,
+  ActivityIndicator,
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import type { FileItem, Folder } from '../types'
 import { filesApi } from '../api/files'
 import { useI18n } from '@smart-files/shared/src/i18n'
