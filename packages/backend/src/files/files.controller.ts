@@ -1,6 +1,6 @@
 import { Controller, Get, Delete, Param, UseGuards, Query, Res, Req, Patch, Body, Post } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { Response, Request } from 'express';
+import { ResponseLike, RequestLike } from '../common/types/http';
 import { FilesService } from './files.service';
 import { JwtAuthGuard } from '../common/guards/jwt.guard';
 import { CurrentUser, UserEntity } from '../common/decorators/current-user.decorator';
@@ -84,7 +84,7 @@ export class FilesController {
   async downloadFile(
     @CurrentUser() user: UserEntity,
     @Param('id') id: string,
-    @Res() res: Response,
+    @Res() res: ResponseLike,
   ) {
     const { stream, filename, mimeType } = await this.filesService.downloadFile(user.id, id);
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -97,12 +97,12 @@ export class FilesController {
   async previewFile(
     @CurrentUser() user: UserEntity,
     @Param('id') id: string,
-    @Req() req: Request,
-    @Res() res: Response,
+    @Req() req: RequestLike,
+    @Res() res: ResponseLike,
   ) {
     const { mimeType, size, path: filePath } = await this.filesService.previewFile(user.id, id);
 
-    const range = req.headers.range;
+    const range = typeof req.headers.range === 'string' ? req.headers.range : undefined;
     if (mimeType) res.setHeader('Content-Type', mimeType);
     res.setHeader('Accept-Ranges', 'bytes');
 

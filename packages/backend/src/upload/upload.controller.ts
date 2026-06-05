@@ -1,6 +1,6 @@
 import { Controller, Post, Get, Put, Body, Param, UseGuards, Query, Req } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger';
-import { Request } from 'express';
+import { RequestLike } from '../common/types/http';
 import { UploadService } from './upload.service';
 import { JwtAuthGuard } from '../common/guards/jwt.guard';
 import { CurrentUser, UserEntity } from '../common/decorators/current-user.decorator';
@@ -38,7 +38,7 @@ export class UploadController {
     @CurrentUser() user: UserEntity,
     @Param('id') id: string,
     @Query('index') index: string,
-    @Req() req: Request,
+    @Req() req: RequestLike,
   ) {
     const chunkIndex = parseInt(index, 10);
     return this.uploadService.uploadChunk(user.id, id, chunkIndex, req);

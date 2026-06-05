@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Delete, Param, Body, UseGuards, Req, Res, Query } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { Response, Request } from 'express';
+import { ResponseLike, RequestLike } from '../common/types/http';
 import { createReadStream } from 'fs';
 import * as path from 'path';
 import { stat } from 'fs/promises';
@@ -72,8 +72,8 @@ export class ShareController {
   async downloadShare(
     @Param('token') token: string,
     @Query('password') password: string | undefined,
-    @Req() req: Request,
-    @Res() res: Response,
+    @Req() req: RequestLike,
+    @Res() res: ResponseLike,
   ) {
     const info = await this.shareService.downloadShare(token, password);
 
@@ -87,7 +87,7 @@ export class ShareController {
       return;
     }
 
-    const range = req.headers.range;
+    const range = typeof req.headers.range === 'string' ? req.headers.range : undefined;
     if (info.mimeType) res.setHeader('Content-Type', info.mimeType);
     res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader(
