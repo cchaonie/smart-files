@@ -1,4 +1,6 @@
 import React from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { I18nProvider } from '@smart-files/shared/src/i18n';
 import { NavigationContainer } from '@react-navigation/native';
@@ -48,12 +50,15 @@ const asyncStorage = {
 
 export default function App() {
   return (
-    <I18nProvider storage={asyncStorage}>
-      <ConfigProvider>
-        <AuthProvider>
-          <AppNavigator />
-        </AuthProvider>
-      </ConfigProvider>
-    </I18nProvider>
+    <SafeAreaProvider>
+      <StatusBar style="auto" />
+      <I18nProvider storage={asyncStorage}>
+        <ConfigProvider>
+          <AuthProvider>
+            <AppNavigator />
+          </AuthProvider>
+        </ConfigProvider>
+      </I18nProvider>
+    </SafeAreaProvider>
   );
 }

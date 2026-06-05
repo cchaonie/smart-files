@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Request } from 'express';
+import { RequestLike } from '../common/types/http';
 import { createWriteStream, createReadStream } from 'fs';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -80,7 +80,7 @@ export class UploadService {
     };
   }
 
-  async uploadChunk(userId: string, sessionId: string, chunkIndex: number, req: Request) {
+  async uploadChunk(userId: string, sessionId: string, chunkIndex: number, req: RequestLike) {
     const session = await this.prisma.uploadSession.findFirst({
       where: { id: sessionId, userId },
     });
