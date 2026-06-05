@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiClient from './client';
 import { UploadSession } from '../types';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -34,10 +35,23 @@ export const uploadApi = {
     chunkIndex: number,
     chunkData: ArrayBuffer
   ): Promise<void> => {
-    const blob = new Blob([chunkData]);
-    await apiClient.put(`/upload/session/${sessionId}/chunk?index=${chunkIndex}`, blob, {
-      headers: { 'Content-Type': 'application/octet-stream' },
+    // Use fetch directly instead of axios to avoid Hermes Blob limitation
+    const token = await AsyncStorage.getItem('access_token');
+    const baseUrl = apiClient.defaults.baseURL;
+    const url = `${baseUrl}/upload/session/${sessionId}/chunk?index=${chunkIndex}`;
+
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        Authorization: `Bearer ${token}`,
+      },
+      body: chunkData,
     });
+
+    if (!response.ok) {
+      throw new Error(`Chunk upload failed: ${response.status}`);
+    }
   },
 
   completeUpload: async (sessionId: string, mimeType?: string): Promise<{ file: { id: string; name: string; size: string } }> => {
