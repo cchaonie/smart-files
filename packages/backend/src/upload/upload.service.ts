@@ -171,7 +171,7 @@ export class UploadService {
     }
 
     // Create file record
-    const file = await this.prisma.$transaction(async (tx) => {
+    const file = await this.prisma.$transaction(async (tx: any) => {
       const created = await tx.file.create({
         data: {
           userId,
