@@ -76,7 +76,7 @@ export const zhCN: I18nStrings = {
   noMatchingFiles: '未找到匹配的文件。', contents: '内容',
   refresh: '刷新', folderEmpty: '此文件夹为空。',
   pauseResume: '暂停 / 继续', cancelAll: '全部取消',
-  clearCompleted: '清除已完成', folderLabel: '文件夹',
+  clearCompleted: '清除已完成', folderLabel: '文件夹', select: '选择',
   newNamePrompt: '新名称', expiresPrefix: '有效期至',
   colAdded: '添加时间', unknownFolder: '未知',
   emailPlaceholder: 'you@example.com',

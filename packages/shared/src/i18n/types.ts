@@ -44,7 +44,7 @@ export interface I18nStrings {
   chooseFiles: string; searchResults: string; clearSearch: string;
   searching: string; noMatchingFiles: string; contents: string;
   refresh: string; folderEmpty: string; pauseResume: string;
-  cancelAll: string; clearCompleted: string; folderLabel: string;
+  cancelAll: string; clearCompleted: string; folderLabel: string; select: string;
   newNamePrompt: string; expiresPrefix: string; colAdded: string;
   unknownFolder: string;
   emailPlaceholder: string; passwordPlaceholder: string;

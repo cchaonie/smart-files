@@ -76,7 +76,7 @@ export const en: I18nStrings = {
   noMatchingFiles: 'No matching files found.', contents: 'Contents',
   refresh: 'Refresh', folderEmpty: 'This folder is empty.',
   pauseResume: 'Pause / resume', cancelAll: 'Cancel all',
-  clearCompleted: 'Clear completed', folderLabel: 'Folder',
+  clearCompleted: 'Clear completed', folderLabel: 'Folder', select: 'Select',
   newNamePrompt: 'New name', expiresPrefix: 'Expires',
   colAdded: 'Added', unknownFolder: 'Unknown',
   emailPlaceholder: 'you@example.com',

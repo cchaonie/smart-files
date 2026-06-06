@@ -36,7 +36,7 @@ export function UploadCard({ item, onPause, onResume, onCancel, onRetry }: Uploa
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">{item.name}</p>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            {formatBytes(item.size)} {item.folderName ? `· ${item.folderName}` : ''}
+            {formatBytes(BigInt(item.size))} {item.folderName ? `· ${item.folderName}` : ''}
           </p>
         </div>
         <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${status.color}`}>
@@ -117,7 +117,7 @@ export function UploadHistoryCard({ item, onRemove }: UploadHistoryCardProps) {
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">{item.name}</p>
         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-          {formatBytes(item.size)} {item.folderName ? `· ${item.folderName}` : ''} · {timeAgo(item.completedAt)}
+          {formatBytes(BigInt(item.size))} {item.folderName ? `· ${item.folderName}` : ''} · {timeAgo(item.completedAt)}
         </p>
       </div>
       <button

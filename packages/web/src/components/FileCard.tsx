@@ -1,8 +1,7 @@
 import { motion } from 'motion/react';
 import type { FileItem, Folder } from '../types';
-import PreviewThumb from './PreviewThumb';
 import { FolderIcon, EllipsisVerticalIcon } from './icons';
-import { formatBytes, isPreviewable } from '@smart-files/shared/src/utils';
+import { formatBytes } from '@smart-files/shared/src/utils';
 
 interface FileCardProps {
   item: FileItem | Folder;
@@ -37,16 +36,18 @@ export function FileCard({ item, isFolder, isSelected, onSelect, onClick, onActi
           <div className="w-12 h-12 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
             <FolderIcon className="w-6 h-6 text-amber-600 dark:text-amber-400" />
           </div>
-        ) : fileItem ? (
-          <PreviewThumb file={fileItem} size={48} />
-        ) : null}
+        ) : (
+          <div className="w-12 h-12 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+            <span className="text-xs text-zinc-500 font-medium">{fileItem?.name.split('.').pop()?.toUpperCase().slice(0,3)}</span>
+          </div>
+        )}
       </div>
 
       <div className="flex-1 min-w-0" onClick={onClick}>
         <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">{item.name}</p>
         {fileItem && (
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            {formatBytes(parseInt(fileItem.size))} · {new Date(fileItem.createdAt).toLocaleDateString()}
+            {formatBytes(BigInt(fileItem.size))} · {new Date(fileItem.createdAt).toLocaleDateString()}
           </p>
         )}
         {isFolder && (

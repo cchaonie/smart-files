@@ -4,13 +4,13 @@ import { filesApi } from '../api/files'
 import { useI18n } from '@smart-files/shared/src/i18n'
 
 function MoveFileModal({
-  file,
+  files,
   onClose,
   onMoved,
 }: {
-  file: FileItem;
+  files: FileItem[];
   onClose: () => void;
-  onMoved: () => void | Promise<void>;
+  onMoved: () => void;
 }) {
   const { t } = useI18n();
   const [modalPath, setModalPath] = useState<{ id: string; name: string }[]>([]);
@@ -47,15 +47,15 @@ function MoveFileModal({
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const sameLocation =
-    (file.folderId === null && modalParentId === null) ||
-    file.folderId === modalParentId;
+  const sameLocation = files.every(file =>
+    (file.folderId === null && modalParentId === null) || file.folderId === modalParentId
+  );
 
   async function confirmMove() {
     setErr(null);
     try {
-      await filesApi.moveFile(file.id, modalParentId);
-      await onMoved();
+      await filesApi.batchMove(files.map(f => f.id), modalParentId);
+      onMoved();
       onClose();
     } catch (e) {
       setErr(e instanceof Error ? e.message : t.moveFailed);
@@ -76,10 +76,10 @@ function MoveFileModal({
       >
         <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-            {t.moveFileTitle}
+            {files.length === 1 ? t.moveFileTitle : `Move ${files.length} items`}
           </h3>
           <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
-            {file.name}
+            {files.length === 1 ? files[0].name : `${files.length} items selected`}
           </p>
         </div>
         <div className="border-b border-zinc-100 px-4 py-2 text-xs dark:border-zinc-800">
