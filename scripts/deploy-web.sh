@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
-WEB_DIR="$REPO_DIR/packages/web"
+WEB_DIR="$REPO_DIR/../packages/web"
 TARGET_DIR="/opt/smart-files/web-dist"
 
 echo "=== Building Smart Files Web ==="
@@ -11,7 +11,7 @@ echo "=== Building Smart Files Web ==="
 if [ ! -d "$REPO_DIR/node_modules" ]; then
   echo "→ Installing dependencies..."
   cd "$REPO_DIR"
-  npm install
+  npm ci
 else
   echo "→ Dependencies already installed."
 fi
@@ -30,26 +30,17 @@ fi
 # 3. Deploy to target directory
 echo "→ Deploying to $TARGET_DIR..."
 
-# Use sudo only if needed
-if [ -w "$(dirname "$TARGET_DIR")" ]; then
-  CP_CMD="cp -r"
-  MV_CMD="mv"
-  RM_CMD="rm -rf"
-  MKDIR_CMD="mkdir -p"
-else
-  CP_CMD="sudo cp -r"
-  MV_CMD="sudo mv"
-  RM_CMD="sudo rm -rf"
-  MKDIR_CMD="sudo mkdir -p"
+# Ensure target parent exists and is owned by us (one-time sudo)
+TARGET_PARENT="$(dirname "$TARGET_DIR")"
+if [ ! -d "$TARGET_PARENT" ]; then
+  sudo mkdir -p "$TARGET_PARENT"
+  sudo chown "$(id -u):$(id -g)" "$TARGET_PARENT"
 fi
 
-$RM_CMD "${TARGET_DIR}.old" 2>/dev/null || true
-if [ -d "$TARGET_DIR" ]; then
-  $MV_CMD "$TARGET_DIR" "${TARGET_DIR}.old"
-fi
-$MKDIR_CMD "$(dirname "$TARGET_DIR")"
-$CP_CMD "$BUILD_DIR" "$TARGET_DIR"
-$RM_CMD "${TARGET_DIR}.old" 2>/dev/null || true
+# Deploy — copy build output to target, overwriting in place
+# (non-atomic but avoids sudo for root-owned leftovers)
+mkdir -p "$TARGET_DIR"
+cp -r "$BUILD_DIR"/* "$TARGET_DIR"
 
 echo "✓ Build placed in $TARGET_DIR"
 echo "  $(du -sh "$TARGET_DIR" | cut -f1) deployed"
