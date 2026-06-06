@@ -12,6 +12,7 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { filesApi, foldersApi } from '../api/files';
@@ -53,7 +54,8 @@ function isPreviewableImage(mimeType: string | null, name: string): boolean {
   return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '');
 }
 export function HomeScreen() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
+  const navigation = useNavigation();
   const { t } = useI18n();
   const [folders, setFolders] = useState<Folder[]>([]);
   const [files, setFiles] = useState<FileItem[]>([]);
@@ -95,24 +97,35 @@ export function HomeScreen() {
   // Data loading
   // -----------------------------------------------------------------------
   const loadData = useCallback(async () => {
+    if (!user) return;
     setListError(null);
     setIsLoading(true);
     try {
       const data = await filesApi.browse(currentParentId);
       setFolders(data.folders ?? []);
       setFiles(data.files ?? []);
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.response?.status === 401) {
+        await logout();
+        return;
+      }
       setListError(e instanceof Error ? e.message : t.failedToLoad);
       setFolders([]);
       setFiles([]);
     } finally {
       setIsLoading(false);
     }
-  }, [currentParentId]);
+  }, [currentParentId, user, logout]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (!user) {
+      navigation.navigate('Login' as never);
+    }
+  }, [user, navigation]);
 
   // -----------------------------------------------------------------------
   // Folder operations
