@@ -89,3 +89,5 @@ gradle-wrapper.jar
 METEOR@*
 
 /data
+/logs/
+/pids/

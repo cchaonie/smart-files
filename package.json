@@ -12,17 +12,20 @@
     "@types/react-dom": "^19.1.0"
   },
   "scripts": {
-    "db:start": "podman run -d --name smart-files-db -p 5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=smartfiles -v smart-files-postgres:/var/lib/postgresql/data --replace postgres:16-alpine",
-    "db:stop": "podman stop smart-files-db && podman rm smart-files-db",
-    "db:wait": "sleep 2",
-    "dev": "npm-run-all -s db:start db:wait -p dev:*",
+    "db:start": "podman run -d --name smart-files-db -p 127.0.0.1:5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=smartfiles -v ./data/postgres:/var/lib/postgresql/data:Z --replace postgres:16-alpine",
+    "db:stop": "podman stop -t 5 smart-files-db && podman rm smart-files-db",
+    "dev": "npm-run-all -p dev:backend dev:web",
     "dev:backend": "cd packages/backend && npm run start:dev",
     "dev:web": "cd packages/web && npm run dev",
-    "prd": "npm-run-all -s db:start db:wait prd:build -p prd:backend",
     "prd:build": "npm-run-all -p prd:webbuild prd:backendbuild",
     "prd:webbuild": "cd packages/web && npm run build",
     "prd:backendbuild": "cd packages/backend && npm run build",
-    "prd:backend": "cd packages/backend && npm run start:prod"
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:stop": "pm2 stop ecosystem.config.js",
+    "pm2:restart": "pm2 restart ecosystem.config.js",
+    "pm2:delete": "pm2 delete ecosystem.config.js",
+    "pm2:logs": "pm2 logs smart-files-backend",
+    "pm2:status": "pm2 status"
   },
   "devDependencies": {
     "npm-run-all": "^4.1.5"
