@@ -373,7 +373,10 @@ export function HomeScreen() {
     try {
       await uploadAllChunks();
 
+      // Async complete — returns immediately, merge runs in background
       await uploadApi.completeUpload(uploadId, meta.mimeType || undefined);
+      // Wait for background merge to finish
+      await uploadApi.waitForCompletion(uploadId);
 
       await removeSessionStorage(persistKey);
       persistKeyRef.current.delete(itemId);

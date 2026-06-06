@@ -54,9 +54,34 @@ export const uploadApi = {
     }
   },
 
-  completeUpload: async (sessionId: string, mimeType?: string): Promise<{ file: { id: string; name: string; size: string } }> => {
+  completeUpload: async (sessionId: string, mimeType?: string): Promise<{ status: string }> => {
     const response = await apiClient.post(`/upload/session/${sessionId}/complete`, { mimeType });
     return response.data;
+  },
+
+  /**
+   * Wait for an async upload to finish by polling getSession.
+   * Resolves when status becomes 'completed', throws on 'failed' or timeout.
+   */
+  waitForCompletion: async (
+    sessionId: string,
+    maxRetries = 300,
+    intervalMs = 1000,
+  ): Promise<{ file: { id: string; name: string; size: string } }> => {
+    for (let i = 0; i < maxRetries; i++) {
+      const response = await apiClient.get(`/upload/session/${sessionId}`);
+      const { status, file } = response.data;
+
+      if (status === 'completed') {
+        return { file };
+      }
+      if (status === 'failed') {
+        throw new Error('Upload failed during file assembly');
+      }
+
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+    throw new Error('Upload completion timed out');
   },
 
   uploadFile: async (

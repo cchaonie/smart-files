@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RequestLike } from '../common/types/http';
 import { createWriteStream, createReadStream } from 'fs';
@@ -8,6 +8,7 @@ import { CreateSessionDto } from './dto';
 
 @Injectable()
 export class UploadService {
+  private readonly logger = new Logger(UploadService.name);
   private uploadRoot: string;
 
   constructor(private prisma: PrismaService) {
@@ -124,11 +125,29 @@ export class UploadService {
 
     const totalChunks = Math.ceil(Number(session.totalSize) / session.chunkSize);
 
+    // If completed, fetch the associated file record
+    let file: { id: string; name: string; size: string } | null = null;
+    if (session.status === 'completed') {
+      const fileRecord = await this.prisma.file.findFirst({
+        where: { userId, name: session.fileName },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (fileRecord) {
+        file = {
+          id: fileRecord.id,
+          name: fileRecord.name,
+          size: fileRecord.size.toString(),
+        };
+      }
+    }
+
     return {
+      status: session.status,
       receivedIndexes: session.receivedChunkIndexes,
       totalChunks,
       chunkSize: session.chunkSize,
       totalSize: session.totalSize.toString(),
+      file,
     };
   }
 
@@ -184,6 +203,13 @@ export class UploadService {
       throw new NotFoundException('Session not found');
     }
 
+    if (session.status === 'completed') {
+      return { status: 'completed' };
+    }
+    if (session.status === 'failed') {
+      throw new BadRequestException('Upload previously failed');
+    }
+
     const totalChunks = Math.ceil(Number(session.totalSize) / session.chunkSize);
     const received = session.receivedChunkIndexes || [];
 
@@ -191,70 +217,86 @@ export class UploadService {
     if (received.length !== totalChunks) {
       throw new BadRequestException('Incomplete upload');
     }
-
-    // Verify chunk indices
     for (let i = 0; i < totalChunks; i++) {
       if (!received.includes(i)) {
         throw new BadRequestException('Missing chunk');
       }
     }
 
-    // Merge chunks
-    const destPath = await this.resolveStoragePath(userId, session.fileName);
-    const storageKey = path.basename(destPath);
-    await fs.mkdir(path.dirname(destPath), { recursive: true });
+    // Mark as merging and return immediately
+    await this.prisma.uploadSession.update({
+      where: { id: sessionId },
+      data: { status: 'merging' },
+    });
+
+    // Start background merge — do not await
+    this.processComplete(session, mimeType).catch((err) => {
+      this.logger.error(`Background merge failed for session ${sessionId}: ${err.message}`);
+    });
+
+    return { status: 'merging' };
+  }
+
+  private async processComplete(session: any, mimeType?: string) {
+    const sessionId = session.id;
+    const userId = session.userId;
+    const totalChunks = Math.ceil(Number(session.totalSize) / session.chunkSize);
 
     const tempDir = path.join(this.uploadRoot, 'tmp', userId, sessionId);
 
     try {
+      // Merge chunks
+      const destPath = await this.resolveStoragePath(userId, session.fileName);
+      const storageKey = path.basename(destPath);
+      await fs.mkdir(path.dirname(destPath), { recursive: true });
+
       await this.mergeChunks(tempDir, totalChunks, destPath);
+
+      // Verify size
+      const stats = await fs.stat(destPath);
+      if (BigInt(stats.size) !== session.totalSize) {
+        await fs.unlink(destPath).catch(() => {});
+        throw new Error('Size mismatch after merge');
+      }
+
+      // Create file record
+      const file = await this.prisma.$transaction(async (tx: any) => {
+        const created = await tx.file.create({
+          data: {
+            userId,
+            folderId: session.folderId,
+            name: session.fileName,
+            storageKey,
+            size: session.totalSize,
+            mimeType: mimeType || null,
+          },
+        });
+
+        await tx.uploadSession.update({
+          where: { id: sessionId },
+          data: { status: 'completed' },
+        });
+
+        return created;
+      });
+
+      // Cleanup temp files
+      for (let i = 0; i < totalChunks; i++) {
+        await fs.unlink(path.join(tempDir, String(i))).catch(() => {});
+      }
+      await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+
+      this.logger.log(`Upload completed: ${file.name} (${file.size})`);
     } catch (error) {
-      await fs.unlink(destPath).catch(() => {});
-      throw new BadRequestException('Failed to merge chunks');
+      // Mark session as failed
+      await this.prisma.uploadSession
+        .update({
+          where: { id: sessionId },
+          data: { status: 'failed' },
+        })
+        .catch(() => {});
+      this.logger.error(`Failed to process upload ${sessionId}: ${error.message}`);
     }
-
-    // Verify size
-    const stats = await fs.stat(destPath);
-    if (BigInt(stats.size) !== session.totalSize) {
-      await fs.unlink(destPath).catch(() => {});
-      throw new BadRequestException('Size mismatch after merge');
-    }
-
-    // Create file record
-    const file = await this.prisma.$transaction(async (tx: any) => {
-      const created = await tx.file.create({
-        data: {
-          userId,
-          folderId: session.folderId,
-          name: session.fileName,
-          storageKey,
-          size: session.totalSize,
-          mimeType: mimeType || null,
-        },
-      });
-
-      await tx.uploadSession.update({
-        where: { id: sessionId },
-        data: { status: 'completed' },
-      });
-
-      return created;
-    });
-
-    // Cleanup temp files
-    for (let i = 0; i < totalChunks; i++) {
-      await fs.unlink(path.join(tempDir, String(i))).catch(() => {});
-    }
-    await fs.rm(tempDir, { recursive: true }).catch(() => {});
-
-    return {
-      file: {
-        id: file.id,
-        name: file.name,
-        size: file.size.toString(),
-        createdAt: file.createdAt.toISOString(),
-      },
-    };
   }
 
   private async mergeChunks(chunkDir: string, totalChunks: number, destPath: string) {

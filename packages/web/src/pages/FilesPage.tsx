@@ -249,6 +249,7 @@ export function FilesPage() {
 
       if (!abortRef.current) {
         await uploadApi.completeUpload(session.uploadId, file.type);
+        await uploadApi.waitForCompletion(session.uploadId);
         setUploadItems(prev => prev.map(item => item.id === itemId ? { ...item, status: 'done', progress: 100 } : item));
       } else {
         setUploadItems(prev => prev.map(item => item.id === itemId ? { ...item, status: 'error', error: t.aborted } : item));
