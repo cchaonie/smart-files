@@ -912,7 +912,7 @@ export function FilesPage() {
         <MoveFileModal
           file={moveTarget}
           onClose={() => setMoveTarget(null)}
-          onMoved={() => void loadBrowse()}
+          onMoved={() => loadBrowse()}
         />
       ) : null}
 

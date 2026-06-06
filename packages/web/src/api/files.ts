@@ -3,7 +3,12 @@ import type { Folder, BrowseResponse, CreateFolderRequest } from '../types';
 
 export const filesApi = {
   browse: async (parentId?: string | null): Promise<BrowseResponse> => {
-    const params = parentId !== undefined ? { parentId } : {};
+    const params: Record<string, string> = {};
+    if (parentId === null) {
+      params.parentId = '';
+    } else if (parentId !== undefined) {
+      params.parentId = parentId;
+    }
     const response = await apiClient.get<BrowseResponse>('/folders/browse', { params });
     return response.data;
   },

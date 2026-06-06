@@ -10,7 +10,7 @@ function MoveFileModal({
 }: {
   file: FileItem;
   onClose: () => void;
-  onMoved: () => void;
+  onMoved: () => void | Promise<void>;
 }) {
   const { t } = useI18n();
   const [modalPath, setModalPath] = useState<{ id: string; name: string }[]>([]);
@@ -55,7 +55,7 @@ function MoveFileModal({
     setErr(null);
     try {
       await filesApi.moveFile(file.id, modalParentId);
-      onMoved();
+      await onMoved();
       onClose();
     } catch (e) {
       setErr(e instanceof Error ? e.message : t.moveFailed);
