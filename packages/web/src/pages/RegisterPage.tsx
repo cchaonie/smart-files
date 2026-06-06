@@ -12,7 +12,7 @@ import {
   EyeIcon,
   EyeSlashIcon,
   CheckCircleIcon,
-} from '@phosphor-icons/react';
+} from '../components/icons';
 
 const ACCENT = {
   light: '#2563eb',

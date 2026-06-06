@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useI18n } from '@smart-files/shared/src/i18n';
 import { motion, useReducedMotion } from 'motion/react';
-import { CloudArrowUpIcon } from '@phosphor-icons/react';
+import { CloudArrowUpIcon } from '../components/icons';
 
 // Accent color: Cobalt blue - avoiding AI-purple and beige+brass traps
 const ACCENT = {
