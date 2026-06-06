@@ -57,3 +57,23 @@ export interface UploadProgress {
   status: 'pending' | 'uploading' | 'done' | 'error';
   error?: string;
 }
+
+export interface UploadQueueItem {
+  id: number;
+  name: string;
+  size: number;
+  progress: number;
+  status: 'pending' | 'uploading' | 'paused' | 'done' | 'error';
+  error?: string;
+  folderId?: string;
+  folderName?: string;
+}
+
+export interface UploadHistoryItem {
+  id: number;
+  name: string;
+  size: number;
+  folderId?: string;
+  folderName?: string;
+  completedAt: string;
+}
