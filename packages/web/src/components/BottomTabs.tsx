@@ -1,15 +1,17 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { useI18n } from '@smart-files/shared/src/i18n';
 import { FolderIcon, FolderOpenIcon, CloudArrowUpIcon, GearIcon } from './icons';
 
-const tabs = [
-  { path: '/files', label: 'Files', icon: FolderIcon, activeIcon: FolderOpenIcon },
-  { path: '/uploads', label: 'Uploads', icon: CloudArrowUpIcon, activeIcon: CloudArrowUpIcon },
-  { path: '/settings', label: 'Settings', icon: GearIcon, activeIcon: GearIcon },
+const tabs: { path: string; icon: typeof FolderIcon; activeIcon: typeof FolderIcon; labelKey: string }[] = [
+  { path: '/files', labelKey: 'files', icon: FolderIcon, activeIcon: FolderOpenIcon },
+  { path: '/uploads', labelKey: 'uploads', icon: CloudArrowUpIcon, activeIcon: CloudArrowUpIcon },
+  { path: '/settings', labelKey: 'settings', icon: GearIcon, activeIcon: GearIcon },
 ];
 
 export function BottomTabs() {
   const location = useLocation();
+  const { t } = useI18n();
 
   return (
     <nav
@@ -35,7 +37,7 @@ export function BottomTabs() {
               )}
               <Icon className={`w-6 h-6 transition-colors ${isActive ? 'text-blue-500' : 'text-zinc-400 dark:text-zinc-500'}`} />
               <span className={`text-[11px] font-medium transition-colors ${isActive ? 'text-blue-500' : 'text-zinc-400 dark:text-zinc-500'}`}>
-                {tab.label}
+                {t[tab.labelKey as keyof typeof t] as string}
               </span>
             </Link>
           );

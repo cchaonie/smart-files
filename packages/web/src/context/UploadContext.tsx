@@ -27,7 +27,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   const [maxParallel, setMaxParallelState] = useState(5);
 
   const nextIdRef = useRef(Date.now());
-  const filesById = useRef<Map<number, File>>(new Map());
+  const filesById = useRef<Map<number, { file: File; folderId?: string }>>(new Map());
   const pausedRef = useRef<Set<number>>(new Set());
   const abortRef = useRef<Set<number>>(new Set());
   const persistKeyRef = useRef<Map<number, string>>(new Map());
@@ -75,11 +75,11 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     setUploads((prev) => prev.filter((u) => u.status !== 'done'));
   }, [uploads]);
 
-  // Core upload runner — depends on uploads state to read folderId
+  // Core upload runner — reads folderId from filesById ref (no uploads dependency)
   const runUpload = useCallback(
     async (file: File, itemId: number) => {
-      const item = uploads.find((u) => u.id === itemId);
-      const folderId = item?.folderId;
+      const meta = filesById.current.get(itemId);
+      const folderId = meta?.folderId;
 
       try {
         setUploads((prev) =>
@@ -142,7 +142,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
         runningIdsRef.current.delete(itemId);
       }
     },
-    [uploads]
+    []
   );
 
   // Keep a ref to the latest runUpload so the queue effect always uses the current one
@@ -161,18 +161,18 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
 
     const itemsToStart = pendingItems.slice(0, availableSlots);
     for (const item of itemsToStart) {
-      const file = filesById.current.get(item.id);
-      if (!file) continue;
+      const meta = filesById.current.get(item.id);
+      if (!meta) continue;
 
       runningIdsRef.current.add(item.id);
-      runUploadRef.current(file, item.id);
+      runUploadRef.current(meta.file, item.id);
     }
   }, [uploads, maxParallel]);
 
   const startUpload = useCallback((files: File[], folderId?: string, folderName?: string) => {
     const items: UploadQueueItem[] = files.map((file) => {
       const id = nextIdRef.current++;
-      filesById.current.set(id, file);
+      filesById.current.set(id, { file, folderId });
       return {
         id,
         name: file.name,

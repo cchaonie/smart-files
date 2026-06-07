@@ -52,6 +52,18 @@ export interface I18nStrings {
   accountCreated: string; redirectingToFiles: string;
   passwordStrengthStrong: string; passwordStrengthMedium: string;
   homeBadge: string; homeTitle: string; homeStart: string;
+  /* Mobile redesign i18n */
+  files: string; uploads: string; settings: string;
+  addFiles: string; queued: string; completed: string; paused: string;
+  history: string; clearHistory: string; noUploadsYet: string;
+  uploadSubtitle: string; changePassword: string;
+  updatePassword: string; updating: string; currentPassword: string;
+  newPassword: string; confirmNewPassword: string;
+  passwordsDoNotMatch: string; passwordUpdated: string;
+  failedToChangePassword: string; minChars: string;
+  signOutConfirm: string; moveItems: string;
+  itemsSelected: string;
+  removeFromHistory: string;
 }
 
 export interface I18nContextType {

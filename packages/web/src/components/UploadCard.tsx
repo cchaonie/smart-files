@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import { useI18n } from '@smart-files/shared/src/i18n';
 import type { UploadQueueItem, UploadHistoryItem } from '../types';
 import { formatBytes } from '@smart-files/shared/src/utils';
 import { PauseIcon, PlayIcon, ArrowPathIcon, XMarkIcon, CheckCircleIcon, CloudArrowUpIcon } from './icons';
@@ -11,15 +12,19 @@ interface UploadCardProps {
   onRetry: () => void;
 }
 
-const statusConfig: Record<string, { label: string; color: string }> = {
-  pending: { label: 'Queued', color: 'text-zinc-500 bg-zinc-100 dark:bg-zinc-800' },
-  uploading: { label: 'Uploading', color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' },
-  paused: { label: 'Paused', color: 'text-amber-600 bg-amber-50 dark:bg-amber-900/20' },
-  done: { label: 'Completed', color: 'text-green-600 bg-green-50 dark:bg-green-900/20' },
-  error: { label: 'Error', color: 'text-red-600 bg-red-50 dark:bg-red-900/20' },
-};
+function getStatusConfig(t: Record<string, string>) {
+  return {
+    pending: { label: t.queued, color: 'text-zinc-500 bg-zinc-100 dark:bg-zinc-800' },
+    uploading: { label: t.uploading, color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' },
+    paused: { label: t.paused, color: 'text-amber-600 bg-amber-50 dark:bg-amber-900/20' },
+    done: { label: t.completed, color: 'text-green-600 bg-green-50 dark:bg-green-900/20' },
+    error: { label: t.error, color: 'text-red-600 bg-red-50 dark:bg-red-900/20' },
+  };
+}
 
 export function UploadCard({ item, onPause, onResume, onCancel, onRetry }: UploadCardProps) {
+  const { t } = useI18n();
+  const statusConfig = getStatusConfig(t as unknown as Record<string, string>);
   const status = statusConfig[item.status] ?? statusConfig.pending;
 
   return (
@@ -94,6 +99,8 @@ interface UploadHistoryCardProps {
 }
 
 export function UploadHistoryCard({ item, onRemove }: UploadHistoryCardProps) {
+  const { t } = useI18n();
+
   const timeAgo = (date: string) => {
     const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
     if (seconds < 60) return 'Just now';
@@ -122,10 +129,11 @@ export function UploadHistoryCard({ item, onRemove }: UploadHistoryCardProps) {
       </div>
       <button
         onClick={onRemove}
-        className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-        aria-label="Remove from history"
+        className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors group"
+        aria-label={t.removeFromHistory}
+        title={t.removeFromHistory}
       >
-        <XMarkIcon className="w-4 h-4 text-zinc-400" />
+        <XMarkIcon className="w-4 h-4 text-zinc-400 group-hover:text-red-500 transition-colors" />
       </button>
     </motion.div>
   );

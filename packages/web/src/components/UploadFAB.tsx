@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { motion } from 'motion/react';
+import { useI18n } from '@smart-files/shared/src/i18n';
 import { PlusIcon } from './icons';
 import { useUpload } from '../context/UploadContext';
 
@@ -9,6 +10,7 @@ interface UploadFABProps {
 }
 
 export function UploadFAB({ folderId, folderName }: UploadFABProps) {
+  const { t } = useI18n();
   const { startUpload } = useUpload();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -34,7 +36,7 @@ export function UploadFAB({ folderId, folderName }: UploadFABProps) {
         whileTap={{ scale: 0.95 }}
         onClick={() => inputRef.current?.click()}
         className="fixed bottom-24 right-4 z-20 w-14 h-14 rounded-full bg-blue-500 text-white shadow-lg shadow-blue-500/30 flex items-center justify-center"
-        aria-label="Upload files"
+        aria-label={t.upload}
       >
         <PlusIcon className="w-6 h-6" />
       </motion.button>

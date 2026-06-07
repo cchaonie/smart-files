@@ -76,10 +76,10 @@ function MoveFileModal({
       >
         <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-            {files.length === 1 ? t.moveFileTitle : `Move ${files.length} items`}
+            {files.length === 1 ? t.moveFileTitle : t.moveItems.replace('{n}', String(files.length))}
           </h3>
           <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
-            {files.length === 1 ? files[0].name : `${files.length} items selected`}
+            {files.length === 1 ? files[0].name : t.itemsSelected.replace('{n}', String(files.length))}
           </p>
         </div>
         <div className="border-b border-zinc-100 px-4 py-2 text-xs dark:border-zinc-800">

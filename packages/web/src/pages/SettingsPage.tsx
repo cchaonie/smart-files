@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useI18n } from '@smart-files/shared/src/i18n';
 import { ProfileCard } from '../components/ProfileCard';
 import { LanguagePicker } from '../components/LanguagePicker';
 import { ChangePasswordModal } from '../components/ChangePasswordModal';
 import { GlobeIcon, LockIcon, ArrowRightIcon } from '../components/icons';
 
 export function SettingsPage() {
+  const { t } = useI18n();
   const { logout } = useAuth();
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -18,7 +20,7 @@ export function SettingsPage() {
 
   return (
     <div className="px-4 py-6 space-y-6">
-      <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Settings</h1>
+      <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{t.settings}</h1>
 
       <ProfileCard />
 
@@ -28,7 +30,7 @@ export function SettingsPage() {
           className="flex items-center gap-3 w-full p-4 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
         >
           <GlobeIcon className="w-5 h-5 text-zinc-500" />
-          <span className="flex-1 text-sm text-zinc-900 dark:text-zinc-100">Language</span>
+          <span className="flex-1 text-sm text-zinc-900 dark:text-zinc-100">{t.language}</span>
           <ArrowRightIcon className="w-4 h-4 text-zinc-400" />
         </button>
 
@@ -37,7 +39,7 @@ export function SettingsPage() {
           className="flex items-center gap-3 w-full p-4 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
         >
           <LockIcon className="w-5 h-5 text-zinc-500" />
-          <span className="flex-1 text-sm text-zinc-900 dark:text-zinc-100">Change Password</span>
+          <span className="flex-1 text-sm text-zinc-900 dark:text-zinc-100">{t.changePassword}</span>
           <ArrowRightIcon className="w-4 h-4 text-zinc-400" />
         </button>
       </div>
@@ -46,7 +48,7 @@ export function SettingsPage() {
         onClick={() => setShowLogoutConfirm(true)}
         className="flex items-center justify-center gap-2 w-full p-4 rounded-xl bg-white dark:bg-zinc-900 border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
       >
-        Sign Out
+        {t.signOut}
       </button>
 
       <LanguagePicker isOpen={showLanguagePicker} onClose={() => setShowLanguagePicker(false)} />
@@ -56,20 +58,20 @@ export function SettingsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowLogoutConfirm(false)} />
           <div className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-2xl shadow-xl p-6">
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 text-center">Sign Out</h3>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center mt-1">Are you sure you want to sign out of Smart Files?</p>
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 text-center">{t.signOut}</h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center mt-1">{t.signOutConfirm}</p>
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowLogoutConfirm(false)}
                 className="flex-1 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm font-medium"
               >
-                Cancel
+                {t.cancel}
               </button>
               <button
                 onClick={handleLogout}
                 className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-medium"
               >
-                Sign Out
+                {t.signOut}
               </button>
             </div>
           </div>

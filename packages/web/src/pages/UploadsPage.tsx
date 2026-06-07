@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { AnimatePresence } from 'motion/react';
+import { useI18n } from '@smart-files/shared/src/i18n';
 import { useUpload } from '../context/UploadContext';
 import { UploadCard, UploadHistoryCard } from '../components/UploadCard';
 import { EmptyState } from '../components/EmptyState';
@@ -7,6 +8,7 @@ import { FolderPickerModal } from '../components/FolderPickerModal';
 import { CloudArrowUpIcon, PauseIcon, PlayIcon, XMarkIcon } from '../components/icons';
 
 export function UploadsPage() {
+  const { t } = useI18n();
   const {
     uploads,
     history,
@@ -53,13 +55,13 @@ export function UploadsPage() {
   return (
     <div className="px-4 py-6">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Uploads</h1>
+        <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{t.uploads}</h1>
         <button
           onClick={handleAddFiles}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-medium"
         >
           <CloudArrowUpIcon className="w-4 h-4" />
-          Add Files
+          {t.addFiles}
         </button>
       </div>
 
@@ -83,7 +85,7 @@ export function UploadsPage() {
             <XMarkIcon className="w-4 h-4" />
           </button>
           <div className="flex items-center gap-1 ml-auto">
-            <span className="text-xs text-zinc-500">Parallel:</span>
+            <span className="text-xs text-zinc-500">{t.parallelUploads}:</span>
             <button
               onClick={() => setMaxParallel(Math.max(1, maxParallel - 1))}
               className="w-6 h-6 rounded bg-zinc-100 dark:bg-zinc-800 text-sm"
@@ -113,12 +115,12 @@ export function UploadsPage() {
       {history.length > 0 && (
         <div className="mt-6">
           <div className="flex items-center justify-between mb-2 px-1">
-            <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">History</h2>
+            <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{t.history}</h2>
             <button
               onClick={clearHistory}
               className="text-xs text-red-500 hover:text-red-600 font-medium"
             >
-              Clear History
+              {t.clearHistory}
             </button>
           </div>
           <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
@@ -136,14 +138,14 @@ export function UploadsPage() {
       {!hasActive && history.length === 0 && (
         <EmptyState
           icon={<CloudArrowUpIcon className="w-16 h-16" />}
-          title="No uploads yet"
-          subtitle="Upload files from the Files tab or tap Add Files"
+          title={t.noUploadsYet}
+          subtitle={t.uploadSubtitle}
           action={
             <button
               onClick={handleAddFiles}
               className="px-4 py-2 rounded-xl bg-blue-500 text-white text-sm font-medium"
             >
-              Add Files
+              {t.addFiles}
             </button>
           }
         />

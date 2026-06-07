@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useI18n } from '@smart-files/shared/src/i18n';
 import { authApi } from '../api/auth';
 import { LockIcon, XMarkIcon, EyeIcon, EyeSlashIcon } from './icons';
 
 export function ChangePasswordModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const { t } = useI18n();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -34,7 +36,7 @@ export function ChangePasswordModal({ isOpen, onClose }: { isOpen: boolean; onCl
         setConfirmPassword('');
       }, 1500);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to change password');
+      setError(e instanceof Error ? e.message : t.failedToChangePassword);
     } finally {
       setLoading(false);
     }
@@ -52,7 +54,7 @@ export function ChangePasswordModal({ isOpen, onClose }: { isOpen: boolean; onCl
         className="relative w-full sm:max-w-md sm:mx-4 bg-white dark:bg-zinc-900 rounded-t-2xl sm:rounded-2xl shadow-xl"
       >
         <div className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-800">
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Change Password</h3>
+          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.changePassword}</h3>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800">
             <XMarkIcon className="w-5 h-5 text-zinc-500" />
           </button>
@@ -66,7 +68,7 @@ export function ChangePasswordModal({ isOpen, onClose }: { isOpen: boolean; onCl
                 animate={{ opacity: 1, height: 'auto' }}
                 className="p-3 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-sm text-center"
               >
-                Password updated successfully
+                {t.passwordUpdated}
               </motion.div>
             )}
             {error && (
@@ -81,7 +83,7 @@ export function ChangePasswordModal({ isOpen, onClose }: { isOpen: boolean; onCl
           </AnimatePresence>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Current Password</label>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t.currentPassword}</label>
             <div className="relative">
               <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
               <input
@@ -98,7 +100,7 @@ export function ChangePasswordModal({ isOpen, onClose }: { isOpen: boolean; onCl
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">New Password</label>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t.newPassword}</label>
             <div className="relative">
               <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
               <input
@@ -113,11 +115,11 @@ export function ChangePasswordModal({ isOpen, onClose }: { isOpen: boolean; onCl
                 {showNew ? <EyeSlashIcon className="w-5 h-5 text-zinc-400" /> : <EyeIcon className="w-5 h-5 text-zinc-400" />}
               </button>
             </div>
-            <p className="text-xs text-zinc-500 mt-1">Minimum 8 characters</p>
+            <p className="text-xs text-zinc-500 mt-1">{t.minChars.replace('{n}', '8')}</p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Confirm New Password</label>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{t.confirmNewPassword}</label>
             <div className="relative">
               <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
               <input
@@ -129,7 +131,7 @@ export function ChangePasswordModal({ isOpen, onClose }: { isOpen: boolean; onCl
               />
             </div>
             {confirmPassword && newPassword !== confirmPassword && (
-              <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+              <p className="text-xs text-red-500 mt-1">{t.passwordsDoNotMatch}</p>
             )}
           </div>
 
@@ -138,7 +140,7 @@ export function ChangePasswordModal({ isOpen, onClose }: { isOpen: boolean; onCl
             disabled={!isValid || loading}
             className="w-full py-3 rounded-xl bg-blue-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-600 transition-colors"
           >
-            {loading ? 'Updating...' : 'Update Password'}
+            {loading ? t.updating : t.updatePassword}
           </button>
         </form>
       </motion.div>
