@@ -17,10 +17,31 @@ import {
   CloudArrowUpIcon, EyeIcon, ArrowRightIcon
 } from '../components/icons'
 
+const PATH_STORAGE_KEY = 'smartfiles:filesPagePath';
+
+function loadStoredPath(): { id: string; name: string }[] {
+  try {
+    const raw = sessionStorage.getItem(PATH_STORAGE_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+function storePath(path: { id: string; name: string }[]) {
+  sessionStorage.setItem(PATH_STORAGE_KEY, JSON.stringify(path));
+}
+
 export function FilesPage() {
   const { t } = useI18n();
-  const [path, setPath] = useState<{ id: string; name: string }[]>([]);
+  const [path, setPath] = useState<{ id: string; name: string }[]>(() => loadStoredPath());
   const currentParentId = path.length === 0 ? null : path[path.length - 1].id;
+
+  // Persist path to sessionStorage whenever it changes (survives tab switches)
+  useEffect(() => {
+    storePath(path);
+  }, [path]);
 
   const [folders, setFolders] = useState<Folder[]>([]);
   const [files, setFiles] = useState<FileItem[]>([]);
