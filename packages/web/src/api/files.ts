@@ -13,6 +13,13 @@ export const filesApi = {
     return response.data;
   },
 
+  checkFileExists: async (name: string, folderId?: string): Promise<{ exists: boolean; file?: { id: string; name: string; folderId: string | null; path: string } }> => {
+    const params: Record<string, string> = { name };
+    if (folderId !== undefined) params.folderId = folderId;
+    const response = await apiClient.get('/files/check', { params });
+    return response.data;
+  },
+
   deleteFile: async (id: string): Promise<void> => {
     await apiClient.delete(`/files/${id}`);
   },

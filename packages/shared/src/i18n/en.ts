@@ -109,4 +109,7 @@ export const en: I18nStrings = {
   moveItems: 'Move {n} items',
   itemsSelected: '{n} items selected',
   removeFromHistory: 'Remove from history',
+  fileAlreadyUploaded: 'File \"{name}\" has already been uploaded to: {path}',
+  fileAlreadyUploading: 'File \"{name}\" is currently being uploaded',
+  fileAlreadyInQueue: 'File \"{name}\" is already in the upload queue',
 };

@@ -64,6 +64,7 @@ export interface I18nStrings {
   signOutConfirm: string; moveItems: string;
   itemsSelected: string;
   removeFromHistory: string;
+  fileAlreadyUploaded: string; fileAlreadyUploading: string; fileAlreadyInQueue: string;
 }
 
 export interface I18nContextType {

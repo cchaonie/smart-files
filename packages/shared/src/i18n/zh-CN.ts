@@ -109,4 +109,7 @@ export const zhCN: I18nStrings = {
   moveItems: '移动 {n} 项',
   itemsSelected: '已选 {n} 项',
   removeFromHistory: '从历史中移除',
+  fileAlreadyUploaded: '文件 \"{name}\" 已上传到：{path}',
+  fileAlreadyUploading: '文件 \"{name}\" 正在上传中',
+  fileAlreadyInQueue: '文件 \"{name}\" 已在上传队列中',
 };

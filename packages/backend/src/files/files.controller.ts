@@ -34,6 +34,16 @@ export class FilesController {
     return this.filesService.searchFiles(user.id, query.trim());
   }
 
+  @Get('check')
+  @ApiOperation({ summary: 'Check if a file with the same name exists in a folder' })
+  async checkFile(
+    @CurrentUser() user: UserEntity,
+    @Query('name') name: string,
+    @Query('folderId') folderId?: string,
+  ) {
+    return this.filesService.checkFile(user.id, name, folderId);
+  }
+
   @Get('trash')
   @ApiOperation({ summary: 'List files in trash' })
   async listTrash(@CurrentUser() user: UserEntity) {

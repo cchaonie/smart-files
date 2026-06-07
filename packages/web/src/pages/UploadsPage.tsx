@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
 import { AnimatePresence } from 'motion/react';
-import { useI18n } from '@smart-files/shared/src/i18n';
+import { useI18n, tFormat } from '@smart-files/shared/src/i18n';
 import { useUpload } from '../context/UploadContext';
+import { filesApi } from '../api/files';
 import { UploadCard, UploadHistoryCard } from '../components/UploadCard';
 import { EmptyState } from '../components/EmptyState';
 import { FolderPickerModal } from '../components/FolderPickerModal';
@@ -41,12 +42,62 @@ export function UploadsPage() {
     inputRef.current?.click();
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const fileList = e.target.files;
     const target = targetFolderRef.current;
-    if (files && files.length > 0) {
-      startUpload(Array.from(files), target.folderId, target.folderName);
+    if (!fileList || fileList.length === 0) {
+      e.target.value = '';
+      return;
     }
+
+    const selectedFiles = Array.from(fileList);
+    const folderId = target.folderId;
+    const uniqueFiles: File[] = [];
+    const skipped: { file: File; message: string }[] = [];
+
+    // Track which names have already been checked against the server in this batch
+    const serverChecked = new Set<string>();
+
+    for (const file of selectedFiles) {
+      // 1) Check upload queue (pending / uploading / paused)
+      const inQueue = uploads.some(
+        u => u.name === file.name && u.folderId === folderId && (u.status === 'pending' || u.status === 'uploading' || u.status === 'paused')
+      );
+      if (inQueue) {
+        skipped.push({ file, message: tFormat(t.fileAlreadyUploading, { name: file.name }) });
+        continue;
+      }
+
+      // 2) Check server for already-uploaded files (only once per unique name)
+      if (!serverChecked.has(file.name)) {
+        serverChecked.add(file.name);
+        try {
+          const result = await filesApi.checkFileExists(file.name, folderId);
+          if (result.exists) {
+            skipped.push({ file, message: tFormat(t.fileAlreadyUploaded, { name: file.name, path: result.file!.path }) });
+            continue;
+          }
+        } catch {
+          // Server check failed — allow upload anyway
+        }
+      }
+
+      uniqueFiles.push(file);
+    }
+
+    // Show all skip messages at once
+    if (skipped.length > 0) {
+      const messages = skipped.map(s => s.message);
+      // Group duplicate names
+      const uniqueMessages = [...new Set(messages)];
+      alert(uniqueMessages.join('\n\n'));
+    }
+
+    // Upload only the unique files
+    if (uniqueFiles.length > 0) {
+      startUpload(uniqueFiles, folderId, target.folderName);
+    }
+
     e.target.value = '';
   }
 
