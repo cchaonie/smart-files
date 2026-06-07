@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Body, Param, UseGuards, Query, Req } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, UseGuards, Query, Req } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger';
 import { RequestLike } from '../common/types/http';
 import { UploadService } from './upload.service';
@@ -52,5 +52,14 @@ export class UploadController {
     @Body() body: { mimeType?: string },
   ) {
     return this.uploadService.completeUpload(user.id, id, body.mimeType);
+  }
+
+  @Delete('session/:id')
+  @ApiOperation({ summary: 'Cancel upload session and clean up temp files' })
+  async cancelSession(
+    @CurrentUser() user: UserEntity,
+    @Param('id') id: string,
+  ) {
+    return this.uploadService.cancelSession(user.id, id);
   }
 }

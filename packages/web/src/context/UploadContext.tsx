@@ -2,6 +2,9 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { uploadApi, CHUNK_SIZE } from '../api/upload';
 import type { UploadQueueItem, UploadHistoryItem } from '../types';
 
+const ACTIVE_SESSIONS_KEY = 'sf_active_sessions';
+const MAX_PARALLEL_KEY = 'sf_max_parallel';
+
 interface UploadContextType {
   uploads: UploadQueueItem[];
   history: UploadHistoryItem[];
@@ -24,7 +27,10 @@ const UploadContext = createContext<UploadContextType | undefined>(undefined);
 export function UploadProvider({ children }: { children: React.ReactNode }) {
   const [uploads, setUploads] = useState<UploadQueueItem[]>([]);
   const [history, setHistory] = useState<UploadHistoryItem[]>([]);
-  const [maxParallel, setMaxParallelState] = useState(5);
+  const [maxParallel, setMaxParallelState] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(MAX_PARALLEL_KEY) || '5'); }
+    catch { return 5; }
+  });
 
   const nextIdRef = useRef(Date.now());
   const filesById = useRef<Map<number, { file: File; folderId?: string }>>(new Map());
@@ -32,6 +38,33 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   const abortRef = useRef<Set<number>>(new Set());
   const persistKeyRef = useRef<Map<number, string>>(new Map());
   const runningIdsRef = useRef<Set<number>>(new Set());
+  const activeSessionIds = useRef<Set<string>>(new Set());
+
+  // Persist maxParallel to localStorage
+  useEffect(() => {
+    localStorage.setItem(MAX_PARALLEL_KEY, JSON.stringify(maxParallel));
+  }, [maxParallel]);
+
+  // Sync active session IDs to localStorage
+  function persistActiveSessions() {
+    try {
+      localStorage.setItem(ACTIVE_SESSIONS_KEY, JSON.stringify([...activeSessionIds.current]));
+    } catch {}
+  }
+
+  // On mount, cancel any stale upload sessions from a previous page load
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ACTIVE_SESSIONS_KEY);
+      if (raw) {
+        const staleIds = JSON.parse(raw) as string[];
+        if (staleIds.length > 0) {
+          Promise.all(staleIds.map(id => uploadApi.cancelSession(id).catch(() => {})));
+        }
+      }
+    } catch {}
+    localStorage.removeItem(ACTIVE_SESSIONS_KEY);
+  }, []);
 
   // Load history from localStorage on mount
   useEffect(() => {
@@ -88,6 +121,8 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
 
         const session = await uploadApi.createSession(file.name, file.size, folderId);
         persistKeyRef.current.set(itemId, session.uploadId);
+        activeSessionIds.current.add(session.uploadId);
+        persistActiveSessions();
 
         const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
         const uploadedChunks = new Set<number>();
@@ -118,10 +153,16 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
 
         if (!abortRef.current.has(itemId)) {
           await uploadApi.completeUpload(session.uploadId, file.type);
+          activeSessionIds.current.delete(session.uploadId);
+          persistActiveSessions();
           setUploads((prev) =>
             prev.map((u) => (u.id === itemId ? { ...u, status: 'done', progress: 100 } : u))
           );
         } else {
+          // Aborted — cancel server-side session
+          uploadApi.cancelSession(session.uploadId).catch(() => {});
+          activeSessionIds.current.delete(session.uploadId);
+          persistActiveSessions();
           setUploads((prev) =>
             prev.map((u) =>
               u.id === itemId ? { ...u, status: 'error', error: 'Upload cancelled' } : u
@@ -129,6 +170,12 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
           );
         }
       } catch (e) {
+        // Clean up session ID tracking on failure
+        const sid = persistKeyRef.current.get(itemId);
+        if (sid) {
+          activeSessionIds.current.delete(sid);
+          persistActiveSessions();
+        }
         setUploads((prev) =>
           prev.map((u) =>
             u.id === itemId
@@ -206,6 +253,13 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     pausedRef.current.delete(id);
     setUploads((prev) => prev.filter((u) => u.id !== id));
     filesById.current.delete(id);
+    // Cancel server-side session if one exists
+    const sid = persistKeyRef.current.get(id);
+    if (sid) {
+      uploadApi.cancelSession(sid).catch(() => {});
+      activeSessionIds.current.delete(sid);
+      persistActiveSessions();
+    }
     persistKeyRef.current.delete(id);
     runningIdsRef.current.delete(id);
   }, []);
@@ -245,11 +299,18 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   const cancelAll = useCallback(() => {
     uploads.forEach((u) => {
       abortRef.current.add(u.id);
+      const sid = persistKeyRef.current.get(u.id);
+      if (sid) {
+        uploadApi.cancelSession(sid).catch(() => {});
+        activeSessionIds.current.delete(sid);
+      }
     });
     pausedRef.current.clear();
     filesById.current.clear();
     persistKeyRef.current.clear();
     runningIdsRef.current.clear();
+    activeSessionIds.current.clear();
+    persistActiveSessions();
     setUploads([]);
   }, [uploads]);
 

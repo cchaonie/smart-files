@@ -237,6 +237,33 @@ export class UploadService {
     return { status: 'merging' };
   }
 
+  async cancelSession(userId: string, sessionId: string) {
+    const session = await this.prisma.uploadSession.findFirst({
+      where: { id: sessionId, userId },
+    });
+
+    if (!session) {
+      throw new NotFoundException('Session not found');
+    }
+
+    if (session.status === 'completed') {
+      throw new BadRequestException('Cannot cancel a completed upload');
+    }
+
+    // Mark as failed
+    await this.prisma.uploadSession.update({
+      where: { id: sessionId },
+      data: { status: 'failed' },
+    });
+
+    // Clean up temp chunk files
+    const tempDir = path.join(this.uploadRoot, 'tmp', userId, sessionId);
+    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+
+    this.logger.log(`Upload session cancelled: ${sessionId} (${session.fileName})`);
+    return { status: 'cancelled' };
+  }
+
   private async processComplete(session: any, mimeType?: string) {
     const sessionId = session.id;
     const userId = session.userId;
