@@ -54,15 +54,8 @@ export function UploadsPage() {
 
   return (
     <div className="px-4 py-6">
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4">
         <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{t.uploads}</h1>
-        <button
-          onClick={handleAddFiles}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-medium"
-        >
-          <CloudArrowUpIcon className="w-4 h-4" />
-          {t.addFiles}
-        </button>
       </div>
 
       <input
