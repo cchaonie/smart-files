@@ -58,7 +58,7 @@ export const zhCN: I18nStrings = {
   upload: '上传', uploading: '上传中', pending: '等待中',
   error: '错误', retry: '重试', aborted: '已取消',
   uploadFailed: '上传失败', sessionFailed: '会话创建失败',
-  parallelUploads: '并发数',
+  parallelUploads: '并发数', parallelUploadsDesc: '最大同时上传文件数',
   configureServer: '配置服务器', tapToConfigure: '点击配置',
   serverLabel: '服务器', cannotConnect: '无法连接到服务器',
   cannotConnectMessage: '无法连接到后端服务器：\n{apiUrl}\n\n{message}\n\n点击下方"配置服务器"设置正确的地址。',

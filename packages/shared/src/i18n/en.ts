@@ -58,7 +58,7 @@ export const en: I18nStrings = {
   upload: 'Upload', uploading: 'Uploading', pending: 'Pending',
   error: 'Error', retry: 'Retry', aborted: 'Cancelled',
   uploadFailed: 'Upload failed', sessionFailed: 'Session failed',
-  parallelUploads: 'Parallel',
+  parallelUploads: 'Parallel', parallelUploadsDesc: 'Max concurrent uploads',
   configureServer: 'Configure Server', tapToConfigure: 'Tap to configure',
   serverLabel: 'Server', cannotConnect: 'Cannot Connect to Server',
   cannotConnectMessage: 'Unable to reach the backend at:\n{apiUrl}\n\n{message}\n\nTap "Configure Server" below to set the correct URL.',

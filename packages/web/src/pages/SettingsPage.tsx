@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useI18n } from '@smart-files/shared/src/i18n';
+import { useUpload } from '../context/UploadContext';
 import { ProfileCard } from '../components/ProfileCard';
 import { LanguagePicker } from '../components/LanguagePicker';
 import { ChangePasswordModal } from '../components/ChangePasswordModal';
-import { GlobeIcon, LockIcon, ArrowRightIcon } from '../components/icons';
+import { GlobeIcon, LockIcon, ArrowRightIcon, CloudArrowUpIcon } from '../components/icons';
 
 export function SettingsPage() {
   const { t } = useI18n();
   const { logout } = useAuth();
+  const { maxParallel, setMaxParallel } = useUpload();
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -42,6 +44,30 @@ export function SettingsPage() {
           <span className="flex-1 text-sm text-zinc-900 dark:text-zinc-100">{t.changePassword}</span>
           <ArrowRightIcon className="w-4 h-4 text-zinc-400" />
         </button>
+      </div>
+
+      {/* Parallel uploads setting */}
+      <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900">
+        <div className="flex items-center gap-3 p-4">
+          <CloudArrowUpIcon className="w-5 h-5 text-zinc-500" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-zinc-900 dark:text-zinc-100">{t.parallelUploads}</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{t.parallelUploadsDesc}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setMaxParallel(maxParallel - 1)}
+              className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-30"
+              disabled={maxParallel <= 1}
+            >−</button>
+            <span className="w-8 text-center text-sm font-semibold text-zinc-900 dark:text-zinc-100">{maxParallel}</span>
+            <button
+              onClick={() => setMaxParallel(maxParallel + 1)}
+              className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-30"
+              disabled={maxParallel >= 10}
+            >+</button>
+          </div>
+        </div>
       </div>
 
       <button

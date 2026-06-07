@@ -22,8 +22,6 @@ export function UploadsPage() {
     cancelAll,
     clearHistory,
     removeFromHistory,
-    maxParallel,
-    setMaxParallel,
   } = useUpload();
 
   const [showFolderPicker, setShowFolderPicker] = useState(false);
@@ -77,18 +75,6 @@ export function UploadsPage() {
           <button onClick={cancelAll} className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700">
             <XMarkIcon className="w-4 h-4" />
           </button>
-          <div className="flex items-center gap-1 ml-auto">
-            <span className="text-xs text-zinc-500">{t.parallelUploads}:</span>
-            <button
-              onClick={() => setMaxParallel(Math.max(1, maxParallel - 1))}
-              className="w-6 h-6 rounded bg-zinc-100 dark:bg-zinc-800 text-sm"
-            >-</button>
-            <span className="text-sm font-medium w-4 text-center">{maxParallel}</span>
-            <button
-              onClick={() => setMaxParallel(Math.min(10, maxParallel + 1))}
-              className="w-6 h-6 rounded bg-zinc-100 dark:bg-zinc-800 text-sm"
-            >+</button>
-          </div>
         </div>
       )}
 

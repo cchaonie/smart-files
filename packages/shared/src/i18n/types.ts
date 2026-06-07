@@ -34,7 +34,7 @@ export interface I18nStrings {
   video: string; audio: string; file: string; play: string; openFile: string;
   unsupportedVideo: string; unsupportedAudio: string;
   upload: string; uploading: string; pending: string; error: string; retry: string;
-  aborted: string; uploadFailed: string; sessionFailed: string; parallelUploads: string;
+  aborted: string; uploadFailed: string; sessionFailed: string; parallelUploads: string; parallelUploadsDesc: string;
   configureServer: string; tapToConfigure: string; serverLabel: string;
   cannotConnect: string; cannotConnectMessage: string; enterCredentials: string;
   loginFailed: string; signUp: string; noAccountMobile: string; hasAccountMobile: string;
