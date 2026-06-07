@@ -44,6 +44,10 @@ export const uploadApi = {
     return response.data;
   },
 
+  cancelSession: async (sessionId: string): Promise<void> => {
+    await apiClient.delete(`/upload/session/${sessionId}`);
+  },
+
   /**
    * Wait for an async upload to finish by polling getSession.
    */

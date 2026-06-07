@@ -21,4 +21,8 @@ export const authApi = {
   getToken: (): string | null => {
     return localStorage.getItem('access_token');
   },
+
+  changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {
+    await apiClient.post('/auth/change-password', { currentPassword, newPassword });
+  },
 };

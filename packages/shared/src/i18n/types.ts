@@ -34,7 +34,7 @@ export interface I18nStrings {
   video: string; audio: string; file: string; play: string; openFile: string;
   unsupportedVideo: string; unsupportedAudio: string;
   upload: string; uploading: string; pending: string; error: string; retry: string;
-  aborted: string; uploadFailed: string; sessionFailed: string; parallelUploads: string;
+  aborted: string; uploadFailed: string; sessionFailed: string; parallelUploads: string; parallelUploadsDesc: string;
   configureServer: string; tapToConfigure: string; serverLabel: string;
   cannotConnect: string; cannotConnectMessage: string; enterCredentials: string;
   loginFailed: string; signUp: string; noAccountMobile: string; hasAccountMobile: string;
@@ -44,7 +44,7 @@ export interface I18nStrings {
   chooseFiles: string; searchResults: string; clearSearch: string;
   searching: string; noMatchingFiles: string; contents: string;
   refresh: string; folderEmpty: string; pauseResume: string;
-  cancelAll: string; clearCompleted: string; folderLabel: string;
+  cancelAll: string; clearCompleted: string; folderLabel: string; select: string;
   newNamePrompt: string; expiresPrefix: string; colAdded: string;
   unknownFolder: string;
   emailPlaceholder: string; passwordPlaceholder: string;
@@ -52,6 +52,19 @@ export interface I18nStrings {
   accountCreated: string; redirectingToFiles: string;
   passwordStrengthStrong: string; passwordStrengthMedium: string;
   homeBadge: string; homeTitle: string; homeStart: string;
+  /* Mobile redesign i18n */
+  files: string; uploads: string; settings: string;
+  addFiles: string; queued: string; completed: string; paused: string;
+  history: string; clearHistory: string; noUploadsYet: string;
+  uploadSubtitle: string; changePassword: string;
+  updatePassword: string; updating: string; currentPassword: string;
+  newPassword: string; confirmNewPassword: string;
+  passwordsDoNotMatch: string; passwordUpdated: string;
+  failedToChangePassword: string; minChars: string;
+  signOutConfirm: string; moveItems: string;
+  itemsSelected: string;
+  removeFromHistory: string;
+  fileAlreadyUploaded: string; fileAlreadyUploading: string; fileAlreadyInQueue: string;
 }
 
 export interface I18nContextType {

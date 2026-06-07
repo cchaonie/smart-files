@@ -12,6 +12,53 @@ export class FilesService {
     this.uploadRoot = process.env.UPLOAD_ROOT || './data/storage';
   }
 
+  /**
+   * Walk up the folder tree to build a breadcrumb path string.
+   * Returns ['Root'] for a null/root folderId.
+   */
+  private async buildFolderPath(folderId: string | null): Promise<string> {
+    if (!folderId) return 'Root';
+    const segments: string[] = [];
+    let currentId: string | null = folderId;
+    while (currentId) {
+      const folder = await this.prisma.folder.findFirst({
+        where: { id: currentId },
+        select: { id: true, name: true, parentId: true },
+      });
+      if (!folder) break;
+      segments.unshift(folder.name);
+      currentId = folder.parentId;
+    }
+    segments.unshift('Root');
+    return segments.join(' / ');
+  }
+
+  async checkFile(userId: string, name: string, folderId?: string) {
+    const resolvedFolderId = folderId !== undefined ? (folderId || null) : undefined;
+    const file = await this.prisma.file.findFirst({
+      where: {
+        userId,
+        name,
+        deletedAt: null,
+        ...(resolvedFolderId !== undefined ? { folderId: resolvedFolderId } : {}),
+      },
+      include: { folder: { select: { id: true, name: true } } },
+    });
+
+    if (!file) return { exists: false };
+
+    const path = await this.buildFolderPath(file.folderId);
+    return {
+      exists: true,
+      file: {
+        id: file.id,
+        name: file.name,
+        folderId: file.folderId,
+        path,
+      },
+    };
+  }
+
   async listFiles(userId: string, folderId?: string) {
     const files = await this.prisma.file.findMany({
       where: {

@@ -50,6 +50,7 @@ model File {
   @@index([userId])
   @@index([userId, folderId])
   @@index([userId, deletedAt])
+  @@unique([userId, storageKey])
 }
 
 model Share {
