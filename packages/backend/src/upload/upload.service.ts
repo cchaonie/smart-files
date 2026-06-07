@@ -37,37 +37,6 @@ export class UploadService {
     return base.slice(0, 200) + ext;
   }
 
-  /**
-   * Resolve a storage path for the given userId + filename, handling collisions
-   * by appending a numeric suffix (e.g. "photo (1).jpg").
-   */
-  private async resolveStoragePath(userId: string, fileName: string): Promise<string> {
-    const safeName = this.sanitizeFileName(fileName);
-    const userDir = path.join(this.uploadRoot, 'files', userId);
-    await fs.mkdir(userDir, { recursive: true });
-
-    let storageKey = safeName;
-    let destPath = path.join(userDir, storageKey);
-    let counter = 1;
-
-    while (true) {
-      try {
-        await fs.access(destPath);
-        // File exists — append counter suffix
-        const ext = path.extname(safeName);
-        const base = path.basename(safeName, ext);
-        storageKey = `${base} (${counter})${ext}`;
-        destPath = path.join(userDir, storageKey);
-        counter++;
-      } catch {
-        // File doesn't exist — good to use
-        break;
-      }
-    }
-
-    return destPath;
-  }
-
   async createSession(userId: string, dto: CreateSessionDto) {
     const totalSize = BigInt(dto.totalSize);
 
@@ -272,40 +241,88 @@ export class UploadService {
     const tempDir = path.join(this.uploadRoot, 'tmp', userId, sessionId);
 
     try {
-      // Merge chunks
-      const destPath = await this.resolveStoragePath(userId, session.fileName);
-      const storageKey = path.basename(destPath);
-      await fs.mkdir(path.dirname(destPath), { recursive: true });
+      const safeName = this.sanitizeFileName(session.fileName);
 
-      await this.mergeChunks(tempDir, totalChunks, destPath);
+      // Merge chunks to a temporary merged file first
+      const mergedPath = path.join(tempDir, '.merged');
+      await this.mergeChunks(tempDir, totalChunks, mergedPath);
 
-      // Verify size
-      const stats = await fs.stat(destPath);
+      // Verify size before entering the transaction
+      const stats = await fs.stat(mergedPath);
       if (BigInt(stats.size) !== session.totalSize) {
-        await fs.unlink(destPath).catch(() => {});
+        await fs.unlink(mergedPath).catch(() => {});
         throw new Error('Size mismatch after merge');
       }
 
-      // Create file record
-      const file = await this.prisma.$transaction(async (tx: any) => {
-        const created = await tx.file.create({
-          data: {
-            userId,
-            folderId: session.folderId,
-            name: session.fileName,
-            storageKey,
-            size: session.totalSize,
-            mimeType: mimeType || null,
-          },
-        });
+      // Quick transaction: DB-level dedup only (no filesystem ops inside)
+      let storageKey: string;
+      try {
+        const result = await this.prisma.$transaction(async (tx: any) => {
+          const ext = path.extname(safeName);
+          const base = path.basename(safeName, ext);
 
-        await tx.uploadSession.update({
-          where: { id: sessionId },
-          data: { status: 'completed' },
-        });
+          let sk = safeName;
+          let counter = 1;
+          while (true) {
+            const existing = await tx.file.findFirst({
+              where: { userId, storageKey: sk },
+            });
+            if (!existing) break;
+            sk = `${base} (${counter})${ext}`;
+            counter++;
+          }
 
-        return created;
-      });
+          const created = await tx.file.create({
+            data: {
+              userId,
+              folderId: session.folderId,
+              name: session.fileName,
+              storageKey: sk,
+              size: session.totalSize,
+              mimeType: mimeType || null,
+            },
+          });
+
+          await tx.uploadSession.update({
+            where: { id: sessionId },
+            data: { status: 'completed' },
+          });
+
+          return { storageKey: sk };
+        });
+        storageKey = result.storageKey;
+      } catch (err: any) {
+        // Unique constraint violation (P2002) — concurrent upload won the race,
+        // retry once with the next counter
+        if (err?.code === 'P2002') {
+          const ext = path.extname(safeName);
+          const base = path.basename(safeName, ext);
+          storageKey = `${base} (${Date.now()})${ext}`;
+          // Create the File record outside the transaction with a timestamp-guaranteed unique key
+          await this.prisma.file.create({
+            data: {
+              userId,
+              folderId: session.folderId,
+              name: session.fileName,
+              storageKey,
+              size: session.totalSize,
+              mimeType: mimeType || null,
+            },
+          });
+          await this.prisma.uploadSession.update({
+            where: { id: sessionId },
+            data: { status: 'completed' },
+          });
+        } else {
+          throw err;
+        }
+      }
+
+      // Atomic rename (outside transaction — filesystem can't roll back)
+      const destDir = path.join(this.uploadRoot, 'files', userId);
+      await fs.mkdir(destDir, { recursive: true });
+      const destPath = path.join(destDir, storageKey);
+      await fs.rename(mergedPath, destPath);
 
       // Cleanup temp files
       for (let i = 0; i < totalChunks; i++) {
@@ -313,7 +330,7 @@ export class UploadService {
       }
       await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
 
-      this.logger.log(`Upload completed: ${file.name} (${file.size})`);
+      this.logger.log(`Upload completed: ${storageKey} (${session.totalSize})`);
     } catch (error) {
       // Mark session as failed
       await this.prisma.uploadSession
