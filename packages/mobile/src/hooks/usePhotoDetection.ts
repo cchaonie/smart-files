@@ -15,7 +15,7 @@ export interface NewPhotoAsset {
   height: number;
 }
 
-interface PhotoDetectionResult {
+export interface PhotoDetectionResult {
   newPhotos: NewPhotoAsset[];
   count: number;
   isPromptDismissed: boolean;
