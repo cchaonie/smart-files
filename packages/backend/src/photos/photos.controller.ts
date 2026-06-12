@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Param,
   UseInterceptors,
   UploadedFile,
   UseGuards,
@@ -39,5 +40,13 @@ export class PhotosController {
       file.mimetype,
       file.buffer,
     );
+  }
+
+  @Post(':id/retry')
+  async retry(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string; name: string },
+  ) {
+    return this.photosService.retry(id, user.id);
   }
 }

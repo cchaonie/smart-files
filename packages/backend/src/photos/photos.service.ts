@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -108,5 +108,39 @@ export class PhotosService {
     await this.aiTaggingQueue.add('process', { photoId: photo.id });
 
     return { id: photo.id, status: photo.status };
+  }
+
+  /**
+   * Retry processing a failed photo.
+   * Resets status to PROCESSING and re-enqueues the thumbnail job.
+   */
+  async retry(
+    photoId: string,
+    userId: string,
+  ): Promise<{ id: string; status: string }> {
+    const photo = await this.prisma.photo.findUnique({
+      where: { id: photoId },
+    });
+
+    if (!photo) {
+      throw new NotFoundException('Photo not found');
+    }
+
+    if (photo.userId !== userId) {
+      throw new NotFoundException('Photo not found');
+    }
+
+    if (photo.status !== 'FAILED') {
+      throw new ConflictException('Photo is not in FAILED status');
+    }
+
+    await this.prisma.photo.update({
+      where: { id: photoId },
+      data: { status: 'PROCESSING' },
+    });
+
+    await this.thumbnailQueue.add('process', { photoId });
+
+    return { id: photoId, status: 'PROCESSING' };
   }
 }

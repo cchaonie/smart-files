@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { PhotosController } from './photos.controller';
 import { PhotosService } from './photos.service';
+import { ThumbnailService } from './thumbnail.service';
+import { PhotoThumbnailWorker } from './photo-thumbnail.worker';
 
 @Module({
   imports: [
@@ -11,6 +13,6 @@ import { PhotosService } from './photos.service';
     ),
   ],
   controllers: [PhotosController],
-  providers: [PhotosService],
+  providers: [PhotosService, ThumbnailService, PhotoThumbnailWorker],
 })
 export class PhotosModule {}

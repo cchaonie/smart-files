@@ -12,6 +12,8 @@ describe('PhotosService', () => {
     photo: {
       findFirst: jest.fn(),
       create: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
     },
   };
 
@@ -123,6 +125,64 @@ describe('PhotosService', () => {
       expect(mockQueue.add).toHaveBeenCalledTimes(2);
       expect(mockQueue.add).toHaveBeenCalledWith('process', {
         photoId: 'new-id',
+      });
+    });
+  });
+
+  describe('retry', () => {
+    it('should throw NotFoundException if photo does not exist', async () => {
+      mockPrisma.photo.findUnique.mockResolvedValue(null);
+
+      await expect(service.retry('non-existent-id', 'user-1')).rejects.toThrow(
+        'Photo not found',
+      );
+    });
+
+    it('should throw ConflictException if photo is not FAILED', async () => {
+      mockPrisma.photo.findUnique.mockResolvedValue({
+        id: 'photo-1',
+        userId: 'user-1',
+        status: 'PROCESSING',
+      });
+
+      await expect(service.retry('photo-1', 'user-1')).rejects.toThrow(
+        'Photo is not in FAILED status',
+      );
+    });
+
+    it('should throw NotFoundException if photo belongs to another user', async () => {
+      mockPrisma.photo.findUnique.mockResolvedValue({
+        id: 'photo-1',
+        userId: 'other-user',
+        status: 'FAILED',
+      });
+
+      await expect(service.retry('photo-1', 'user-1')).rejects.toThrow(
+        'Photo not found',
+      );
+    });
+
+    it('should reset status and re-enqueue thumbnail job for FAILED photo', async () => {
+      mockPrisma.photo.findUnique.mockResolvedValue({
+        id: 'photo-1',
+        userId: 'user-1',
+        status: 'FAILED',
+      });
+      mockPrisma.photo.update.mockResolvedValue({
+        id: 'photo-1',
+        status: 'PROCESSING',
+      });
+      mockQueue.add.mockResolvedValue(undefined);
+
+      const result = await service.retry('photo-1', 'user-1');
+
+      expect(result).toEqual({ id: 'photo-1', status: 'PROCESSING' });
+      expect(mockPrisma.photo.update).toHaveBeenCalledWith({
+        where: { id: 'photo-1' },
+        data: { status: 'PROCESSING' },
+      });
+      expect(mockQueue.add).toHaveBeenCalledWith('process', {
+        photoId: 'photo-1',
       });
     });
   });
