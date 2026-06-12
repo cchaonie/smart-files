@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -7,6 +7,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ConfigProvider, useConfig } from './src/context/ConfigContext';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { PhotoUploadProvider, usePhotoUploadContext } from './src/context/PhotoUploadContext';
+import { usePhotoDetection } from './src/hooks/usePhotoDetection';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { RegisterScreen } from './src/screens/RegisterScreen';
 import { ServerConfigScreen } from './src/screens/ServerConfigScreen';
@@ -21,25 +23,46 @@ export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   ServerConfig: undefined;
-  PhotoUpload: { items?: import('./src/hooks/usePhotoUpload').PhotoUploadItem[] } | undefined;
+  PhotoUpload: undefined;
   MainApp: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-function MainAppScreen() {
+function WrappedMainApp() {
+  const photoDetection = usePhotoDetection();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user && photoDetection.permissionGranted === null) {
+      photoDetection.requestPermission();
+    }
+  }, [user]);
+
+  return (
+    <PhotoUploadProvider onMarkSynced={photoDetection.markSynced}>
+      <InnerApp photoDetection={photoDetection} />
+    </PhotoUploadProvider>
+  );
+}
+
+function InnerApp({ photoDetection }: { photoDetection: ReturnType<typeof usePhotoDetection> }) {
   const [activeTab, setActiveTab] = useState<TabKey>('files');
+  const { badgeCount } = usePhotoUploadContext();
 
   const renderScreen = useCallback(() => {
     switch (activeTab) {
-      case 'files': return <FilesScreen />;
-      case 'uploads': return <UploadsScreen />;
-      case 'settings': return <SettingsScreen />;
+      case 'files':
+        return <FilesScreen photoDetection={photoDetection} />;
+      case 'uploads':
+        return <UploadsScreen />;
+      case 'settings':
+        return <SettingsScreen />;
     }
-  }, [activeTab]);
+  }, [activeTab, photoDetection]);
 
   return (
-    <AppLayout activeTab={activeTab} onTabChange={setActiveTab}>
+    <AppLayout activeTab={activeTab} onTabChange={setActiveTab} badgeCount={badgeCount}>
       {renderScreen()}
     </AppLayout>
   );
@@ -59,9 +82,8 @@ function AppNavigator() {
         screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
       >
         {user ? (
-          // Authenticated stack
           <>
-            <Stack.Screen name="MainApp" component={MainAppScreen} />
+            <Stack.Screen name="MainApp" component={WrappedMainApp} />
             <Stack.Screen
               name="PhotoUpload"
               component={PhotoUploadScreen}
@@ -74,13 +96,8 @@ function AppNavigator() {
             />
           </>
         ) : (
-          // Public stack
           <>
-            <Stack.Screen
-              name="Login"
-              component={LoginScreen}
-              options={{ animation: 'fade' }}
-            />
+            <Stack.Screen name="Login" component={LoginScreen} options={{ animation: 'fade' }} />
             <Stack.Screen name="Register" component={RegisterScreen} />
             <Stack.Screen
               name="ServerConfig"

@@ -25,6 +25,9 @@ import {
   ChevronRightIcon,
 } from '../components/icons';
 import type { FileItem, Folder, UploadProgress } from '../types';
+import type { PhotoDetectionResult } from '../hooks/usePhotoDetection';
+import { usePhotoUploadContext } from '../context/PhotoUploadContext';
+import PhotoUploadPrompt from '../components/PhotoUploadPrompt';
 import UploadProgressRow from '../components/UploadProgressRow';
 import FilePreviewModal from '../components/FilePreviewModal';
 import ActionSheet, { type ActionItem } from '../components/ActionSheet';
@@ -54,9 +57,24 @@ function isPreviewableImage(mimeType: string | null, name: string): boolean {
   return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '');
 }
 
-export function FilesScreen() {
+export function FilesScreen({ photoDetection }: { photoDetection: PhotoDetectionResult }) {
   const { user, logout } = useAuth();
   const { t } = useI18n();
+  const { startUpload } = usePhotoUploadContext();
+
+  const [showPhotoPrompt, setShowPhotoPrompt] = useState(false);
+
+  useEffect(() => {
+    if (
+      photoDetection.count > 0 &&
+      !photoDetection.isPromptDismissed &&
+      !photoDetection.isLoading
+    ) {
+      setShowPhotoPrompt(true);
+    } else {
+      setShowPhotoPrompt(false);
+    }
+  }, [photoDetection.count, photoDetection.isPromptDismissed, photoDetection.isLoading]);
 
   const [folders, setFolders] = useState<Folder[]>([]);
   const [files, setFiles] = useState<FileItem[]>([]);
@@ -304,6 +322,23 @@ export function FilesScreen() {
     await runUpload(meta, itemId); await loadData();
   }
 
+  // -----------------------------------------------------------------------
+  // Photo upload handlers
+  // -----------------------------------------------------------------------
+  async function handlePhotoUpload() {
+    setShowPhotoPrompt(false);
+    const photos = photoDetection.newPhotos;
+    if (photos.length === 0) return;
+
+    // Start upload via context
+    startUpload(photos);
+  }
+
+  function handlePhotoLater() {
+    setShowPhotoPrompt(false);
+    photoDetection.dismissPrompt();
+  }
+
   // Storage helpers
   const sessionStore = useRef<Map<string, string>>(new Map());
   async function getSessionStorage(key: string) { return sessionStore.current.get(key) ?? null; }
@@ -432,6 +467,16 @@ export function FilesScreen() {
           <ArrowPathIcon size={16} color={theme.colors.textSecondary} />
         </TouchableOpacity>
       </View>
+
+      {/* Photo upload prompt */}
+      {showPhotoPrompt && (
+        <PhotoUploadPrompt
+          count={photoDetection.count}
+          isLoading={photoDetection.isLoading}
+          onUpload={handlePhotoUpload}
+          onLater={handlePhotoLater}
+        />
+      )}
 
       {/* Upload section */}
       {hasUploads ? (
