@@ -71,18 +71,18 @@ echo ""
 # -------------------------------------------------------
 echo "→ Restarting backend via PM2..."
 cd "$REPO_DIR"
-if npx pm2 show smart-files-backend > /dev/null 2>&1; then
-  npx pm2 restart smart-files-backend
+if pm2 show smart-files-backend > /dev/null 2>&1; then
+  pm2 restart smart-files-backend
 else
-  npx pm2 start ecosystem.config.js
+  pm2 start ecosystem.config.js
 fi
-npx pm2 save
+pm2 save
 echo ""
 
 # -------------------------------------------------------
 # Summary
 # -------------------------------------------------------
 echo "=== API Deploy Complete ==="
-if command -v npx &>/dev/null; then
-  npx pm2 show smart-files-backend 2>/dev/null | grep -E 'status|uptime' | tr -d ' '
+if command -v pm2 &>/dev/null; then
+  pm2 show smart-files-backend 2>/dev/null | grep -E 'status|uptime' | tr -d ' '
 fi
