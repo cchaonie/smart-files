@@ -13,13 +13,18 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { filesApi, foldersApi } from '../api/files';
 import { uploadApi, CHUNK_SIZE } from '../api/upload';
 import { useAuth } from '../context/AuthContext';
 import { useI18n } from '@smart-files/shared/src/i18n';
+import { usePhotoDetection } from '../hooks/usePhotoDetection';
+import { usePhotoUpload } from '../hooks/usePhotoUpload';
+import PhotoUploadPrompt from '../components/PhotoUploadPrompt';
 import type { FileItem, Folder, UploadProgress } from '../types';
+import type { RootStackParamList } from '../../App';
 import UploadProgressRow from '../components/UploadProgressRow'
 import FilePreviewModal from '../components/FilePreviewModal'
 import ActionSheet, { type ActionItem } from '../components/ActionSheet'
@@ -55,8 +60,33 @@ function isPreviewableImage(mimeType: string | null, name: string): boolean {
 }
 export function HomeScreen() {
   const { user, logout } = useAuth();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { t } = useI18n();
+
+  // Photo detection & upload hooks
+  const photoDetection = usePhotoDetection();
+  const photoUpload = usePhotoUpload();
+  const [showPhotoPrompt, setShowPhotoPrompt] = useState(false);
+
+  useEffect(() => {
+    if (user && photoDetection.permissionGranted === null) {
+      photoDetection.requestPermission();
+    }
+  }, [user]);
+
+  // Show prompt when new photos are detected (not dismissed this session)
+  useEffect(() => {
+    if (
+      photoDetection.count > 0 &&
+      !photoDetection.isPromptDismissed &&
+      !photoDetection.isLoading
+    ) {
+      setShowPhotoPrompt(true);
+    } else {
+      setShowPhotoPrompt(false);
+    }
+  }, [photoDetection.count, photoDetection.isPromptDismissed, photoDetection.isLoading]);
+
   const [folders, setFolders] = useState<Folder[]>([]);
   const [files, setFiles] = useState<FileItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -454,6 +484,36 @@ export function HomeScreen() {
     Promise.all(workers).then(() => loadData());
   }
 
+  // -----------------------------------------------------------------------
+  // Photo upload handlers
+  // -----------------------------------------------------------------------
+  async function handlePhotoUpload() {
+    setShowPhotoPrompt(false);
+    const photos = photoDetection.newPhotos;
+    if (photos.length === 0) return;
+
+    // Navigate to upload screen with initial items
+    navigation.navigate('PhotoUpload', {
+      items: photos.map((p) => ({
+        id: p.id,
+        filename: p.filename,
+        status: 'pending' as const,
+        progress: 0,
+      })),
+    });
+
+    // Start background upload
+    photoUpload.startUpload(photos).then(() => {
+      // Mark as synced so next scan starts fresh
+      photoDetection.markSynced();
+    });
+  }
+
+  function handlePhotoLater() {
+    setShowPhotoPrompt(false);
+    photoDetection.dismissPrompt();
+  }
+
   async function retryUpload(itemId: number) {
     const meta = fileMetaByItemId.current.get(itemId);
     if (!meta) return;
@@ -618,6 +678,16 @@ export function HomeScreen() {
           <Text style={styles.actionBtnText}>{'\u21BB'}</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Photo upload prompt */}
+      {showPhotoPrompt && (
+        <PhotoUploadPrompt
+          count={photoDetection.count}
+          isLoading={photoDetection.isLoading}
+          onUpload={handlePhotoUpload}
+          onLater={handlePhotoLater}
+        />
+      )}
 
       {/* Upload section */}
       {hasUploads ? (

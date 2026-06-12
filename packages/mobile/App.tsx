@@ -11,8 +11,17 @@ import { LoginScreen } from './src/screens/LoginScreen';
 import { RegisterScreen } from './src/screens/RegisterScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { ServerConfigScreen } from './src/screens/ServerConfigScreen';
+import { PhotoUploadScreen } from './src/screens/PhotoUploadScreen';
 
-const Stack = createNativeStackNavigator();
+export type RootStackParamList = {
+  Home: undefined;
+  Login: undefined;
+  Register: undefined;
+  ServerConfig: undefined;
+  PhotoUpload: { items?: import('./src/hooks/usePhotoUpload').PhotoUploadItem[] };
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function AppNavigator() {
   const { isLoading: authLoading } = useAuth();
@@ -35,6 +44,11 @@ function AppNavigator() {
           name="ServerConfig"
           component={ServerConfigScreen}
           options={{ headerShown: true, title: 'Server Settings' }}
+        />
+        <Stack.Screen
+          name="PhotoUpload"
+          component={PhotoUploadScreen}
+          options={{ headerShown: false, animation: 'slide_from_bottom' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
