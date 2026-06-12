@@ -6,15 +6,25 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
 import { useI18n } from '@smart-files/shared/src/i18n';
 import { getApiErrorMessage, isNetworkError } from '../config/api';
+import { theme } from '../theme';
+import { CloudArrowUpIcon, EnvelopeIcon, LockIcon, EyeIcon, EyeSlashIcon, ArrowRightIcon } from '../components/icons';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export function LoginScreen({ navigation }: { navigation: any }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const { apiUrl } = useConfig();
@@ -52,116 +62,328 @@ export function LoginScreen({ navigation }: { navigation: any }) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{t.appName}</Text>
-      <Text style={styles.subtitle}>{t.signInSubtitle}</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder={t.email}
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder={t.password}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-
-      <TouchableOpacity
-        style={[styles.button, isLoading && styles.buttonDisabled]}
-        onPress={handleLogin}
-        disabled={isLoading}
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.buttonText}>
-          {isLoading ? t.signingIn : t.signIn}
-        </Text>
-      </TouchableOpacity>
+        <View style={styles.container}>
+          {/* Background gradient effect */}
+          <View style={styles.bgGlow}>
+            <View style={styles.glowCircle} />
+          </View>
 
-      <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-        <Text style={styles.link}>{t.noAccountMobile}</Text>
-      </TouchableOpacity>
+          {/* Nav bar */}
+          <View style={styles.nav}>
+            <View style={styles.logoRow}>
+              <View style={styles.logoBox}>
+                <CloudArrowUpIcon size={20} color="#fff" />
+              </View>
+              <Text style={styles.appName}>{t.appName}</Text>
+            </View>
+          </View>
 
-      <View style={styles.divider} />
+          {/* Glassmorphism card */}
+          <View style={styles.card}>
+            {/* Subtle gradient overlay */}
+            <View style={styles.cardGlow} />
 
-      <TouchableOpacity onPress={() => navigation.navigate('ServerConfig')}>
-        <Text style={styles.configLink}>
-          {t.serverLabel}: {apiUrl || t.loadingElipsis}
-        </Text>
-        <Text style={styles.configSubtext}>{t.tapToConfigure}</Text>
-      </TouchableOpacity>
-    </View>
+            <View style={styles.cardContent}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardTitle}>{t.signInTitle}</Text>
+                <Text style={styles.cardSubtitle}>{t.signInSubtitle}</Text>
+              </View>
+
+              {/* Form */}
+              <View style={styles.form}>
+                {/* Email */}
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>{t.email}</Text>
+                  <View style={styles.inputWrap}>
+                    <View style={styles.inputIcon}>
+                      <EnvelopeIcon size={18} color={theme.colors.textTertiary} />
+                    </View>
+                    <TextInput
+                      style={styles.input}
+                      placeholder={t.emailPlaceholder}
+                      placeholderTextColor={theme.colors.textTertiary}
+                      value={email}
+                      onChangeText={setEmail}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      autoComplete="email"
+                    />
+                  </View>
+                </View>
+
+                {/* Password */}
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>{t.password}</Text>
+                  <View style={styles.inputWrap}>
+                    <View style={styles.inputIcon}>
+                      <LockIcon size={18} color={theme.colors.textTertiary} />
+                    </View>
+                    <TextInput
+                      style={styles.input}
+                      placeholder={t.passwordPlaceholder}
+                      placeholderTextColor={theme.colors.textTertiary}
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!showPassword}
+                      autoComplete="current-password"
+                    />
+                    <TouchableOpacity
+                      style={styles.inputSuffix}
+                      onPress={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeSlashIcon size={18} color={theme.colors.textTertiary} />
+                      ) : (
+                        <EyeIcon size={18} color={theme.colors.textTertiary} />
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Submit */}
+                <TouchableOpacity
+                  style={[styles.submitBtn, isLoading && styles.submitBtnDisabled]}
+                  onPress={handleLogin}
+                  disabled={isLoading}
+                  activeOpacity={0.8}
+                >
+                  {isLoading ? (
+                    <View style={styles.submitLoading}>
+                      <ActivityIndicator size="small" color="#fff" />
+                      <Text style={styles.submitText}>{t.signingIn}</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.submitRow}>
+                      <Text style={styles.submitText}>{t.signIn}</Text>
+                      <ArrowRightIcon size={16} color="#fff" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {/* Register link */}
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Register')}
+                style={styles.linkRow}
+              >
+                <Text style={styles.linkText}>
+                  {t.noAccount}{' '}
+                  <Text style={styles.linkHighlight}>{t.registerLink}</Text>
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Server config */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('ServerConfig')}
+            style={styles.configRow}
+          >
+            <Text style={styles.configLabel}>
+              {t.serverLabel}: {apiUrl || t.loadingElipsis}
+            </Text>
+            <Text style={styles.configSubtext}>{t.tapToConfigure}</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: theme.colors.zinc50,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
   container: {
     flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-    backgroundColor: '#fff',
+    position: 'relative',
+    overflow: 'hidden',
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 30,
-    textAlign: 'center',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 15,
-    fontSize: 16,
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    padding: 15,
-    borderRadius: 8,
+
+  // Background gradient
+  bgGlow: {
+    position: 'absolute',
+    top: -200,
+    left: -100,
+    right: -100,
+    height: 400,
     alignItems: 'center',
-    marginTop: 10,
   },
-  buttonDisabled: {
+  glowCircle: {
+    width: SCREEN_WIDTH * 1.5,
+    height: SCREEN_WIDTH * 1.5,
+    borderRadius: SCREEN_WIDTH * 0.75,
+    backgroundColor: theme.colors.accentGlow,
     opacity: 0.6,
   },
-  buttonText: {
+
+  // Nav
+  nav: {
+    paddingTop: 60,
+    paddingHorizontal: 24,
+    paddingBottom: 8,
+  },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  logoBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: theme.colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  appName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+
+  // Card
+  card: {
+    marginHorizontal: 24,
+    marginTop: 16,
+    borderRadius: theme.radii['3xl'],
+    borderWidth: 1,
+    borderColor: theme.colors.glassBorder,
+    backgroundColor: theme.colors.glassBg,
+    overflow: 'hidden',
+    ...theme.shadows.lg,
+  },
+  cardGlow: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(37, 99, 235, 0.03)',
+  },
+  cardContent: {
+    padding: 32,
+  },
+  cardHeader: {
+    alignItems: 'center',
+    marginBottom: 28,
+  },
+  cardTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: theme.colors.text,
+    letterSpacing: -0.3,
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginTop: 6,
+  },
+
+  // Form
+  form: {
+    gap: 18,
+  },
+  field: {
+    gap: 6,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+    marginLeft: 2,
+  },
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radii.lg,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+  },
+  inputIcon: {
+    paddingLeft: 12,
+  },
+  input: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    fontSize: 15,
+    color: theme.colors.text,
+  },
+  inputSuffix: {
+    paddingRight: 12,
+  },
+
+  // Submit
+  submitBtn: {
+    backgroundColor: theme.colors.accent,
+    borderRadius: theme.radii.lg,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  submitBtnDisabled: {
+    opacity: 0.6,
+  },
+  submitLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  submitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  submitText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
-  link: {
-    color: '#007AFF',
-    textAlign: 'center',
-    marginTop: 20,
-    fontSize: 14,
+
+  // Links
+  linkRow: {
+    marginTop: 24,
+    alignItems: 'center',
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#eee',
-    marginVertical: 24,
-    marginHorizontal: 40,
-  },
-  configLink: {
-    color: '#666',
-    textAlign: 'center',
+  linkText: {
     fontSize: 13,
+    color: theme.colors.textSecondary,
+  },
+  linkHighlight: {
+    color: theme.colors.accent,
+    fontWeight: '500',
+  },
+
+  // Config
+  configRow: {
+    alignItems: 'center',
+    marginTop: 32,
+    paddingBottom: 40,
+  },
+  configLabel: {
+    fontSize: 12,
+    color: theme.colors.textTertiary,
   },
   configSubtext: {
-    color: '#007AFF',
-    textAlign: 'center',
     fontSize: 12,
+    color: theme.colors.accent,
     marginTop: 4,
   },
 });
+
+export default LoginScreen;
