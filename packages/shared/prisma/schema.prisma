@@ -7,6 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum PhotoStatus {
+  PROCESSING
+  READY
+  FAILED
+}
+
 model User {
   id             String          @id @default(cuid())
   email          String          @unique
@@ -16,6 +22,10 @@ model User {
   files          File[]
   folders        Folder[]
   uploadSessions UploadSession[]
+  photos         Photo[]
+  albums         Album[]
+  albumAdditions AlbumPhotoMember[] @relation("AlbumPhotoAddedBy")
+  sharedAlbums   SharedAlbum[]
 }
 
 model Folder {
@@ -81,5 +91,85 @@ model UploadSession {
   createdAt            DateTime @default(now())
   updatedAt            DateTime  @updatedAt
 
+  @@index([userId])
+}
+
+model Photo {
+  id           String        @id @default(uuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  originalName String
+  mimeType     String
+  size         Int
+  hash         String        @unique
+  storageKey   String
+  thumbnailPath String?
+  previewPath  String?
+  width        Int?
+  height       Int?
+  status       PhotoStatus   @default(PROCESSING)
+  capturedAt   DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  tags         PhotoTag[]
+  albumMemberships AlbumPhotoMember[]
+
+  @@index([userId])
+  @@index([capturedAt])
+  @@index([status])
+}
+
+model PhotoTag {
+  id         String  @id @default(uuid())
+  photoId    String
+  photo      Photo   @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  tag        String
+  confidence Float?
+
+  @@unique([photoId, tag])
+  @@index([photoId])
+  @@index([tag])
+}
+
+model Album {
+  id            String              @id @default(uuid())
+  name          String
+  description   String?
+  coverPhotoId  String?
+  ownerId       String
+  owner         User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  members       AlbumPhotoMember[]
+  sharedWith    SharedAlbum[]
+
+  @@index([ownerId])
+}
+
+model AlbumPhotoMember {
+  id        String   @id @default(uuid())
+  albumId   String
+  album     Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  photoId   String
+  photo     Photo    @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  addedById String
+  addedBy   User     @relation("AlbumPhotoAddedBy", fields: [addedById], references: [id])
+  addedAt   DateTime @default(now())
+
+  @@unique([albumId, photoId])
+  @@index([albumId])
+  @@index([photoId])
+}
+
+model SharedAlbum {
+  id        String   @id @default(uuid())
+  albumId   String
+  album     Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String
+  createdAt DateTime @default(now())
+
+  @@unique([albumId, userId])
   @@index([userId])
 }
