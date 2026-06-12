@@ -1,39 +1,53 @@
-import { Injectable, OnApplicationShutdown } from '@nestjs/common';
+import { Injectable, OnApplicationShutdown, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
 @Injectable()
-export class RedisService implements OnApplicationShutdown {
+export class RedisService implements OnApplicationShutdown, OnModuleInit {
   private client: Redis;
-  private connected = false;
 
-  constructor() {
-    const url = process.env.REDIS_URL || 'redis://localhost:6379';
+  constructor(private configService: ConfigService) {
+    const url =
+      this.configService.get<string>('REDIS_URL') || 'redis://localhost:6379';
     this.client = new Redis(url, {
       maxRetriesPerRequest: null,
       retryStrategy: (times) => {
-        if (times > 10) return null; // give up after 10 retries
-        return Math.min(times * 200, 3000); // backoff up to 3s
+        return Math.min(times * 200, 3000); // unlimited retries, backoff up to 3s
       },
-      lazyConnect: true,
+      connectTimeout: 10000,
+      lazyConnect: false, // start connecting immediately (fail-fast)
     });
 
-    this.client.on('connect', () => {
-      this.connected = true;
+    this.client.on('ready', () => {
+      console.log('Redis connected successfully');
     });
 
     this.client.on('close', () => {
-      this.connected = false;
+      console.warn('Redis connection closed');
     });
 
     this.client.on('error', (err) => {
-      // BullMQ handles its own reconnection; just log
       console.error('Redis connection error:', err.message);
     });
   }
 
-  /**
-   * Check connectivity by sending PING.
-   */
+  async onModuleInit(): Promise<void> {
+    // Fail-fast: if ping doesn't succeed within 15s, crash the service.
+    // The underlying ioredis client keeps retrying for BullMQ in the
+    // background — this timeout provides the fast-failure boundary.
+    const ok = await Promise.race([
+      this.ping(),
+      new Promise<boolean>((resolve) => {
+        setTimeout(() => resolve(false), 15000);
+      }),
+    ]);
+    if (!ok) {
+      throw new Error(
+        'Redis connection failed — application cannot start without Redis',
+      );
+    }
+  }
+
   async ping(): Promise<boolean> {
     try {
       const result = await this.client.ping();
@@ -43,14 +57,15 @@ export class RedisService implements OnApplicationShutdown {
     }
   }
 
-  /**
-   * Get the underlying ioredis client (for BullMQ or direct use).
-   */
   getClient(): Redis {
     return this.client;
   }
 
   async onApplicationShutdown(): Promise<void> {
-    await this.client.quit();
+    try {
+      await this.client.quit();
+    } catch (err) {
+      console.error('Error shutting down Redis connection:', err);
+    }
   }
 }

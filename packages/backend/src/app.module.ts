@@ -8,14 +8,17 @@ import { UploadModule } from './upload/upload.module';
 import { FoldersModule } from './folders/folders.module';
 import { ShareModule } from './share/share.module';
 import { RedisModule } from './redis/redis.module';
+import { RedisService } from './redis/redis.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    BullModule.forRoot({
-      connection: {
-        url: process.env.REDIS_URL || 'redis://localhost:6379',
-      },
+    RedisModule,
+    BullModule.forRootAsync({
+      useFactory: (redisService: RedisService) => ({
+        connection: redisService.getClient() as any,
+      }),
+      inject: [RedisService],
     }),
     PrismaModule,
     AuthModule,
@@ -23,7 +26,6 @@ import { RedisModule } from './redis/redis.module';
     UploadModule,
     FoldersModule,
     ShareModule,
-    RedisModule,
   ],
 })
 export class AppModule {}
