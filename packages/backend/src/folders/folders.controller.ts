@@ -39,6 +39,15 @@ export class FoldersController {
     return this.foldersService.renameFolder(user.id, id, body.name);
   }
 
+  @Get(':id/path')
+  @ApiOperation({ summary: 'Get folder ancestor path (root → folder)' })
+  async getFolderPath(
+    @CurrentUser() user: UserEntity,
+    @Param('id') id: string,
+  ) {
+    return this.foldersService.getFolderPath(user.id, id);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Delete folder (must be empty)' })
   async deleteFolder(

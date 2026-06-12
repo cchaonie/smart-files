@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence } from 'motion/react'
+import { useSearchParams } from 'react-router-dom'
 import { filesApi, foldersApi } from '../api/files'
 import type { FileItem, Folder } from '../types'
 import { formatBytes, isPreviewable } from '@smart-files/shared/src/utils'
@@ -35,13 +36,20 @@ function storePath(path: { id: string; name: string }[]) {
 
 export function FilesPage() {
   const { t } = useI18n();
-  const [path, setPath] = useState<{ id: string; name: string }[]>(() => loadStoredPath());
-  const currentParentId = path.length === 0 ? null : path[path.length - 1].id;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const folderIdFromUrl = searchParams.get('folder');
 
-  // Persist path to sessionStorage whenever it changes (survives tab switches)
-  useEffect(() => {
-    storePath(path);
-  }, [path]);
+  // On mount: URL param takes precedence → fetch path from API if needed
+  const [path, setPath] = useState<{ id: string; name: string }[]>(() => {
+    if (folderIdFromUrl) {
+      // URL has a folder → we'll fetch the path in a mount effect
+      return [];
+    }
+    // No URL param → try sessionStorage cache
+    const stored = loadStoredPath();
+    return stored;
+  });
+  const [initialPathDone, setInitialPathDone] = useState(!folderIdFromUrl);
 
   const [folders, setFolders] = useState<Folder[]>([]);
   const [files, setFiles] = useState<FileItem[]>([]);
@@ -71,6 +79,7 @@ export function FilesPage() {
   const [actionFile, setActionFile] = useState<FileItem | null>(null);
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [selectedTrashIds, setSelectedTrashIds] = useState<Set<string>>(new Set());
+  const currentParentId = path.length === 0 ? null : path[path.length - 1].id;
 
   function toggleFileSelect(id: string) {
     setSelectedFileIds(prev => {
@@ -137,6 +146,34 @@ export function FilesPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  // Mount effect: if URL has a folder param, fetch the ancestor path from API
+  useEffect(() => {
+    if (!folderIdFromUrl) return;
+    foldersApi.getFolderPath(folderIdFromUrl)
+      .then(folderPath => {
+        setPath(folderPath);
+        setInitialPathDone(true);
+      })
+      .catch(() => {
+        // Folder was deleted or invalid — stay at root, clear URL param
+        setPath([]);
+        setInitialPathDone(true);
+        setSearchParams({}, { replace: true });
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync path to URL + sessionStorage whenever it changes (after initial mount)
+  useEffect(() => {
+    if (!initialPathDone) return;
+    storePath(path);
+    const lastId = path.length > 0 ? path[path.length - 1].id : null;
+    if (lastId) {
+      setSearchParams({ folder: lastId }, { replace: true });
+    } else {
+      setSearchParams({}, { replace: true });
+    }
+  }, [path, initialPathDone, setSearchParams]);
+
   const loadBrowse = useCallback(async () => {
     setListError(null);
     setLoading(true);
@@ -154,8 +191,9 @@ export function FilesPage() {
   }, [currentParentId]);
 
   useEffect(() => {
+    if (!initialPathDone) return;
     void loadBrowse();
-  }, [loadBrowse]);
+  }, [loadBrowse, initialPathDone]);
 
   async function doSearch(q: string) {
     const trimmed = q.trim();

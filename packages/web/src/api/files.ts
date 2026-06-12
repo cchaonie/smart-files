@@ -97,4 +97,9 @@ export const foldersApi = {
   deleteFolder: async (id: string): Promise<void> => {
     await apiClient.delete(`/folders/${id}`);
   },
+
+  getFolderPath: async (id: string): Promise<{ id: string; name: string }[]> => {
+    const response = await apiClient.get<{ id: string; name: string }[]>(`/folders/${id}/path`);
+    return response.data;
+  },
 };

@@ -98,6 +98,28 @@ export class FoldersService {
     };
   }
 
+  async getFolderPath(userId: string, id: string): Promise<{ id: string; name: string }[]> {
+    const folder = await this.prisma.folder.findFirst({
+      where: { id, userId },
+    });
+    if (!folder) {
+      throw new NotFoundException('Folder not found');
+    }
+
+    // Walk up the parent chain to build root → folder path
+    const path: { id: string; name: string }[] = [];
+    let current: { id: string; name: string; parentId: string | null } | null = folder;
+    while (current) {
+      path.unshift({ id: current.id, name: current.name });
+      if (!current.parentId) break;
+      current = await this.prisma.folder.findFirst({
+        where: { id: current.parentId, userId },
+        select: { id: true, name: true, parentId: true },
+      });
+    }
+    return path;
+  }
+
   async deleteFolder(userId: string, id: string) {
     const folder = await this.prisma.folder.findFirst({
       where: { id, userId },
