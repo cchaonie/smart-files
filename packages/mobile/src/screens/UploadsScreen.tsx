@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { theme } from '../theme';
-import { CloudArrowUpIcon, ArrowPathIcon } from '../components/icons';
+import { CloudArrowUpIcon, TrashIcon, CheckCircleIcon } from '../components/icons';
 import { usePhotoUploadContext } from '../context/PhotoUploadContext';
 
 function statusIcon(status: string): string {
@@ -15,13 +15,18 @@ function statusIcon(status: string): string {
 }
 
 export function UploadsScreen() {
-  const { items, isUploading, clearCompleted } = usePhotoUploadContext();
+  const {
+    items, isUploading, uploadedPhotos,
+    isCleaningUp, cleanupResult, clearCompleted,
+    cleanupCompletedPhotos, dismissCleanupResult,
+  } = usePhotoUploadContext();
 
   const totalDone = items.filter(i => i.status === 'done').length;
   const totalFailed = items.filter(i => i.status === 'error').length;
   const totalActive = items.filter(i => i.status === 'pending' || i.status === 'uploading').length;
   const hasItems = items.length > 0;
   const allComplete = hasItems && items.every(i => i.status === 'done' || i.status === 'error');
+  const canCleanup = allComplete && totalDone > 0;
 
   const renderItem = ({ item }: { item: typeof items[0] }) => (
     <View style={styles.item}>
@@ -43,6 +48,42 @@ export function UploadsScreen() {
     </View>
   );
 
+  // Cleanup result view
+  if (cleanupResult) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>上传</Text>
+        </View>
+        <View style={styles.cleanupResult}>
+          {cleanupResult.failed === 0 ? (
+            <>
+              <CheckCircleIcon size={48} color={theme.colors.success} />
+              <Text style={styles.cleanupTitle}>清理完成</Text>
+              <Text style={styles.cleanupDesc}>
+                已删除 {cleanupResult.success} 张本地照片，释放了手机存储空间
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.cleanupIcon}>⚠️</Text>
+              <Text style={styles.cleanupTitle}>部分删除失败</Text>
+              <Text style={styles.cleanupDesc}>
+                成功 {cleanupResult.success} 张，失败 {cleanupResult.failed} 张
+              </Text>
+              {cleanupResult.errors.map((err, i) => (
+                <Text key={i} style={styles.cleanupError} numberOfLines={1}>{err}</Text>
+              ))}
+            </>
+          )}
+          <TouchableOpacity style={styles.cleanupDoneBtn} onPress={dismissCleanupResult}>
+            <Text style={styles.cleanupDoneText}>确定</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -61,8 +102,8 @@ export function UploadsScreen() {
           {/* Summary */}
           <View style={styles.summary}>
             <Text style={styles.summaryText}>
-              {totalActive > 0
-                ? `上传中 ${totalActive} 项 · 已完成 ${totalDone} · 失败 ${totalFailed}`
+              {isUploading
+                ? `上传中 ${totalActive} 项 · 已完成 ${totalDone}${totalFailed > 0 ? ` · 失败 ${totalFailed}` : ''}`
                 : `总计 ${items.length} 项 · 完成 ${totalDone}${totalFailed > 0 ? ` · 失败 ${totalFailed}` : ''}`}
             </Text>
           </View>
@@ -74,23 +115,41 @@ export function UploadsScreen() {
             contentContainerStyle={styles.list}
           />
 
-          {/* Bottom action */}
-          {allComplete && (
-            <View style={styles.bottomBar}>
-              {totalDone > 0 && (
-                <TouchableOpacity style={styles.clearBtn} onPress={clearCompleted}>
-                  <Text style={styles.clearBtnText}>清除已完成</Text>
+          {/* Bottom bar */}
+          <View style={styles.bottomBar}>
+            {isCleaningUp ? (
+              <View style={styles.cleaningUpRow}>
+                <ActivityIndicator size="small" color={theme.colors.accent} />
+                <Text style={styles.cleaningUpText}>正在删除本地照片...</Text>
+              </View>
+            ) : canCleanup ? (
+              <>
+                <TouchableOpacity
+                  style={[styles.bottomBtn, styles.cleanupBtn]}
+                  onPress={cleanupCompletedPhotos}
+                >
+                  <TrashIcon size={16} color="#fff" />
+                  <Text style={styles.cleanupBtnText}>
+                    删除本地副本 ({totalDone} 张)
+                  </Text>
                 </TouchableOpacity>
-              )}
-            </View>
-          )}
+                <TouchableOpacity style={styles.skipBtn} onPress={clearCompleted}>
+                  <Text style={styles.skipBtnText}>跳过</Text>
+                </TouchableOpacity>
+              </>
+            ) : allComplete ? (
+              <TouchableOpacity style={styles.clearBtn} onPress={clearCompleted}>
+                <Text style={styles.clearBtnText}>清除完成项</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
         </>
       ) : (
         <View style={styles.empty}>
           <CloudArrowUpIcon size={48} color={theme.colors.textTertiary} />
           <Text style={styles.emptyTitle}>暂无上传任务</Text>
           <Text style={styles.emptySubtitle}>
-            检测到新照片后自动上传，进度会显示在这里
+            在"文件"页选择照片或文件后上传
           </Text>
         </View>
       )}
@@ -145,15 +204,44 @@ const styles = StyleSheet.create({
   emptySubtitle: { fontSize: 13, color: theme.colors.textTertiary, textAlign: 'center' },
 
   bottomBar: {
-    flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12,
+    paddingHorizontal: 16, paddingVertical: 12, gap: 8,
     borderTopWidth: 1, borderTopColor: theme.colors.borderLight,
     backgroundColor: theme.colors.zinc50,
   },
+  bottomBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 14, borderRadius: theme.radii.lg,
+  },
+  cleanupBtn: { backgroundColor: theme.colors.accent },
+  cleanupBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  skipBtn: { alignItems: 'center', paddingVertical: 8 },
+  skipBtnText: { fontSize: 13, color: theme.colors.textTertiary },
   clearBtn: {
     paddingVertical: 10, paddingHorizontal: 20, borderRadius: theme.radii.md,
-    backgroundColor: theme.colors.zinc100,
+    backgroundColor: theme.colors.zinc100, alignSelf: 'center',
   },
   clearBtnText: { fontSize: 13, color: theme.colors.textSecondary, fontWeight: '500' },
+
+  // Cleanup result
+  cleanupResult: {
+    flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24,
+  },
+  cleanupTitle: { fontSize: 20, fontWeight: '600', color: theme.colors.text },
+  cleanupDesc: { fontSize: 14, color: theme.colors.textSecondary, textAlign: 'center' },
+  cleanupIcon: { fontSize: 48 },
+  cleanupError: { fontSize: 12, color: theme.colors.danger, maxWidth: '80%' },
+  cleanupDoneBtn: {
+    marginTop: 16, paddingVertical: 12, paddingHorizontal: 32,
+    borderRadius: theme.radii.lg, backgroundColor: theme.colors.accent,
+  },
+  cleanupDoneText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+
+  // Cleaning up
+  cleaningUpRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 12,
+  },
+  cleaningUpText: { fontSize: 14, color: theme.colors.accent },
 });
 
 export default UploadsScreen;

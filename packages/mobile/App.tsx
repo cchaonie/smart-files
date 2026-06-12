@@ -1,7 +1,8 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
 import { I18nProvider } from '@smart-files/shared/src/i18n';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -49,6 +50,18 @@ function WrappedMainApp() {
 function InnerApp({ photoDetection }: { photoDetection: ReturnType<typeof usePhotoDetection> }) {
   const [activeTab, setActiveTab] = useState<TabKey>('files');
   const { badgeCount } = usePhotoUploadContext();
+  const isMountedRef = useRef(true);
+
+  // Handle notification tap → switch to uploads tab
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data;
+      if (data?.type === 'upload_complete') {
+        setActiveTab('uploads');
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   const renderScreen = useCallback(() => {
     switch (activeTab) {
