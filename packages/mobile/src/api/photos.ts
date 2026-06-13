@@ -50,6 +50,14 @@ export const photosApi = {
     const res = await apiClient.get(`/photos/${id}`);
     return res.data;
   },
+
+  thumbnailUrl: (photo: Pick<Photo, 'id'>): string => {
+    return `${apiClient.defaults.baseURL}/api/photos/${photo.id}/thumbnail`;
+  },
+
+  previewUrl: (photo: Pick<Photo, 'id'>): string => {
+    return `${apiClient.defaults.baseURL}/api/photos/${photo.id}/preview`;
+  },
 };
 
 export default photosApi;

@@ -70,7 +70,7 @@ export function PhotoTimelineScreen() {
       onPress={() => handlePhotoPress(item)}
     >
       <Image
-        source={{ uri: item.thumbnailPath }}
+        source={{ uri: photosApi.thumbnailUrl(item) }}
         style={styles.thumbnail}
         resizeMode="cover"
       />
