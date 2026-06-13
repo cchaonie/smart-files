@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ConfigService } from '@nestjs/config';
 import { createReadStream } from 'fs';
 import { stat } from 'fs/promises';
 import * as path from 'path';
@@ -7,9 +8,14 @@ import * as path from 'path';
 @Injectable()
 export class FilesService {
   private uploadRoot: string;
+  private photoRoot: string;
 
-  constructor(private prisma: PrismaService) {
-    this.uploadRoot = process.env.UPLOAD_ROOT || './data/storage';
+  constructor(
+    private prisma: PrismaService,
+    private configService: ConfigService,
+  ) {
+    this.uploadRoot = this.configService.get<string>('UPLOAD_ROOT') || './data/storage';
+    this.photoRoot = this.configService.get<string>('PHOTO_ROOT') || '/mnt/pool';
   }
 
   /**
@@ -113,7 +119,9 @@ export class FilesService {
       throw new NotFoundException('File not found');
     }
 
-    const filePath = path.join(this.uploadRoot, 'files', userId, file.storageKey);
+    const filePath = file.photoId
+      ? path.join(this.photoRoot, file.storageKey)
+      : path.join(this.uploadRoot, 'files', userId, file.storageKey);
 
     try {
       await stat(filePath);
@@ -142,6 +150,7 @@ export class FilesService {
         size: true,
         mimeType: true,
         folderId: true,
+        photoId: true,
         createdAt: true,
         folder: {
           select: { id: true, name: true },
@@ -156,6 +165,7 @@ export class FilesService {
         size: f.size.toString(),
         createdAt: f.createdAt.toISOString(),
         folderName: f.folder?.name || null,
+        photoId: f.photoId ?? undefined,
       })),
     };
   }
@@ -169,7 +179,9 @@ export class FilesService {
       throw new NotFoundException('File not found');
     }
 
-    const filePath = path.join(this.uploadRoot, 'files', userId, file.storageKey);
+    const filePath = file.photoId
+      ? path.join(this.photoRoot, file.storageKey)
+      : path.join(this.uploadRoot, 'files', userId, file.storageKey);
 
     try {
       await stat(filePath);
@@ -243,9 +255,11 @@ export class FilesService {
 
     await this.prisma.file.delete({ where: { id: fileId } });
 
-    // Delete physical file
-    const filePath = path.join(this.uploadRoot, 'files', userId, file.storageKey);
-    import('fs/promises').then(fs => fs.unlink(filePath).catch(() => {}));
+    // Delete physical file only if it's not a photo-linked file
+    if (!file.photoId) {
+      const filePath = path.join(this.uploadRoot, 'files', userId, file.storageKey);
+      import('fs/promises').then(fs => fs.unlink(filePath).catch(() => {}));
+    }
 
     return { success: true };
   }
@@ -256,8 +270,10 @@ export class FilesService {
     });
 
     for (const file of files) {
-      const filePath = path.join(this.uploadRoot, 'files', userId, file.storageKey);
-      import('fs/promises').then(fs => fs.unlink(filePath).catch(() => {}));
+      if (!file.photoId) {
+        const filePath = path.join(this.uploadRoot, 'files', userId, file.storageKey);
+        import('fs/promises').then(fs => fs.unlink(filePath).catch(() => {}));
+      }
     }
 
     await this.prisma.file.deleteMany({
@@ -359,8 +375,10 @@ export class FilesService {
     });
 
     for (const file of files) {
-      const filePath = path.join(this.uploadRoot, 'files', userId, file.storageKey);
-      import('fs/promises').then(fs => fs.unlink(filePath).catch(() => {}));
+      if (!file.photoId) {
+        const filePath = path.join(this.uploadRoot, 'files', userId, file.storageKey);
+        import('fs/promises').then(fs => fs.unlink(filePath).catch(() => {}));
+      }
     }
 
     const count = await this.prisma.file.deleteMany({

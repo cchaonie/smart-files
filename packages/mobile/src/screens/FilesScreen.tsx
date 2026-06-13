@@ -24,6 +24,7 @@ import {
 } from '../components/icons';
 import type { FileItem, Folder } from '../types';
 import { usePhotoUploadContext } from '../context/PhotoUploadContext';
+import { photosApi } from '../api/photos';
 import UploadProgressRow from '../components/UploadProgressRow';
 import FilePreviewModal from '../components/FilePreviewModal';
 import ActionSheet, { type ActionItem } from '../components/ActionSheet';
@@ -218,7 +219,7 @@ export function FilesScreen() {
           <View style={styles.fileInfo}>
             <View style={[styles.thumbBox, previewable ? undefined : styles.thumbPlaceholder]}>
               {previewable ? (
-                <Image source={{ uri: filesApi.previewUrl(file.id) }} style={styles.thumbImage} />
+                <Image source={{ uri: file.photoId ? photosApi.thumbnailUrl({ id: file.photoId }) : filesApi.previewUrl(file.id) }} style={styles.thumbImage} />
               ) : (
                 <Text style={styles.thumbText}>{file.name.split('.').pop()?.toUpperCase().slice(0, 3) || '?'}</Text>
               )}
