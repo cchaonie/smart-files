@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useI18n } from '@smart-files/shared/src/i18n';
-import { FolderIcon, FolderOpenIcon, CloudArrowUpIcon, GearIcon, ImageIcon, AlbumsIcon } from './icons';
+import { useAuth } from '../context/AuthContext';
+import { FolderIcon, FolderOpenIcon, CloudArrowUpIcon, GearIcon, ImageIcon, AlbumsIcon, ShieldIcon } from './icons';
 
 const tabs: { path: string; icon: typeof FolderIcon; activeIcon: typeof FolderIcon; labelKey: string }[] = [
   { path: '/files', labelKey: 'files', icon: FolderIcon, activeIcon: FolderOpenIcon },
@@ -14,6 +15,11 @@ const tabs: { path: string; icon: typeof FolderIcon; activeIcon: typeof FolderIc
 export function BottomTabs() {
   const location = useLocation();
   const { t } = useI18n();
+  const { user } = useAuth();
+
+  const displayTabs = user?.role === 'admin'
+    ? [...tabs, { path: '/admin', labelKey: 'admin' as const, icon: ShieldIcon, activeIcon: ShieldIcon }]
+    : tabs;
 
   return (
     <nav
@@ -21,7 +27,7 @@ export function BottomTabs() {
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="flex h-16 max-w-3xl mx-auto">
-        {tabs.map(tab => {
+        {displayTabs.map(tab => {
           const isActive = location.pathname === tab.path;
           const Icon = isActive ? tab.activeIcon : tab.icon;
           return (

@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id: payload.sub,
           email: payload.email || '',
           name: payload.name || null,
+          role: payload.role || 'user',
         });
       }
     } catch (error) {

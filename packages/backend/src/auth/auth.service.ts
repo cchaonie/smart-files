@@ -14,23 +14,25 @@ export class AuthService {
   async validateUser(email: string, password: string) {
     const user = await this.prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
+      select: { id: true, email: true, name: true, role: true, passwordHash: true },
     });
     if (!user) return null;
 
     const isValid = await compare(password, user.passwordHash);
     if (!isValid) return null;
 
-    return { id: user.id, email: user.email, name: user.name };
+    return { id: user.id, email: user.email, name: user.name, role: user.role };
   }
 
-  async login(user: { id: string; email: string; name: string | null }) {
-    const payload = { sub: user.id, email: user.email };
+  async login(user: { id: string; email: string; name: string | null; role: string }) {
+    const payload = { sub: user.id, email: user.email, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
       user: {
         id: user.id,
         email: user.email,
         name: user.name,
+        role: user.role,
       },
     };
   }
@@ -49,6 +51,7 @@ export class AuthService {
         email: dto.email.toLowerCase().trim(),
         passwordHash,
         name: dto.name,
+        role: 'user',
       },
     });
 
@@ -56,6 +59,7 @@ export class AuthService {
       id: user.id,
       email: user.email,
       name: user.name,
+      role: user.role,
     });
   }
 }

@@ -137,4 +137,18 @@ export const en: I18nStrings = {
   familyTimeline: 'Family Timeline',
   addPhoto: 'Add photo',
   removePhoto: 'Remove photo',
+  /* Admin */
+  admin: {
+    title: 'Admin',
+    users: 'User Management',
+    resetPassword: 'Reset Password',
+    changeRole: 'Change Role',
+    passwordReset: 'Password Reset',
+    tempPassword: 'Temporary Password',
+    confirmReset: 'Are you sure you want to reset this user\'s password?',
+    confirmRoleChange: 'Are you sure you want to change this user\'s role?',
+    noAdmins: 'Cannot remove the last admin',
+    admin: 'Admin',
+    user: 'User',
+  },
 };

@@ -9,9 +9,10 @@ interface AppLayoutProps {
   activeTab: TabKey;
   onTabChange: (tab: TabKey) => void;
   badgeCount?: number;
+  isAdmin?: boolean;
 }
 
-export function AppLayout({ children, activeTab, onTabChange, badgeCount }: AppLayoutProps) {
+export function AppLayout({ children, activeTab, onTabChange, badgeCount, isAdmin }: AppLayoutProps) {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.content}>
@@ -21,6 +22,7 @@ export function AppLayout({ children, activeTab, onTabChange, badgeCount }: AppL
         activeTab={activeTab}
         onTabChange={onTabChange}
         badgeCount={badgeCount}
+        isAdmin={isAdmin}
       />
     </SafeAreaView>
   );

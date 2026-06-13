@@ -137,4 +137,18 @@ export const zhCN: I18nStrings = {
   familyTimeline: '家庭时间线',
   addPhoto: '添加照片',
   removePhoto: '移除照片',
+  /* Admin */
+  admin: {
+    title: '管理',
+    users: '用户管理',
+    resetPassword: '重置密码',
+    changeRole: '变更角色',
+    passwordReset: '密码已重置',
+    tempPassword: '临时密码',
+    confirmReset: '确认重置该用户密码？',
+    confirmRoleChange: '确认变更该用户角色？',
+    noAdmins: '不能移除最后一个管理员',
+    admin: '管理员',
+    user: '普通用户',
+  },
 };
