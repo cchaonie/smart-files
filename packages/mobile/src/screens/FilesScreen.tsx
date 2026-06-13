@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -13,9 +13,7 @@ import {
   TextInput,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy';
 import { filesApi, foldersApi } from '../api/files';
-import { uploadApi, CHUNK_SIZE } from '../api/upload';
 import { useAuth } from '../context/AuthContext';
 import { useI18n } from '@smart-files/shared/src/i18n';
 import { theme } from '../theme';
@@ -24,7 +22,7 @@ import {
   MagnifyingGlassIcon, ArrowPathIcon, EllipsisVerticalIcon,
   ChevronRightIcon,
 } from '../components/icons';
-import type { FileItem, Folder, UploadProgress } from '../types';
+import type { FileItem, Folder } from '../types';
 import type { PhotoDetectionResult } from '../hooks/usePhotoDetection';
 import { usePhotoUploadContext } from '../context/PhotoUploadContext';
 import PhotoUploadPrompt from '../components/PhotoUploadPrompt';
@@ -60,7 +58,7 @@ function isPreviewableImage(mimeType: string | null, name: string): boolean {
 export function FilesScreen({ photoDetection }: { photoDetection: PhotoDetectionResult }) {
   const { user, logout } = useAuth();
   const { t } = useI18n();
-  const { startUpload } = usePhotoUploadContext();
+  const { startUpload, startFileUpload, items: uploadItems, retryFailed, clearCompleted } = usePhotoUploadContext();
 
   const [showPhotoPrompt, setShowPhotoPrompt] = useState(false);
 
@@ -81,15 +79,6 @@ export function FilesScreen({ photoDetection }: { photoDetection: PhotoDetection
   const [isLoading, setIsLoading] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
   const [path, setPath] = useState<{ id: string; name: string }[]>([]);
-
-  // Upload state
-  const [uploadItems, setUploadItems] = useState<UploadProgress[]>([]);
-  const pausedRef = useRef(false);
-  const abortRef = useRef(false);
-  const persistKeyRef = useRef<Map<number, string>>(new Map());
-  const [parallelCount, setParallelCount] = useState(5);
-  const nextUploadId = useRef(0);
-  const fileMetaByItemId = useRef<Map<number, { uri: string; name: string; mimeType: string; size: number }>>(new Map());
 
   // Modal state
   const [createFolderVisible, setCreateFolderVisible] = useState(false);
@@ -218,108 +207,15 @@ export function FilesScreen({ photoDetection }: { photoDetection: PhotoDetection
     try {
       const result = await DocumentPicker.getDocumentAsync({ multiple: true, copyToCacheDirectory: true });
       if (result.canceled || !result.assets?.length) return;
-      runUploadQueue(result.assets);
+      // Start upload via background service (runs even when app backgrounds)
+      const assets = result.assets.map(a => ({
+        uri: a.uri,
+        name: a.name,
+        mimeType: a.mimeType || 'application/octet-stream',
+        size: a.size || 0,
+      }));
+      startFileUpload(assets, currentParentId);
     } catch { Alert.alert('错误', '选择文件失败'); }
-  }
-
-  // ... Upload logic (kept from original HomeScreen, simplified here)
-  async function runUpload(meta: { uri: string; name: string; mimeType: string; size: number }, itemId: number) {
-    const updateItem = (patch: Partial<UploadProgress>) =>
-      setUploadItems(prev => prev.map(it => it.id === itemId ? { ...it, ...patch } : it));
-
-    updateItem({ status: 'uploading', progress: 0 });
-    const folderKey = currentParentId ?? 'root';
-    const persistKey = `upload:${folderKey}:${meta.name}:${meta.size}`;
-    persistKeyRef.current.set(itemId, persistKey);
-
-    try {
-      const existingId = await getSessionStorage(persistKey);
-      let uploadId: string, chunkSize = CHUNK_SIZE, totalChunks: number;
-
-      if (existingId) {
-        try {
-          const existing = await uploadApi.getSession(existingId);
-          uploadId = existingId; chunkSize = existing.chunkSize; totalChunks = existing.totalChunks;
-        } catch {
-          await removeSessionStorage(persistKey);
-          const created = await uploadApi.createSession(meta.name, meta.size, currentParentId || undefined);
-          uploadId = created.uploadId; chunkSize = created.chunkSize; totalChunks = created.totalChunks;
-          await setSessionStorage(persistKey, uploadId);
-        }
-      } else {
-        const created = await uploadApi.createSession(meta.name, meta.size, currentParentId || undefined);
-        uploadId = created.uploadId; chunkSize = created.chunkSize; totalChunks = created.totalChunks;
-        await setSessionStorage(persistKey, uploadId);
-      }
-
-      for (;;) {
-        if (abortRef.current) throw new Error('Aborted');
-        while (pausedRef.current) { await new Promise(r => setTimeout(r, 200)); if (abortRef.current) throw new Error('Aborted'); }
-
-        const status = await uploadApi.getSession(uploadId);
-        const received = new Set(status.receivedIndexes);
-        const missing: number[] = [];
-        for (let i = 0; i < status.totalChunks; i++) if (!received.has(i)) missing.push(i);
-        if (missing.length === 0) break;
-
-        let doneCount = received.size;
-        for (const index of missing) {
-          while (pausedRef.current) { await new Promise(r => setTimeout(r, 200)); if (abortRef.current) throw new Error('Aborted'); }
-          const start = index * chunkSize;
-          const chunkSizeActual = Math.min(start + chunkSize, meta.size) - start;
-          const chunkBase64 = await FileSystem.readAsStringAsync(meta.uri, {
-            encoding: FileSystem.EncodingType.Base64, position: start, length: chunkSizeActual,
-          });
-          const binaryString = atob(chunkBase64);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let j = 0; j < binaryString.length; j++) bytes[j] = binaryString.charCodeAt(j);
-          await uploadApi.uploadChunk(uploadId, index, bytes.buffer);
-          doneCount += 1;
-          updateItem({ progress: Math.round((doneCount / totalChunks) * 100) });
-        }
-      }
-
-      await uploadApi.completeUpload(uploadId, meta.mimeType);
-      await uploadApi.waitForCompletion(uploadId);
-      await removeSessionStorage(persistKey);
-      updateItem({ status: 'done', progress: 100 });
-    } catch (e) {
-      updateItem({ status: 'error', error: (e as Error).message !== 'Aborted' ? (e instanceof Error ? e.message : '上传失败') : '已取消' });
-    } finally { persistKeyRef.current.delete(itemId); }
-  }
-
-  function runUploadQueue(assets: { uri: string; name: string; mimeType?: string; size?: number }[]) {
-    pausedRef.current = false; abortRef.current = false;
-    const items: UploadProgress[] = assets.map(a => ({
-      id: nextUploadId.current++, name: a.name, progress: 0, status: 'pending', uri: a.uri,
-      mimeType: a.mimeType || 'application/octet-stream',
-    }));
-    items.forEach((item, i) => fileMetaByItemId.current.set(item.id, {
-      uri: assets[i].uri, name: assets[i].name, mimeType: assets[i].mimeType || 'application/octet-stream', size: assets[i].size || 0,
-    }));
-    setUploadItems(prev => [...prev, ...items]);
-
-    const queue = items.slice();
-    let index = 0;
-    const processNext = async () => {
-      while (index < queue.length) {
-        if (abortRef.current) { setUploadItems(prev => prev.map(it =>
-          queue.slice(index).some(q => q.id === it.id) && it.status === 'pending'
-            ? { ...it, status: 'error', error: '已取消' } : it)); return; }
-        const item = queue[index++];
-        const meta = fileMetaByItemId.current.get(item.id);
-        if (meta && item.status === 'pending') await runUpload(meta, item.id);
-      }
-    };
-    const workers = Array(Math.min(parallelCount, queue.length)).fill(null).map(() => processNext());
-    Promise.all(workers).then(() => loadData());
-  }
-
-  async function retryUpload(itemId: number) {
-    const meta = fileMetaByItemId.current.get(itemId);
-    if (!meta) return;
-    abortRef.current = false; pausedRef.current = false;
-    await runUpload(meta, itemId); await loadData();
   }
 
   // -----------------------------------------------------------------------
@@ -339,16 +235,9 @@ export function FilesScreen({ photoDetection }: { photoDetection: PhotoDetection
     photoDetection.dismissPrompt();
   }
 
-  // Storage helpers
-  const sessionStore = useRef<Map<string, string>>(new Map());
-  async function getSessionStorage(key: string) { return sessionStore.current.get(key) ?? null; }
-  async function setSessionStorage(key: string, value: string) { sessionStore.current.set(key, value); }
-  async function removeSessionStorage(key: string) { sessionStore.current.delete(key); }
-
   // --- Render ---
   const empty = !isLoading && folders.length === 0 && files.length === 0;
   const hasUploads = uploadItems.length > 0;
-  const allUploadsDone = uploadItems.every(it => it.status === 'done' || it.status === 'error');
 
   const renderItem = ({ item }: { item: Folder | FileItem }) => {
     if ('mimeType' in item) {
@@ -440,7 +329,7 @@ export function FilesScreen({ photoDetection }: { photoDetection: PhotoDetection
       )}
 
       {/* Breadcrumb */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.breadcrumbBar}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.breadcrumbBar} contentContainerStyle={styles.breadcrumbContent}>
         <TouchableOpacity onPress={() => setPath([])}>
           <Text style={[styles.breadcrumbLink, path.length === 0 && styles.breadcrumbActive]}>全部文件</Text>
         </TouchableOpacity>
@@ -478,41 +367,40 @@ export function FilesScreen({ photoDetection }: { photoDetection: PhotoDetection
         />
       )}
 
-      {/* Upload section */}
+      {/* Upload section — items managed by background service */}
       {hasUploads ? (
         <View style={styles.uploadSection}>
           <ScrollView style={styles.uploadList} nestedScrollEnabled>
             <View style={styles.uploadControls}>
-              <Text style={styles.uploadLabel}>并行: </Text>
-              <TouchableOpacity onPress={() => setParallelCount(c => Math.max(1, c - 1))} style={styles.parallelBtn}>
-                <Text style={styles.parallelBtnText}>-</Text>
-              </TouchableOpacity>
-              <Text style={styles.parallelCount}>{parallelCount}</Text>
-              <TouchableOpacity onPress={() => setParallelCount(c => Math.min(10, c + 1))} style={styles.parallelBtn}>
-                <Text style={styles.parallelBtnText}>+</Text>
-              </TouchableOpacity>
+              <Text style={styles.uploadLabel}>后台上传中… 切换到上传标签页查看详情</Text>
             </View>
-            {uploadItems.map(item => (
-              <UploadProgressRow key={item.id} item={item} onRetry={retryUpload} />
+            {uploadItems.slice(0, 5).map(item => (
+              <UploadProgressRow
+                key={item.id}
+                item={{
+                  id: parseInt(item.id, 36) || 0,
+                  name: item.filename,
+                  progress: item.progress,
+                  status: item.status as 'pending' | 'uploading' | 'done' | 'error',
+                  error: item.error,
+                }}
+                onRetry={(id) => retryFailed()}
+              />
             ))}
+            {uploadItems.length > 5 && (
+              <Text style={styles.uploadMoreText}>还有 {uploadItems.length - 5} 项…</Text>
+            )}
             <View style={styles.uploadActionsRow}>
-              <TouchableOpacity style={styles.uploadActionBtn} onPress={() => { pausedRef.current = !pausedRef.current; }}>
-                <Text style={styles.uploadActionBtnText}>{pausedRef.current ? '继续' : '暂停'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.uploadActionBtn, styles.uploadDanger]} onPress={() => {
-                abortRef.current = true; pausedRef.current = false;
-                persistKeyRef.current.forEach(k => removeSessionStorage(k));
-                persistKeyRef.current.clear();
-              }}>
-                <Text style={styles.uploadDangerText}>取消全部</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.uploadActionBtn} onPress={() => { if (allUploadsDone) setUploadItems([]); }}>
+              <TouchableOpacity style={styles.uploadActionBtn} onPress={() => clearCompleted()}>
                 <Text style={styles.uploadActionBtnText}>清除已完成</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
         </View>
       ) : null}
+
+      {/* File list wrapper — takes remaining flex space */}
+      <View style={styles.listWrapper}>
 
       {/* File list */}
       {listError ? <Text style={styles.errorText}>{listError}</Text> : null}
@@ -553,6 +441,8 @@ export function FilesScreen({ photoDetection }: { photoDetection: PhotoDetection
         />
       )}
 
+      </View>{/* end listWrapper */}
+
       {/* Modals */}
       <CreateFolderModal visible={createFolderVisible} onClose={() => setCreateFolderVisible(false)} onCreate={handleCreateFolder} />
       {renameTarget && <RenameFolderModal visible initialName={renameTarget.name} onClose={() => setRenameTarget(null)} onRename={name => handleRenameFolder(renameTarget, name)} />}
@@ -579,6 +469,9 @@ const styles = StyleSheet.create({
   headerBtn: { padding: 4 },
   logoutText: { fontSize: 14, color: theme.colors.accent, fontWeight: '500' },
 
+  // File list wrapper
+  listWrapper: { flex: 1 },
+
   // Search
   searchBar: {
     flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 8,
@@ -590,6 +483,7 @@ const styles = StyleSheet.create({
   searchClear: { fontSize: 14, color: theme.colors.textTertiary, padding: 4 },
 
   // Breadcrumb
+  breadcrumbContent: { alignItems: 'center' },
   breadcrumbBar: { paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
   breadcrumbSeg: { flexDirection: 'row', alignItems: 'center' },
   breadcrumbLink: { fontSize: 13, color: theme.colors.textSecondary, marginHorizontal: 4 },
@@ -612,9 +506,7 @@ const styles = StyleSheet.create({
   uploadList: { paddingHorizontal: 16, paddingVertical: 8 },
   uploadControls: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   uploadLabel: { fontSize: 12, color: theme.colors.textTertiary },
-  parallelBtn: { width: 28, height: 28, borderRadius: 4, borderWidth: 1, borderColor: theme.colors.border, alignItems: 'center', justifyContent: 'center' },
-  parallelBtnText: { fontSize: 16, color: theme.colors.textSecondary },
-  parallelCount: { fontSize: 14, fontWeight: '600', marginHorizontal: 8, minWidth: 20, textAlign: 'center' },
+  uploadMoreText: { fontSize: 12, color: theme.colors.textTertiary, textAlign: 'center', paddingVertical: 8, },
   uploadActionsRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
   uploadActionBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, borderWidth: 1, borderColor: theme.colors.border },
   uploadActionBtnText: { fontSize: 12, color: theme.colors.textSecondary },
