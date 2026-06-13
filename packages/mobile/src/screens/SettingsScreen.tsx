@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,13 +6,17 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  TextInput,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
 import { useI18n } from '@smart-files/shared/src/i18n';
 import { useNavigation } from '@react-navigation/native';
+import { authApi } from '../api/auth';
 import { theme } from '../theme';
-import { UserIcon, GearIcon, GlobeIcon } from '../components/icons';
+import { UserIcon, GearIcon, GlobeIcon, LockIcon } from '../components/icons';
 
 export function SettingsScreen() {
   const { user, logout } = useAuth();
@@ -20,11 +24,43 @@ export function SettingsScreen() {
   const { t } = useI18n();
   const navigation = useNavigation();
 
+  const [showChangePw, setShowChangePw] = useState(false);
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwError, setPwError] = useState<string | null>(null);
+
   const handleLogout = () => {
     Alert.alert('退出登录', '确认退出？', [
       { text: '取消', style: 'cancel' },
       { text: '退出', style: 'destructive', onPress: logout },
     ]);
+  };
+
+  const handleChangePassword = async () => {
+    if (!newPw || newPw.length < 8) {
+      setPwError(t.minChars?.replace?.('{n}', '8') || '密码至少8位');
+      return;
+    }
+    if (newPw !== confirmPw) {
+      setPwError(t.passwordsDoNotMatch || '两次密码不一致');
+      return;
+    }
+    setPwLoading(true);
+    setPwError(null);
+    try {
+      await authApi.changePassword(currentPw, newPw);
+      Alert.alert(t.passwordUpdated || '成功', t.passwordUpdated || '密码已更新');
+      setShowChangePw(false);
+      setCurrentPw('');
+      setNewPw('');
+      setConfirmPw('');
+    } catch (e: any) {
+      setPwError(e?.response?.data?.message || e?.message || t.failedToChangePassword || '修改密码失败');
+    } finally {
+      setPwLoading(false);
+    }
   };
 
   return (
@@ -67,6 +103,16 @@ export function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>账户</Text>
 
+          <TouchableOpacity style={styles.row} onPress={() => setShowChangePw(true)}>
+            <View style={styles.rowIcon}>
+              <LockIcon size={20} color={theme.colors.textSecondary} />
+            </View>
+            <View style={styles.rowContent}>
+              <Text style={styles.rowLabel}>{t.changePassword}</Text>
+            </View>
+            <Text style={styles.rowArrow}>›</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.row} onPress={handleLogout}>
             <View style={styles.rowIcon}>
               <Text style={styles.dangerIcon}>🚪</Text>
@@ -75,6 +121,63 @@ export function SettingsScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Change Password Modal */}
+      <Modal visible={showChangePw} transparent animationType="fade" onRequestClose={() => { setShowChangePw(false); setPwError(null); }}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{t.changePassword}</Text>
+
+            {pwError && <Text style={styles.modalError}>{pwError}</Text>}
+
+            <TextInput
+              style={styles.modalInput}
+              placeholder={t.currentPassword}
+              placeholderTextColor={theme.colors.textTertiary}
+              secureTextEntry
+              value={currentPw}
+              onChangeText={setCurrentPw}
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder={t.newPassword}
+              placeholderTextColor={theme.colors.textTertiary}
+              secureTextEntry
+              value={newPw}
+              onChangeText={setNewPw}
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder={t.confirmNewPassword}
+              placeholderTextColor={theme.colors.textTertiary}
+              secureTextEntry
+              value={confirmPw}
+              onChangeText={setConfirmPw}
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnCancel]}
+                onPress={() => { setShowChangePw(false); setPwError(null); }}
+                disabled={pwLoading}
+              >
+                <Text style={styles.modalBtnCancelText}>{t.cancel || '取消'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnConfirm]}
+                onPress={handleChangePassword}
+                disabled={pwLoading || !currentPw || !newPw || !confirmPw}
+              >
+                {pwLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.modalBtnConfirmText}>{t.updatePassword || '确认修改'}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -124,6 +227,50 @@ const styles = StyleSheet.create({
   rowValue: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 1 },
   rowArrow: { fontSize: 20, color: theme.colors.textTertiary },
   dangerIcon: { fontSize: 20 },
+
+  // Change Password Modal
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center', alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    width: '100%', maxWidth: 380,
+    backgroundColor: '#fff', borderRadius: 16,
+    padding: 24, gap: 16,
+  },
+  modalTitle: {
+    fontSize: 18, fontWeight: '600', color: theme.colors.text,
+    textAlign: 'center',
+  },
+  modalError: {
+    fontSize: 13, color: theme.colors.danger,
+    textAlign: 'center',
+  },
+  modalInput: {
+    borderWidth: 1, borderColor: theme.colors.borderLight,
+    borderRadius: 12, padding: 14, fontSize: 15,
+    color: theme.colors.text, backgroundColor: '#f9f9fb',
+  },
+  modalActions: {
+    flexDirection: 'row', gap: 12,
+  },
+  modalBtn: {
+    flex: 1, paddingVertical: 14, borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalBtnCancel: {
+    backgroundColor: theme.colors.borderLight,
+  },
+  modalBtnCancelText: {
+    fontSize: 15, fontWeight: '500', color: theme.colors.text,
+  },
+  modalBtnConfirm: {
+    backgroundColor: theme.colors.accent,
+  },
+  modalBtnConfirmText: {
+    fontSize: 15, fontWeight: '600', color: '#fff',
+  },
 });
 
 export default SettingsScreen;

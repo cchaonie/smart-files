@@ -1,8 +1,9 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { compare, hash } from 'bcryptjs';
 import { RegisterDto } from './dto';
+import { ChangePasswordDto } from './dto';
 
 @Injectable()
 export class AuthService {
@@ -61,5 +62,32 @@ export class AuthService {
       name: user.name,
       role: user.role,
     });
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { passwordHash: true },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isValid = await compare(dto.currentPassword, user.passwordHash);
+    if (!isValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    if (dto.newPassword === dto.currentPassword) {
+      throw new BadRequestException('New password must be different from current password');
+    }
+
+    const passwordHash = await hash(dto.newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+
+    return { success: true };
   }
 }

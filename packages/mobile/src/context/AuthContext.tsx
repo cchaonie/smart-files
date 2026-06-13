@@ -24,12 +24,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const token = await authApi.getToken();
       if (token) {
-        // Token exists — verify it's still valid and restore user session
-        const user = await authApi.getProfile();
-        setUser(user);
+        // Decode JWT locally — no network request needed for startup
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setUser({
+          id: payload.sub,
+          email: payload.email || '',
+          name: payload.name || null,
+          role: payload.role || 'user',
+        });
       }
     } catch (error) {
-      // Token expired or invalid — clear it
+      // Malformed token — clear it
       await authApi.logout();
       console.error('Auth check failed, session cleared:', error);
     } finally {
