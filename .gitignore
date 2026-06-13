@@ -5,6 +5,7 @@
 **/node_modules/
 node_modules/
 
+release.keystore
 # NPM/Yarn/PNPM lockfiles (keep ONE at root only)
 # Uncomment ONLY if you want to commit lockfiles
 # package-lock.json

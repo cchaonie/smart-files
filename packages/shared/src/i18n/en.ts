@@ -151,4 +151,5 @@ export const en: I18nStrings = {
     admin: 'Admin',
     user: 'User',
   },
+  rememberPassword: 'Remember Password',
 };
