@@ -25,7 +25,9 @@
     "pm2:restart": "pm2 restart ecosystem.config.js",
     "pm2:delete": "pm2 delete ecosystem.config.js",
     "pm2:logs": "pm2 logs smart-files-backend",
-    "pm2:status": "pm2 status"
+    "pm2:status": "pm2 status",
+    "deploy:api": "npm run prd:backendbuild && pm2 restart smart-files-backend",
+    "deploy": "bash ./scripts/deploy.sh"
   },
   "devDependencies": {
     "@types/multer": "^2.1.0",
