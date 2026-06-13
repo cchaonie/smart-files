@@ -46,4 +46,62 @@ export class AlbumsController {
     await this.albumsService.delete(id, user.id);
     return { message: 'Album deleted' };
   }
+
+  // --- Sharing ---
+
+  @Post(':id/share')
+  async share(
+    @Param('id') id: string,
+    @Body() body: { userId: string; role: string },
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.albumsService.share(id, user.id, body.userId, body.role);
+  }
+
+  @Delete(':id/share/:userId')
+  async unshare(
+    @Param('id') id: string,
+    @Param('userId') targetUserId: string,
+    @CurrentUser() user: { id: string },
+  ) {
+    await this.albumsService.unshare(id, user.id, targetUserId);
+    return { message: 'Share removed' };
+  }
+
+  @Get(':id/shares')
+  async listShares(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.albumsService.listShares(id, user.id);
+  }
+
+  // --- Album photos ---
+
+  @Post(':id/photos')
+  async addPhoto(
+    @Param('id') id: string,
+    @Body() body: { photoId: string },
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.albumsService.addPhoto(id, user.id, body.photoId);
+  }
+
+  @Delete(':id/photos/:photoId')
+  async removePhoto(
+    @Param('id') id: string,
+    @Param('photoId') photoId: string,
+    @CurrentUser() user: { id: string },
+  ) {
+    await this.albumsService.removePhoto(id, user.id, photoId);
+    return { message: 'Photo removed from album' };
+  }
+
+  @Get(':id/photos')
+  async listAlbumPhotos(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.albumsService.listAlbumPhotos(id, user.id);
+  }
 }
