@@ -79,6 +79,22 @@ export interface Photo {
   tags: PhotoTag[];
 }
 
+export interface Album {
+  id: string;
+  name: string;
+  description: string | null;
+  coverPhotoId: string | null;
+  photoCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ShareEntry {
+  userId: string;
+  userName: string | null;
+  role: string;
+}
+
 export interface PhotoTimelineResponse {
   photos: Photo[];
   nextCursor: string | null;
