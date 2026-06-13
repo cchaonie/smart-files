@@ -23,9 +23,7 @@ import {
   ChevronRightIcon,
 } from '../components/icons';
 import type { FileItem, Folder } from '../types';
-import type { PhotoDetectionResult } from '../hooks/usePhotoDetection';
 import { usePhotoUploadContext } from '../context/PhotoUploadContext';
-import PhotoUploadPrompt from '../components/PhotoUploadPrompt';
 import UploadProgressRow from '../components/UploadProgressRow';
 import FilePreviewModal from '../components/FilePreviewModal';
 import ActionSheet, { type ActionItem } from '../components/ActionSheet';
@@ -55,24 +53,10 @@ function isPreviewableImage(mimeType: string | null, name: string): boolean {
   return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '');
 }
 
-export function FilesScreen({ photoDetection }: { photoDetection: PhotoDetectionResult }) {
+export function FilesScreen() {
   const { user, logout } = useAuth();
   const { t } = useI18n();
-  const { startUpload, startFileUpload, items: uploadItems, retryFailed, clearCompleted } = usePhotoUploadContext();
-
-  const [showPhotoPrompt, setShowPhotoPrompt] = useState(false);
-
-  useEffect(() => {
-    if (
-      photoDetection.count > 0 &&
-      !photoDetection.isPromptDismissed &&
-      !photoDetection.isLoading
-    ) {
-      setShowPhotoPrompt(true);
-    } else {
-      setShowPhotoPrompt(false);
-    }
-  }, [photoDetection.count, photoDetection.isPromptDismissed, photoDetection.isLoading]);
+  const { startFileUpload, items: uploadItems, retryFailed, clearCompleted } = usePhotoUploadContext();
 
   const [folders, setFolders] = useState<Folder[]>([]);
   const [files, setFiles] = useState<FileItem[]>([]);
@@ -218,23 +202,6 @@ export function FilesScreen({ photoDetection }: { photoDetection: PhotoDetection
     } catch { Alert.alert('错误', '选择文件失败'); }
   }
 
-  // -----------------------------------------------------------------------
-  // Photo upload handlers
-  // -----------------------------------------------------------------------
-  async function handlePhotoUpload() {
-    setShowPhotoPrompt(false);
-    const photos = photoDetection.newPhotos;
-    if (photos.length === 0) return;
-
-    // Start upload via context
-    startUpload(photos);
-  }
-
-  function handlePhotoLater() {
-    setShowPhotoPrompt(false);
-    photoDetection.dismissPrompt();
-  }
-
   // --- Render ---
   const empty = !isLoading && folders.length === 0 && files.length === 0;
   const hasUploads = uploadItems.length > 0;
@@ -356,16 +323,6 @@ export function FilesScreen({ photoDetection }: { photoDetection: PhotoDetection
           <ArrowPathIcon size={16} color={theme.colors.textSecondary} />
         </TouchableOpacity>
       </View>
-
-      {/* Photo upload prompt */}
-      {showPhotoPrompt && (
-        <PhotoUploadPrompt
-          count={photoDetection.count}
-          isLoading={photoDetection.isLoading}
-          onUpload={handlePhotoUpload}
-          onLater={handlePhotoLater}
-        />
-      )}
 
       {/* Upload section — items managed by background service */}
       {hasUploads ? (
