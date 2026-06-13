@@ -10,6 +10,7 @@ import { ShareModule } from './share/share.module';
 import { RedisModule } from './redis/redis.module';
 import { RedisService } from './redis/redis.service';
 import { PhotosModule } from './photos/photos.module';
+import { AlbumsModule } from './albums/albums.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { PhotosModule } from './photos/photos.module';
     FoldersModule,
     ShareModule,
     PhotosModule,
+    AlbumsModule,
   ],
 })
 export class AppModule {}
