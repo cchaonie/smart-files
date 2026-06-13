@@ -22,7 +22,8 @@ import {
   MagnifyingGlassIcon, ArrowPathIcon, EllipsisVerticalIcon,
   ChevronRightIcon,
 } from '../components/icons';
-import type { FileItem, Folder } from '../types';
+import { PhotoDetailScreen } from './PhotoDetailScreen';
+import type { FileItem, Folder, Photo } from '../types';
 import { usePhotoUploadContext } from '../context/PhotoUploadContext';
 import { photosApi } from '../api/photos';
 import UploadProgressRow from '../components/UploadProgressRow';
@@ -75,6 +76,7 @@ export function FilesScreen() {
   const [actionSheetActions, setActionSheetActions] = useState<ActionItem[]>([]);
   const [renameFileTarget, setRenameFileTarget] = useState<FileItem | null>(null);
   const [shareTarget, setShareTarget] = useState<FileItem | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<FileItem[] | null>(null);
@@ -213,7 +215,16 @@ export function FilesScreen() {
       const previewable = isPreviewableImage(file.mimeType, file.name);
       return (
         <TouchableOpacity style={styles.fileRow} activeOpacity={0.7}
-          onPress={() => setPreviewFile(file)}
+          onPress={() => {
+            if (file.photoId) {
+              setPreviewFile(null);
+              photosApi.getById(file.photoId).then(setSelectedPhoto).catch(() => {
+                setPreviewFile(file);
+              });
+            } else {
+              setPreviewFile(file);
+            }
+          }}
           onLongPress={() => showFileActions(file)}
         >
           <View style={styles.fileInfo}>
@@ -400,6 +411,11 @@ export function FilesScreen() {
       )}
 
       </View>{/* end listWrapper */}
+
+      {/* Photo detail overlay for photo-linked files */}
+      {selectedPhoto && (
+        <PhotoDetailScreen photo={selectedPhoto} onClose={() => setSelectedPhoto(null)} />
+      )}
 
       {/* Modals */}
       <CreateFolderModal visible={createFolderVisible} onClose={() => setCreateFolderVisible(false)} onCreate={handleCreateFolder} />
