@@ -97,6 +97,11 @@ export interface Photo {
   tags: PhotoTag[];
 }
 
+export interface TagWithCount {
+  tag: string;
+  count: number;
+}
+
 export interface PhotoTimelineResponse {
   photos: Photo[];
   nextCursor: string | null;

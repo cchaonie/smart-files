@@ -115,4 +115,6 @@ export const en: I18nStrings = {
   photos: 'Photos', noPhotos: 'No photos yet', photoTimeline: 'Timeline',
   photoDetail: 'Photo detail', captured: 'Captured', dimensions: 'Dimensions',
   jumpToMonth: 'Jump to month', endOfList: 'The end',
+  searchTags: 'Search tags...', filteringBy: 'Filter:',
+  noMatchingPhotos: 'No matching photos', clearFilter: 'Clear filter',
 };

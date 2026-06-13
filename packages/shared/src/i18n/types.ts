@@ -68,6 +68,8 @@ export interface I18nStrings {
   photos: string; noPhotos: string; photoTimeline: string;
   photoDetail: string; captured: string; dimensions: string;
   jumpToMonth: string; endOfList: string;
+  searchTags: string; filteringBy: string;
+  noMatchingPhotos: string; clearFilter: string;
 }
 
 export interface I18nContextType {

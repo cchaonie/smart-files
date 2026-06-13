@@ -153,11 +153,16 @@ export class PhotosService {
     userId: string,
     cursor?: string,
     limit?: number,
+    tag?: string,
   ) {
     const take = Math.min(limit ?? 20, 100);
 
     // Build where clause
     const where: any = { userId };
+
+    if (tag) {
+      where.tags = { some: { tag } };
+    }
 
     if (cursor) {
       const cursorRecord = await this.prisma.photo.findUnique({
@@ -211,6 +216,35 @@ export class PhotosService {
       nextCursor: hasMore ? items[items.length - 1].id : null,
       total,
     };
+  }
+
+  /**
+   * Get tag usage statistics for a user, with optional autocomplete search.
+   */
+  async getTags(userId: string, q?: string) {
+    const where: any = { photo: { userId } };
+
+    if (q) {
+      where.tag = { contains: q, mode: 'insensitive' };
+    }
+
+    const results = await this.prisma.photoTag.groupBy({
+      by: ['tag'],
+      where,
+      _count: { tag: true },
+      orderBy: { _count: { tag: 'desc' } },
+    });
+
+    let tags = results.map((r) => ({
+      tag: r.tag,
+      count: r._count.tag,
+    }));
+
+    if (q) {
+      tags = tags.slice(0, 10);
+    }
+
+    return { tags };
   }
 
   /**

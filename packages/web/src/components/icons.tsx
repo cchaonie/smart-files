@@ -201,6 +201,15 @@ export function ArrowPathIcon({ className }: IconProps) {
   );
 }
 
+export function TagIcon({ className }: IconProps) {
+  return (
+    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth={2} strokeLinecap='round' strokeLinejoin='round' className={className}>
+      <path d='M12 2H2v10l9.29 9.29a2 2 0 0 0 2.83 0l6.17-6.17a2 2 0 0 0 0-2.83L12 2z' />
+      <line x1='7' y1='7' x2='7.01' y2='7' />
+    </svg>
+  );
+}
+
 export function XMarkIcon({ className }: IconProps) {
   return (
     <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth={2} strokeLinecap='round' strokeLinejoin='round' className={className}>
