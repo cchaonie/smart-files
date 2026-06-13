@@ -76,6 +76,20 @@ export interface I18nStrings {
   mobileCaptured: string;
   mobileDimensions: string;
   mobileRetry: string;
+  /* Albums */
+  albums: string;
+  createAlbum: string;
+  albumName: string;
+  albumDescription: string;
+  noAlbums: string;
+  userSearch: string;
+  viewer: string;
+  contributor: string;
+  sharedWith: string;
+  revoke: string;
+  familyTimeline: string;
+  addPhoto: string;
+  removePhoto: string;
 }
 
 export interface I18nContextType {

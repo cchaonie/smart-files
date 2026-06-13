@@ -107,3 +107,19 @@ export interface PhotoTimelineResponse {
   nextCursor: string | null;
   total: number;
 }
+
+export interface Album {
+  id: string;
+  name: string;
+  description: string | null;
+  coverPhotoId: string | null;
+  photoCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ShareEntry {
+  userId: string;
+  userName: string | null;
+  role: 'VIEWER' | 'CONTRIBUTOR';
+}

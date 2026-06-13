@@ -123,4 +123,18 @@ export const zhCN: I18nStrings = {
   mobileCaptured: '拍摄于',
   mobileDimensions: '尺寸',
   mobileRetry: '重试',
+  /* Albums */
+  albums: '相册',
+  createAlbum: '创建相册',
+  albumName: '相册名称',
+  albumDescription: '相册描述',
+  noAlbums: '暂无相册',
+  userSearch: '搜索用户...',
+  viewer: '查看者',
+  contributor: '贡献者',
+  sharedWith: '已分享',
+  revoke: '撤销',
+  familyTimeline: '家庭时间线',
+  addPhoto: '添加照片',
+  removePhoto: '移除照片',
 };

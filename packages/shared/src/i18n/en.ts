@@ -123,4 +123,18 @@ export const en: I18nStrings = {
   mobileCaptured: 'Captured',
   mobileDimensions: 'Dimensions',
   mobileRetry: 'Retry',
+  /* Albums */
+  albums: 'Albums',
+  createAlbum: 'Create Album',
+  albumName: 'Album name',
+  albumDescription: 'Description',
+  noAlbums: 'No albums yet',
+  userSearch: 'Search users...',
+  viewer: 'Viewer',
+  contributor: 'Contributor',
+  sharedWith: 'Shared with',
+  revoke: 'Revoke',
+  familyTimeline: 'Family Timeline',
+  addPhoto: 'Add photo',
+  removePhoto: 'Remove photo',
 };

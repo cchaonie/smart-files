@@ -9,6 +9,9 @@ import { UploadsPage } from './pages/UploadsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { HomePage } from './pages/HomePage'
 import { SharePage } from './pages/SharePage'
+import { AlbumsPage } from './pages/AlbumsPage'
+import { AlbumDetailPage } from './pages/AlbumDetailPage'
+import { FamilyTimelinePage } from './pages/FamilyTimelinePage'
 import { AppLayout } from './components/AppLayout'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -73,6 +76,9 @@ function App() {
       <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
         <Route path="/files" element={<FilesPage />} />
         <Route path="/photos" element={<PhotosPage />} />
+        <Route path="/albums" element={<AlbumsPage />} />
+        <Route path="/albums/:id" element={<AlbumDetailPage />} />
+        <Route path="/family-timeline" element={<FamilyTimelinePage />} />
         <Route path="/uploads" element={<UploadsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>

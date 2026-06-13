@@ -1,11 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useI18n } from '@smart-files/shared/src/i18n';
-import { FolderIcon, FolderOpenIcon, CloudArrowUpIcon, GearIcon, ImageIcon } from './icons';
+import { FolderIcon, FolderOpenIcon, CloudArrowUpIcon, GearIcon, ImageIcon, AlbumsIcon } from './icons';
 
 const tabs: { path: string; icon: typeof FolderIcon; activeIcon: typeof FolderIcon; labelKey: string }[] = [
   { path: '/files', labelKey: 'files', icon: FolderIcon, activeIcon: FolderOpenIcon },
   { path: '/photos', labelKey: 'photos', icon: ImageIcon, activeIcon: ImageIcon },
+  { path: '/albums', labelKey: 'albums', icon: AlbumsIcon, activeIcon: AlbumsIcon },
   { path: '/uploads', labelKey: 'uploads', icon: CloudArrowUpIcon, activeIcon: CloudArrowUpIcon },
   { path: '/settings', labelKey: 'settings', icon: GearIcon, activeIcon: GearIcon },
 ];
