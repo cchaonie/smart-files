@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
 
   // Breadcrumb
   breadcrumbContent: { alignItems: 'center' },
-  breadcrumbBar: { paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
+  breadcrumbBar: { paddingHorizontal: 16, paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
   breadcrumbSeg: { flexDirection: 'row', alignItems: 'center' },
   breadcrumbLink: { fontSize: 13, color: theme.colors.textSecondary, marginHorizontal: 4 },
   breadcrumbActive: { color: theme.colors.accent, fontWeight: '500' },
