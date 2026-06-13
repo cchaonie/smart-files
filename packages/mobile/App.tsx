@@ -83,11 +83,11 @@ function InnerApp({ photoDetection }: { photoDetection: ReturnType<typeof usePho
   const renderScreen = useCallback(() => {
     switch (activeTab) {
       case 'files':
-        return <FilesScreen photoDetection={photoDetection} />;
+        return <FilesScreen />;
       case 'photos':
         return <PhotoTimelineScreen />;
       case 'albums':
-        return <AlbumsScreen />;
+        return <AlbumsScreen photoDetection={photoDetection} />;
       case 'admin':
         return <AdminScreen />;
       case 'uploads':
