@@ -10,15 +10,22 @@ import { albumsApi } from '../api/albums';
 import { PlusIcon, AlbumsIcon } from '../components/icons';
 import { AlbumDetailScreen } from './AlbumDetailScreen';
 import { FamilyTimelineScreen } from './FamilyTimelineScreen';
+import PhotoUploadPrompt from '../components/PhotoUploadPrompt';
 import type { Album } from '../types';
+import type { PhotoDetectionResult } from '../hooks/usePhotoDetection';
+import { usePhotoUploadContext } from '../context/PhotoUploadContext';
 
-export function AlbumsScreen() {
+export function AlbumsScreen({ photoDetection }: { photoDetection: PhotoDetectionResult }) {
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
+  const { startUpload } = usePhotoUploadContext();
 
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Photo detection state
+  const [showPhotoPrompt, setShowPhotoPrompt] = useState(false);
 
   // Create album modal
   const [showCreate, setShowCreate] = useState(false);
@@ -47,6 +54,31 @@ export function AlbumsScreen() {
     loadAlbums();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Photo detection — show prompt when new photos found
+  useEffect(() => {
+    if (
+      photoDetection.count > 0 &&
+      !photoDetection.isPromptDismissed &&
+      !photoDetection.isLoading
+    ) {
+      setShowPhotoPrompt(true);
+    } else {
+      setShowPhotoPrompt(false);
+    }
+  }, [photoDetection.count, photoDetection.isPromptDismissed, photoDetection.isLoading]);
+
+  async function handlePhotoUpload() {
+    setShowPhotoPrompt(false);
+    const photos = photoDetection.newPhotos;
+    if (photos.length === 0) return;
+    startUpload(photos);
+  }
+
+  function handlePhotoLater() {
+    setShowPhotoPrompt(false);
+    photoDetection.dismissPrompt();
+  }
 
   const handleCreate = useCallback(async () => {
     if (!newName.trim()) return;
@@ -139,6 +171,16 @@ export function AlbumsScreen() {
           <Text style={styles.familyTimelineBtnText}>家庭动态</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Photo upload prompt — new photos detected in camera roll */}
+      {showPhotoPrompt && (
+        <PhotoUploadPrompt
+          count={photoDetection.count}
+          isLoading={photoDetection.isLoading}
+          onUpload={handlePhotoUpload}
+          onLater={handlePhotoLater}
+        />
+      )}
 
       <FlatList
         data={albums}
