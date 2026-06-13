@@ -24,9 +24,10 @@ export function LoginPage() {
   const { t } = useI18n();
   const reduce = useReducedMotion();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(() => localStorage.getItem('sf_remember_email') || '');
+  const [password, setPassword] = useState(() => localStorage.getItem('sf_remember_password') || '');
   const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(() => !!localStorage.getItem('sf_remember_email'));
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -36,6 +37,13 @@ export function LoginPage() {
     setPending(true);
     try {
       await login(email, password);
+      if (remember) {
+        localStorage.setItem('sf_remember_email', email);
+        localStorage.setItem('sf_remember_password', password);
+      } else {
+        localStorage.removeItem('sf_remember_email');
+        localStorage.removeItem('sf_remember_password');
+      }
       navigate('/files');
     } catch (err: any) {
       setError(err.response?.data?.error || t.loginFailed);
@@ -170,6 +178,17 @@ export function LoginPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* Remember password */}
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={remember}
+                    onChange={e => setRemember(e.target.checked)}
+                    className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:focus:ring-zinc-400"
+                  />
+                  <span className="text-sm text-zinc-600 dark:text-zinc-400">{t.rememberPassword}</span>
+                </label>
 
                 {/* Error message */}
                 {error && (

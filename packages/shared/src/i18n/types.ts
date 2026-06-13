@@ -104,6 +104,8 @@ export interface I18nStrings {
     admin: string;
     user: string;
   };
+  /* Login */
+  rememberPassword: string;
 }
 
 export interface I18nContextType {

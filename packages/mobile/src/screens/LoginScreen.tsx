@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Switch,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
 import { useI18n } from '@smart-files/shared/src/i18n';
@@ -26,9 +28,22 @@ export function LoginScreen({ navigation }: { navigation: any }) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [remember, setRemember] = useState(true);
   const { login } = useAuth();
   const { apiUrl } = useConfig();
   const { t } = useI18n();
+
+  useEffect(() => {
+    (async () => {
+      const savedEmail = await AsyncStorage.getItem('sf_remember_email');
+      const savedPw = await AsyncStorage.getItem('sf_remember_password');
+      if (savedEmail) {
+        setEmail(savedEmail);
+        setRemember(true);
+        if (savedPw) setPassword(savedPw);
+      }
+    })();
+  }, []);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -39,6 +54,13 @@ export function LoginScreen({ navigation }: { navigation: any }) {
     setIsLoading(true);
     try {
       await login(email, password);
+      if (remember) {
+        await AsyncStorage.setItem('sf_remember_email', email);
+        await AsyncStorage.setItem('sf_remember_password', password);
+      } else {
+        await AsyncStorage.removeItem('sf_remember_email');
+        await AsyncStorage.removeItem('sf_remember_password');
+      }
     } catch (error: any) {
       const message = getApiErrorMessage(error);
       if (isNetworkError(error)) {
@@ -146,6 +168,17 @@ export function LoginScreen({ navigation }: { navigation: any }) {
                       )}
                     </TouchableOpacity>
                   </View>
+                </View>
+
+                {/* Remember password */}
+                <View style={styles.rememberRow}>
+                  <Text style={styles.rememberLabel}>{t.rememberPassword}</Text>
+                  <Switch
+                    value={remember}
+                    onValueChange={setRemember}
+                    trackColor={{ false: '#d4d4d8', true: '#3b82f6' }}
+                    thumbColor="#fff"
+                  />
                 </View>
 
                 {/* Submit */}
@@ -338,6 +371,15 @@ const styles = StyleSheet.create({
   },
   submitBtnDisabled: {
     opacity: 0.6,
+  },
+  rememberRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  rememberLabel: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
   },
   submitLoading: {
     flexDirection: 'row',

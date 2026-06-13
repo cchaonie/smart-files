@@ -151,4 +151,5 @@ export const zhCN: I18nStrings = {
     admin: '管理员',
     user: '普通用户',
   },
+  rememberPassword: '记住密码',
 };
