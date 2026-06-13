@@ -109,7 +109,10 @@ export const en: I18nStrings = {
   moveItems: 'Move {n} items',
   itemsSelected: '{n} items selected',
   removeFromHistory: 'Remove from history',
-  fileAlreadyUploaded: 'File \"{name}\" has already been uploaded to: {path}',
-  fileAlreadyUploading: 'File \"{name}\" is currently being uploaded',
-  fileAlreadyInQueue: 'File \"{name}\" is already in the upload queue',
+  fileAlreadyUploaded: 'File \\"{name}\\" has already been uploaded to: {path}',
+  fileAlreadyUploading: 'File \\"{name}\\" is currently being uploaded',
+  fileAlreadyInQueue: 'File \\"{name}\\" is already in the upload queue',
+  photos: 'Photos', noPhotos: 'No photos yet', photoTimeline: 'Timeline',
+  photoDetail: 'Photo detail', captured: 'Captured', dimensions: 'Dimensions',
+  jumpToMonth: 'Jump to month', endOfList: 'The end',
 };

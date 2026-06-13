@@ -77,3 +77,28 @@ export interface UploadHistoryItem {
   folderName?: string;
   completedAt: string;
 }
+
+export interface PhotoTag {
+  tag: string;
+  confidence: number | null;
+}
+
+export interface Photo {
+  id: string;
+  thumbnailPath: string;
+  previewPath: string;
+  originalName: string;
+  width: number | null;
+  height: number | null;
+  fileSize: number;
+  mimeType: string;
+  capturedAt: string | null;
+  status: 'PROCESSING' | 'READY' | 'FAILED';
+  tags: PhotoTag[];
+}
+
+export interface PhotoTimelineResponse {
+  photos: Photo[];
+  nextCursor: string | null;
+  total: number;
+}

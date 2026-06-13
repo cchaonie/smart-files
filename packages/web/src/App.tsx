@@ -4,6 +4,7 @@ import { useI18n } from '@smart-files/shared/src/i18n'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { FilesPage } from './pages/FilesPage'
+import { PhotosPage } from './pages/PhotosPage'
 import { UploadsPage } from './pages/UploadsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { HomePage } from './pages/HomePage'
@@ -71,6 +72,7 @@ function App() {
 
       <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
         <Route path="/files" element={<FilesPage />} />
+        <Route path="/photos" element={<PhotosPage />} />
         <Route path="/uploads" element={<UploadsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>

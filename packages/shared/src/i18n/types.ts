@@ -65,6 +65,9 @@ export interface I18nStrings {
   itemsSelected: string;
   removeFromHistory: string;
   fileAlreadyUploaded: string; fileAlreadyUploading: string; fileAlreadyInQueue: string;
+  photos: string; noPhotos: string; photoTimeline: string;
+  photoDetail: string; captured: string; dimensions: string;
+  jumpToMonth: string; endOfList: string;
 }
 
 export interface I18nContextType {
