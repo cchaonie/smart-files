@@ -16,6 +16,7 @@ import { ServerConfigScreen } from './src/screens/ServerConfigScreen';
 import { PhotoUploadScreen } from './src/screens/PhotoUploadScreen';
 import { PhotoTimelineScreen } from './src/screens/PhotoTimelineScreen';
 import { AlbumsScreen } from './src/screens/AlbumsScreen';
+import { AdminScreen } from './src/screens/AdminScreen';
 import { AppLayout } from './src/components/AppLayout';
 import { FilesScreen } from './src/screens/FilesScreen';
 import { UploadsScreen } from './src/screens/UploadsScreen';
@@ -52,6 +53,8 @@ function WrappedMainApp() {
 function InnerApp({ photoDetection }: { photoDetection: ReturnType<typeof usePhotoDetection> }) {
   const [activeTab, setActiveTab] = useState<TabKey>('files');
   const { badgeCount } = usePhotoUploadContext();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const isMountedRef = useRef(true);
 
   // Handle notification tap → switch to uploads tab
@@ -73,6 +76,8 @@ function InnerApp({ photoDetection }: { photoDetection: ReturnType<typeof usePho
         return <PhotoTimelineScreen />;
       case 'albums':
         return <AlbumsScreen />;
+      case 'admin':
+        return <AdminScreen />;
       case 'uploads':
         return <UploadsScreen />;
       case 'settings':
@@ -81,7 +86,7 @@ function InnerApp({ photoDetection }: { photoDetection: ReturnType<typeof usePho
   }, [activeTab, photoDetection]);
 
   return (
-    <AppLayout activeTab={activeTab} onTabChange={setActiveTab} badgeCount={badgeCount}>
+    <AppLayout activeTab={activeTab} onTabChange={setActiveTab} badgeCount={badgeCount} isAdmin={isAdmin}>
       {renderScreen()}
     </AppLayout>
   );

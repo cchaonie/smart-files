@@ -90,6 +90,20 @@ export interface I18nStrings {
   familyTimeline: string;
   addPhoto: string;
   removePhoto: string;
+  /* Admin */
+  admin: {
+    title: string;
+    users: string;
+    resetPassword: string;
+    changeRole: string;
+    passwordReset: string;
+    tempPassword: string;
+    confirmReset: string;
+    confirmRoleChange: string;
+    noAdmins: string;
+    admin: string;
+    user: string;
+  };
 }
 
 export interface I18nContextType {
