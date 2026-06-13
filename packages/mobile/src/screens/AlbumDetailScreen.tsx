@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useI18n } from '@smart-files/shared/src/i18n';
 import { theme } from '../theme';
 import { albumsApi, usersApi } from '../api/albums';
+import { photosApi } from '../api/photos';
 import {
   XMarkIcon, PlusIcon, ArrowLeftIcon, AlbumsIcon,
   TrashIcon,
@@ -136,7 +137,7 @@ export function AlbumDetailScreen({ album, onClose, onDeleted }: AlbumDetailScre
   const renderPhoto = useCallback(({ item }: { item: Photo }) => (
     <View style={styles.photoCell}>
       <Image
-        source={{ uri: item.thumbnailPath }}
+        source={{ uri: photosApi.thumbnailUrl(item) }}
         style={styles.thumbnail}
         resizeMode="cover"
       />
