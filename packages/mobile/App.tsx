@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { I18nProvider } from '@smart-files/shared/src/i18n';
@@ -22,6 +23,17 @@ import { FilesScreen } from './src/screens/FilesScreen';
 import { UploadsScreen } from './src/screens/UploadsScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import type { TabKey } from './src/components/BottomTabs';
+
+// ── Notification channel setup (Android foreground service channel) ─────────
+if (Platform.OS === 'android') {
+  Notifications.setNotificationChannelAsync('uploads', {
+    name: '上传服务',
+    importance: Notifications.AndroidImportance.LOW,
+    lightColor: '#3B82F6',
+    sound: null,
+    vibrationPattern: null,
+  }).catch(() => {});
+}
 
 export type RootStackParamList = {
   Login: undefined;

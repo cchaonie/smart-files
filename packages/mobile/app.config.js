@@ -48,6 +48,17 @@ export default {
     },
     plugins: [
       './plugins/withNetworkSecurityConfig',
+      [
+        'expo-notifications',
+        {
+          android: {
+            foregroundService: {
+              channelId: 'uploads',
+              notificationColor: '#3B82F6',
+            },
+          },
+        },
+      ],
     ],
     web: {
       favicon: './assets/favicon.png',

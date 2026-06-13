@@ -2,45 +2,73 @@
 set -euo pipefail
 
 # ──────────────────────────────────────────────────────────
-# deploy.sh  —  Smart Files full-stack deploy (convenience wrapper)
-# ──────────────────────────────────────────────────────────
-# Runs deploy-api.sh and deploy-web.sh in sequence.
+# deploy.sh  —  Single entry point to update all running services
 #
 # Usage:
-#   ./scripts/deploy.sh              # Full deploy (API + Web)
-#   ./scripts/deploy.sh --skip-web   # API only (legacy flag)
+#   ./scripts/deploy.sh
 #
-# For fine-grained control, call the sub-scripts directly:
-#   ./scripts/deploy-api.sh
-#   ./scripts/deploy-web.sh [--target /custom/path]
+# What it does:
+#   1. Install dependencies (if missing)
+#   2. Run Prisma migrations
+#   3. Build backend + restart PM2
+#   4. Build frontend + copy to target
 # ──────────────────────────────────────────────────────────
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
-SKIP_WEB=false
-if [ "${1:-}" = "--skip-web" ]; then
-  SKIP_WEB=true
-fi
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+SHARED_DIR="$REPO_DIR/packages/shared"
 
 echo "=== Smart Files — Full-stack Deploy ==="
 echo ""
 
 # -------------------------------------------------------
-# 1. API deploy
+# 1. Install monorepo dependencies
 # -------------------------------------------------------
-echo ">>> API phase <<<"
-bash "$SCRIPT_DIR/deploy-api.sh"
+if [ ! -d "$REPO_DIR/node_modules" ]; then
+  echo "→ Installing dependencies..."
+  cd "$REPO_DIR"
+  npm ci
+else
+  echo "→ Dependencies already installed."
+fi
 echo ""
 
 # -------------------------------------------------------
-# 2. Web deploy
+# 2. Prisma: generate client + run pending migrations
 # -------------------------------------------------------
-if [ "$SKIP_WEB" = false ]; then
-  echo ">>> Web phase <<<"
-  bash "$SCRIPT_DIR/deploy-web.sh"
-  echo ""
-else
-  echo ">>> Web phase skipped (--skip-web) <<<"
-fi
+echo "→ Generating Prisma Client..."
+cd "$SHARED_DIR"
+npx prisma generate
 
+echo "→ Running database migrations..."
+set -a
+. "$REPO_DIR/.env"
+set +a
+npx prisma migrate deploy
+echo ""
+
+# -------------------------------------------------------
+# 3. Build backend & restart PM2
+# -------------------------------------------------------
+echo "→ Building API and restarting PM2..."
+cd "$REPO_DIR"
+npm run deploy:api
+echo ""
+
+# -------------------------------------------------------
+# 4. Build & deploy web frontend
+# -------------------------------------------------------
+echo "→ Deploying Web..."
+bash "$SCRIPT_DIR/deploy-web.sh"
+echo ""
+
+# -------------------------------------------------------
+# Summary
+# -------------------------------------------------------
 echo "=== Full-stack Deploy Complete ==="
+if command -v pm2 &>/dev/null; then
+  pm2 show smart-files-backend 2>/dev/null | grep -E 'status|uptime' | tr -d ' '
+fi
