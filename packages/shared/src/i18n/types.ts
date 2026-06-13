@@ -70,6 +70,12 @@ export interface I18nStrings {
   jumpToMonth: string; endOfList: string;
   searchTags: string; filteringBy: string;
   noMatchingPhotos: string; clearFilter: string;
+  /* Photo timeline (mobile) */
+  mobilePhotos: string;
+  mobileNoPhotos: string;
+  mobileCaptured: string;
+  mobileDimensions: string;
+  mobileRetry: string;
 }
 
 export interface I18nContextType {

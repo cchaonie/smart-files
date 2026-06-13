@@ -117,4 +117,10 @@ export const zhCN: I18nStrings = {
   jumpToMonth: '跳转到月份', endOfList: '已经到底了',
   searchTags: '搜索标签...', filteringBy: '筛选：',
   noMatchingPhotos: '没有匹配的照片', clearFilter: '清除筛选',
+  /* Photo timeline (mobile) */
+  mobilePhotos: '照片',
+  mobileNoPhotos: '暂无照片',
+  mobileCaptured: '拍摄于',
+  mobileDimensions: '尺寸',
+  mobileRetry: '重试',
 };

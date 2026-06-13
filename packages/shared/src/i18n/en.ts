@@ -117,4 +117,10 @@ export const en: I18nStrings = {
   jumpToMonth: 'Jump to month', endOfList: 'The end',
   searchTags: 'Search tags...', filteringBy: 'Filter:',
   noMatchingPhotos: 'No matching photos', clearFilter: 'Clear filter',
+  /* Photo timeline (mobile) */
+  mobilePhotos: 'Photos',
+  mobileNoPhotos: 'No photos',
+  mobileCaptured: 'Captured',
+  mobileDimensions: 'Dimensions',
+  mobileRetry: 'Retry',
 };
