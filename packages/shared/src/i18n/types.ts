@@ -65,6 +65,31 @@ export interface I18nStrings {
   itemsSelected: string;
   removeFromHistory: string;
   fileAlreadyUploaded: string; fileAlreadyUploading: string; fileAlreadyInQueue: string;
+  photos: string; noPhotos: string; photoTimeline: string;
+  photoDetail: string; captured: string; dimensions: string;
+  jumpToMonth: string; endOfList: string;
+  searchTags: string; filteringBy: string;
+  noMatchingPhotos: string; clearFilter: string;
+  /* Photo timeline (mobile) */
+  mobilePhotos: string;
+  mobileNoPhotos: string;
+  mobileCaptured: string;
+  mobileDimensions: string;
+  mobileRetry: string;
+  /* Albums */
+  albums: string;
+  createAlbum: string;
+  albumName: string;
+  albumDescription: string;
+  noAlbums: string;
+  userSearch: string;
+  viewer: string;
+  contributor: string;
+  sharedWith: string;
+  revoke: string;
+  familyTimeline: string;
+  addPhoto: string;
+  removePhoto: string;
 }
 
 export interface I18nContextType {

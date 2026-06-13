@@ -131,6 +131,16 @@ export const PhotosIcon = createIcon(
   </>
 );
 
+export const AlbumsIcon = createIcon(
+  <>
+    <Rect x="2" y="3" width="20" height="17" rx="2" ry="2" />
+    <Path d="M2 8h20" />
+    <Path d="M6 12h4" />
+    <Path d="M8 12v4" />
+    <Rect x="16" y="12" width="4" height="4" rx="1" />
+  </>
+);
+
 export const PlayIcon = createIcon(
   <Polygon points="5 3 19 12 5 21 5 3" />
 );
@@ -144,6 +154,10 @@ export const PauseIcon = createIcon(
 
 export const ChevronRightIcon = createIcon(
   <Path d="m9 18 6-6-6-6" />
+);
+
+export const ArrowLeftIcon = createIcon(
+  <Path d="m15 18-6-6 6-6" />
 );
 
 export const EllipsisVerticalIcon = createIcon(
@@ -180,5 +194,6 @@ export default {
   EyeIcon, EyeSlashIcon, CheckCircleIcon, FolderIcon, FolderOpenIcon,
   GearIcon, PlusIcon, HomeIcon, TrashIcon, MagnifyingGlassIcon,
   PhotosIcon, PlayIcon, PauseIcon, ChevronRightIcon, EllipsisVerticalIcon,
-  XMarkIcon, ArrowPathIcon, CloudArrowUpFilledIcon, GlobeIcon,
+  XMarkIcon, ArrowPathIcon, CloudArrowUpFilledIcon, GlobeIcon, AlbumsIcon,
+  ArrowLeftIcon,
 };

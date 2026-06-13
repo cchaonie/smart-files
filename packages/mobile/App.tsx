@@ -14,6 +14,8 @@ import { LoginScreen } from './src/screens/LoginScreen';
 import { RegisterScreen } from './src/screens/RegisterScreen';
 import { ServerConfigScreen } from './src/screens/ServerConfigScreen';
 import { PhotoUploadScreen } from './src/screens/PhotoUploadScreen';
+import { PhotoTimelineScreen } from './src/screens/PhotoTimelineScreen';
+import { AlbumsScreen } from './src/screens/AlbumsScreen';
 import { AppLayout } from './src/components/AppLayout';
 import { FilesScreen } from './src/screens/FilesScreen';
 import { UploadsScreen } from './src/screens/UploadsScreen';
@@ -67,6 +69,10 @@ function InnerApp({ photoDetection }: { photoDetection: ReturnType<typeof usePho
     switch (activeTab) {
       case 'files':
         return <FilesScreen photoDetection={photoDetection} />;
+      case 'photos':
+        return <PhotoTimelineScreen />;
+      case 'albums':
+        return <AlbumsScreen />;
       case 'uploads':
         return <UploadsScreen />;
       case 'settings':

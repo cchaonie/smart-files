@@ -8,9 +8,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../theme';
-import { FolderIcon, CloudArrowUpIcon, GearIcon, PhotosIcon } from './icons';
+import { FolderIcon, CloudArrowUpIcon, GearIcon, PhotosIcon, AlbumsIcon } from './icons';
 
-export type TabKey = 'files' | 'uploads' | 'settings';
+export type TabKey = 'files' | 'photos' | 'albums' | 'uploads' | 'settings';
 
 interface BottomTabsProps {
   activeTab: TabKey;
@@ -20,6 +20,8 @@ interface BottomTabsProps {
 
 const tabs: { key: TabKey; label: string; icon: React.ComponentType<{ size?: number; color?: string }> }[] = [
   { key: 'files', label: '文件', icon: FolderIcon },
+  { key: 'photos', label: '照片', icon: PhotosIcon },
+  { key: 'albums', label: '相册', icon: AlbumsIcon },
   { key: 'uploads', label: '上传', icon: CloudArrowUpIcon },
   { key: 'settings', label: '设置', icon: GearIcon },
 ];

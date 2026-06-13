@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { createHash } from 'node:crypto';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -108,5 +109,225 @@ export class PhotosService {
     await this.aiTaggingQueue.add('process', { photoId: photo.id });
 
     return { id: photo.id, status: photo.status };
+  }
+
+  /**
+   * Retry processing a failed photo.
+   * Resets status to PROCESSING and re-enqueues the thumbnail job.
+   */
+  async retry(
+    photoId: string,
+    userId: string,
+  ): Promise<{ id: string; status: string }> {
+    const photo = await this.prisma.photo.findUnique({
+      where: { id: photoId },
+    });
+
+    if (!photo) {
+      throw new NotFoundException('Photo not found');
+    }
+
+    if (photo.userId !== userId) {
+      throw new NotFoundException('Photo not found');
+    }
+
+    if (photo.status !== 'FAILED') {
+      throw new ConflictException('Photo is not in FAILED status');
+    }
+
+    await this.prisma.photo.update({
+      where: { id: photoId },
+      data: { status: 'PROCESSING' },
+    });
+
+    await this.thumbnailQueue.add('process', { photoId });
+
+    return { id: photoId, status: 'PROCESSING' };
+  }
+
+  /**
+   * List photos for a user with cursor-based pagination.
+   * Ordered by capturedAt DESC NULLS LAST, createdAt DESC.
+   */
+  async list(
+    userId: string,
+    cursor?: string,
+    limit?: number,
+    tag?: string,
+  ) {
+    const take = Math.min(limit ?? 20, 100);
+
+    // Build where clause
+    const where: any = { userId };
+
+    if (tag) {
+      where.tags = { some: { tag } };
+    }
+
+    if (cursor) {
+      const cursorRecord = await this.prisma.photo.findUnique({
+        where: { id: cursor, userId },
+      });
+      if (!cursorRecord) {
+        throw new NotFoundException('Invalid cursor');
+      }
+      where.OR = [
+        { capturedAt: { lt: cursorRecord.capturedAt } },
+        { capturedAt: cursorRecord.capturedAt, id: { lt: cursorRecord.id } },
+        { capturedAt: null, createdAt: { lt: cursorRecord.createdAt } },
+      ];
+    }
+
+    // Fetch one extra record to determine if there is a next page
+    const photos = await this.prisma.photo.findMany({
+      where,
+      orderBy: [
+        { capturedAt: { sort: 'desc', nulls: 'last' } },
+        { createdAt: 'desc' },
+        { id: 'desc' },
+      ],
+      take: take + 1,
+      include: { tags: true },
+    });
+
+    const hasMore = photos.length > take;
+    const items = hasMore ? photos.slice(0, take) : photos;
+
+    // Count total
+    const total = await this.prisma.photo.count({ where: { userId } });
+
+    // Map response
+    const mapped = items.map((photo) => ({
+      id: photo.id,
+      originalName: photo.originalName,
+      mimeType: photo.mimeType,
+      fileSize: photo.size,
+      width: photo.width,
+      height: photo.height,
+      thumbnailPath: `/api/photos/${photo.id}/thumbnail`,
+      previewPath: `/api/photos/${photo.id}/preview`,
+      capturedAt: photo.capturedAt,
+      status: photo.status,
+      tags: photo.tags.map((t) => ({ tag: t.tag, confidence: t.confidence })),
+    }));
+
+    return {
+      photos: mapped,
+      nextCursor: hasMore ? items[items.length - 1].id : null,
+      total,
+    };
+  }
+
+  /**
+   * Get tag usage statistics for a user, with optional autocomplete search.
+   */
+  async getTags(userId: string, q?: string) {
+    const where: any = { photo: { userId } };
+
+    if (q) {
+      where.tag = { contains: q, mode: 'insensitive' };
+    }
+
+    const results = await this.prisma.photoTag.groupBy({
+      by: ['tag'],
+      where,
+      _count: { tag: true },
+      orderBy: { _count: { tag: 'desc' } },
+    });
+
+    let tags = results.map((r) => ({
+      tag: r.tag,
+      count: r._count.tag,
+    }));
+
+    if (q) {
+      tags = tags.slice(0, 10);
+    }
+
+    return { tags };
+  }
+
+  /**
+   * Find a photo by ID, verifying ownership.
+   */
+  async findById(photoId: string, userId: string) {
+    const photo = await this.prisma.photo.findUnique({
+      where: { id: photoId },
+      include: { tags: true },
+    });
+
+    if (!photo || photo.userId !== userId) {
+      throw new NotFoundException('Photo not found');
+    }
+
+    return {
+      id: photo.id,
+      originalName: photo.originalName,
+      mimeType: photo.mimeType,
+      fileSize: photo.size,
+      width: photo.width,
+      height: photo.height,
+      thumbnailPath: `/api/photos/${photo.id}/thumbnail`,
+      previewPath: `/api/photos/${photo.id}/preview`,
+      capturedAt: photo.capturedAt,
+      status: photo.status,
+      tags: photo.tags.map((t) => ({ tag: t.tag, confidence: t.confidence })),
+    };
+  }
+
+  /**
+   * Get a readable stream for a photo's thumbnail file.
+   * Returns the stream and mime type.
+   */
+  async getThumbnailStream(photoId: string, userId: string) {
+    const photo = await this.prisma.photo.findUnique({
+      where: { id: photoId },
+    });
+
+    if (!photo || photo.userId !== userId || !photo.thumbnailPath) {
+      throw new NotFoundException('Photo not found');
+    }
+
+    const absolutePath = path.resolve(this.photoRoot, photo.thumbnailPath);
+    if (!absolutePath.startsWith(this.photoRoot)) {
+      throw new NotFoundException('Invalid photo path');
+    }
+
+    try {
+      await fs.access(absolutePath);
+    } catch {
+      throw new NotFoundException('Photo file not found on disk');
+    }
+
+    const stream = createReadStream(absolutePath);
+    return { stream, mimeType: 'image/webp' };
+  }
+
+  /**
+   * Get a readable stream for a photo's preview file.
+   * Returns the stream and mime type.
+   */
+  async getPreviewStream(photoId: string, userId: string) {
+    const photo = await this.prisma.photo.findUnique({
+      where: { id: photoId },
+    });
+
+    if (!photo || photo.userId !== userId || !photo.previewPath) {
+      throw new NotFoundException('Photo not found');
+    }
+
+    const absolutePath = path.resolve(this.photoRoot, photo.previewPath);
+    if (!absolutePath.startsWith(this.photoRoot)) {
+      throw new NotFoundException('Invalid photo path');
+    }
+
+    try {
+      await fs.access(absolutePath);
+    } catch {
+      throw new NotFoundException('Photo file not found on disk');
+    }
+
+    const stream = createReadStream(absolutePath);
+    return { stream, mimeType: 'image/jpeg' };
   }
 }

@@ -1,10 +1,15 @@
 import {
   Controller,
   Post,
+  Get,
+  Param,
+  Query,
   UseInterceptors,
   UploadedFile,
   UseGuards,
   BadRequestException,
+  StreamableFile,
+  Header,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../common/guards/jwt.guard';
@@ -39,5 +44,63 @@ export class PhotosController {
       file.mimetype,
       file.buffer,
     );
+  }
+
+  @Post(':id/retry')
+  async retry(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string; name: string },
+  ) {
+    return this.photosService.retry(id, user.id);
+  }
+
+  @Get('tags')
+  async getTags(
+    @Query('q') q: string | undefined,
+    @CurrentUser() user: { id: string; name: string },
+  ) {
+    return this.photosService.getTags(user.id, q);
+  }
+
+  @Get()
+  async list(
+    @Query('cursor') cursor: string | undefined,
+    @Query('limit') limit: string | undefined,
+    @Query('tag') tag: string | undefined,
+    @CurrentUser() user: { id: string; name: string },
+  ) {
+    const parsedLimit = limit ? parseInt(limit, 10) : undefined;
+    if (parsedLimit !== undefined && (isNaN(parsedLimit) || parsedLimit < 1)) {
+      throw new BadRequestException('limit must be a positive integer');
+    }
+    return this.photosService.list(user.id, cursor, parsedLimit, tag);
+  }
+
+  @Get(':id')
+  async findById(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string; name: string },
+  ) {
+    return this.photosService.findById(id, user.id);
+  }
+
+  @Get(':id/thumbnail')
+  @Header('Content-Type', 'image/webp')
+  async thumbnail(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string; name: string },
+  ) {
+    const { stream } = await this.photosService.getThumbnailStream(id, user.id);
+    return new StreamableFile(stream);
+  }
+
+  @Get(':id/preview')
+  @Header('Content-Type', 'image/jpeg')
+  async preview(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string; name: string },
+  ) {
+    const { stream } = await this.photosService.getPreviewStream(id, user.id);
+    return new StreamableFile(stream);
   }
 }
