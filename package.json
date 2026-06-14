@@ -1,6 +1,6 @@
 {
   "name": "smart-files",
-  "version": "0.0.20",
+  "version": "$(node",
   "private": true,
   "workspaces": [
     "packages/*"
