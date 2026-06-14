@@ -11,6 +11,7 @@ export interface FileItem {
   size: string;
   mimeType: string | null;
   folderId: string | null;
+  photoId?: string;
   createdAt: string;
 }
 

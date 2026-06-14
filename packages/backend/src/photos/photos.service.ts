@@ -104,6 +104,19 @@ export class PhotosService {
       },
     });
 
+    // Also create a File record so photos appear in the Files tab
+    await this.prisma.file.create({
+      data: {
+        userId,
+        name: originalName,
+        storageKey: relativePath,
+        size: BigInt(size),
+        mimeType,
+        photoId: photo.id,
+        deletedAt: null,
+      },
+    });
+
     // Enqueue async jobs
     await this.thumbnailQueue.add('process', { photoId: photo.id });
     await this.aiTaggingQueue.add('process', { photoId: photo.id });

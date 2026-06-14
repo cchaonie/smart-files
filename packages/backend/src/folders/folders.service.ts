@@ -34,6 +34,7 @@ export class FoldersService {
           size: true,
           mimeType: true,
           folderId: true,
+          photoId: true,
           createdAt: true,
         },
       }),
@@ -48,6 +49,7 @@ export class FoldersService {
         ...f,
         size: f.size.toString(),
         createdAt: f.createdAt.toISOString(),
+        photoId: f.photoId ?? undefined,
       })),
     };
   }

@@ -54,6 +54,8 @@ model File {
   storageKey String
   size       BigInt
   mimeType   String?
+  photoId    String?  @unique
+  photo      Photo?   @relation(fields: [photoId], references: [id], onDelete: SetNull)
   deletedAt  DateTime?
   createdAt  DateTime @default(now())
   shares     Share[]
@@ -114,6 +116,7 @@ model Photo {
   updatedAt    DateTime      @updatedAt
   tags         PhotoTag[]
   albumMemberships AlbumPhotoMember[]
+  file         File?
 
   @@index([userId])
   @@index([capturedAt])
