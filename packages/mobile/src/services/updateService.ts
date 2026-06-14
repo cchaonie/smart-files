@@ -1,9 +1,5 @@
 import { Platform, Linking } from 'react-native';
-import {
-  cacheDirectory,
-  createDownloadResumable,
-  getContentUriAsync,
-} from 'expo-file-system/build/legacy/FileSystem';
+import { createDownloadResumable, getContentUriAsync, cacheDirectory } from 'expo-file-system/legacy';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
