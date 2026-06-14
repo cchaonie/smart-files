@@ -358,17 +358,36 @@ export function FilesPage() {
 
   return (
     <div className="px-4 py-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-          {viewingTrash ? t.trashTitle : currentFolderName}
-        </h1>
-        <div className="flex items-center gap-2">
+      {/* Header with breadcrumb */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="min-w-0 flex-1">
+          {viewingTrash ? (
+            <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">{t.trashTitle}</h1>
+          ) : (
+            <nav className="flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400 overflow-x-auto pb-0.5">
+              <button onClick={() => setPath([])} className="font-medium text-zinc-900 dark:text-zinc-100 hover:underline whitespace-nowrap">
+                {t.root}
+              </button>
+              {path.map((seg, i) => (
+                <span key={seg.id} className="flex items-center gap-1 min-w-0">
+                  <span className="text-zinc-400 shrink-0">/</span>
+                  <button
+                    onClick={() => setPath(path.slice(0, i + 1))}
+                    className="font-medium text-zinc-900 dark:text-zinc-100 hover:underline truncate"
+                  >
+                    {seg.name}
+                  </button>
+                </span>
+              ))}
+            </nav>
+          )}
+        </div>
+        <div className="flex items-center gap-1 shrink-0 ml-2">
           {!viewingTrash && (
             <>
               <button
                 onClick={() => setIsSelecting(!isSelecting)}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
               >
                 {isSelecting ? t.done : t.select}
               </button>
@@ -386,7 +405,7 @@ export function FilesPage() {
                       setSelectedFolderIds(new Set(allFolderIds));
                     }
                   }}
-                  className="px-3 py-1.5 rounded-lg text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                 >
                   {[...files, ...folders].every(i => selectedFileIds.has(i.id) || selectedFolderIds.has(i.id)) ? '取消全选' : '全选'}
                 </button>
@@ -399,51 +418,31 @@ export function FilesPage() {
               if (!viewingTrash) { setSearchResults(null); setSearchQuery(''); void loadTrash(); }
               else { void loadBrowse(); }
             }}
-            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
             aria-label={viewingTrash ? t.backToFiles : t.trash}
           >
-            <TrashIcon className={`w-5 h-5 ${viewingTrash ? 'text-blue-500' : 'text-zinc-500'}`} />
+            <TrashIcon className={`w-4 h-4 ${viewingTrash ? 'text-blue-500' : 'text-zinc-500'}`} />
           </button>
         </div>
       </div>
 
-      {/* Breadcrumb */}
-      {!viewingTrash && (
-        <nav className="flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400 mb-4 overflow-x-auto pb-1">
-          <button onClick={() => setPath([])} className="font-medium text-zinc-900 dark:text-zinc-100 hover:underline">
-            {t.root}
-          </button>
-          {path.map((seg, i) => (
-            <span key={seg.id} className="flex items-center gap-1">
-              <span className="text-zinc-400">/</span>
-              <button
-                onClick={() => setPath(path.slice(0, i + 1))}
-                className="font-medium text-zinc-900 dark:text-zinc-100 hover:underline whitespace-nowrap"
-              >
-                {seg.name}
-              </button>
-            </span>
-          ))}
-        </nav>
-      )}
-
       {/* Search */}
       {!viewingTrash && (
-        <div className="relative mb-4">
+        <div className="relative mb-3">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder={t.searchPlaceholder}
-            className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-2.5 pl-10 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400"
+            className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 pl-9 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400"
           />
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
           {searchQuery && (
             <button
               onClick={clearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800"
             >
-              <span className="text-zinc-400 text-xs">✕</span>
+              <span className="text-zinc-400 text-[10px]">✕</span>
             </button>
           )}
         </div>
@@ -521,16 +520,16 @@ export function FilesPage() {
       ) : searchResults === null ? (
         <>
           {/* Folder creation */}
-          <form className="flex items-center gap-2 mb-4" onSubmit={createFolder}>
+          <form className="flex items-center gap-2 mb-3" onSubmit={createFolder}>
             <input
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               placeholder={t.folderName}
-              className="flex-1 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400"
+              className="flex-1 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400"
             />
             <button
               type="submit"
-              className="px-4 py-2.5 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-medium"
+              className="px-3 py-2 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-medium"
             >
               {t.create}
             </button>

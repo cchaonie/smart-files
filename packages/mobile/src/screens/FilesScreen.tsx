@@ -77,13 +77,13 @@ export function FilesScreen() {
   const [renameFileTarget, setRenameFileTarget] = useState<FileItem | null>(null);
   const [shareTarget, setShareTarget] = useState<FileItem | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
-  const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<FileItem[] | null>(null);
 
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [batchMoveTargets, setBatchMoveTargets] = useState<FileItem[] | null>(null);
+  const [uploadExpanded, setUploadExpanded] = useState(false);
 
   const currentParentId = path.length === 0 ? null : path[path.length - 1].id;
 
@@ -346,58 +346,53 @@ export function FilesScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t.yourFiles}</Text>
+      {/* Header with breadcrumb merged */}
+      <View style={[styles.header, path.length > 0 && { paddingVertical: 8 }]}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.headerBreadcrumbScroll} contentContainerStyle={styles.headerBreadcrumbContent}>
+          <TouchableOpacity onPress={() => setPath([])}>
+            <Text style={[styles.headerBreadcrumbLink, path.length === 0 && styles.headerBreadcrumbActive]}>
+              {t.yourFiles}
+            </Text>
+          </TouchableOpacity>
+          {path.map((seg, i) => (
+            <View key={seg.id} style={styles.headerBreadcrumbSeg}>
+              <ChevronRightIcon size={12} color={theme.colors.textTertiary} />
+              <TouchableOpacity onPress={() => setPath(path.slice(0, i + 1))}>
+                <Text style={[styles.headerBreadcrumbLink, i === path.length - 1 && styles.headerBreadcrumbActive]}>
+                  {seg.name}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </ScrollView>
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={() => { setIsSelecting(!isSelecting); if (isSelecting) setSelectedIds(new Set()); }} style={styles.headerBtn}>
-            <Text style={styles.logoutText}>{isSelecting ? '完成' : '选择'}</Text>
+            <Text style={styles.headerBtnText}>{isSelecting ? '完成' : '选择'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setShowSearch(!showSearch)} style={styles.headerBtn}>
-            <MagnifyingGlassIcon size={20} color={theme.colors.textSecondary} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={logout}>
-            <Text style={styles.logoutText}>{t.signOut}</Text>
+          <TouchableOpacity onPress={logout} style={styles.headerBtn}>
+            <Text style={styles.headerBtnText}>{t.signOut}</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Search bar */}
-      {showSearch && (
-        <View style={styles.searchBar}>
-          <MagnifyingGlassIcon size={16} color={theme.colors.textTertiary} />
-          <ScrollView horizontal style={styles.searchInputScroll}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="搜索文件..."
-              placeholderTextColor={theme.colors.textTertiary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoFocus
-            />
-          </ScrollView>
-          {searchQuery ? (
-            <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchResults(null); }}>
-              <Text style={styles.searchClear}>✕</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-      )}
-
-      {/* Breadcrumb */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.breadcrumbBar} contentContainerStyle={styles.breadcrumbContent}>
-        <TouchableOpacity onPress={() => setPath([])}>
-          <Text style={[styles.breadcrumbLink, path.length === 0 && styles.breadcrumbActive]}>全部文件</Text>
-        </TouchableOpacity>
-        {path.map((seg, i) => (
-          <View key={seg.id} style={styles.breadcrumbSeg}>
-            <ChevronRightIcon size={12} color={theme.colors.textTertiary} />
-            <TouchableOpacity onPress={() => setPath(path.slice(0, i + 1))}>
-              <Text style={[styles.breadcrumbLink, i === path.length - 1 && styles.breadcrumbActive]}>{seg.name}</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
-      </ScrollView>
+      {/* Search bar — always visible */}
+      <View style={styles.searchBar}>
+        <MagnifyingGlassIcon size={14} color={theme.colors.textTertiary} />
+        <ScrollView horizontal style={styles.searchInputScroll}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="搜索文件..."
+            placeholderTextColor={theme.colors.textTertiary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </ScrollView>
+        {searchQuery ? (
+          <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchResults(null); }}>
+            <Text style={styles.searchClear}>✕</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
 
       {/* Action bar */}
       <View style={styles.actionBar}>
@@ -421,10 +416,10 @@ export function FilesScreen() {
           <>
             <TouchableOpacity style={styles.actionBtn} onPress={() => setCreateFolderVisible(true)}>
               <PlusIcon size={16} color={theme.colors.textSecondary} />
-              <Text style={styles.actionBtnText}>新建文件夹</Text>
+              <Text style={styles.actionBtnText}>{t.newFolder}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn} onPress={pickFiles}>
-              <Text style={styles.actionBtnText}>上传</Text>
+              <Text style={styles.actionBtnText}>{t.upload}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn} onPress={loadData}>
               <ArrowPathIcon size={16} color={theme.colors.textSecondary} />
@@ -433,35 +428,43 @@ export function FilesScreen() {
         )}
       </View>
 
-      {/* Upload section — items managed by background service */}
+      {/* Upload section — compact collapsible */}
       {hasUploads ? (
         <View style={styles.uploadSection}>
-          <ScrollView style={styles.uploadList} nestedScrollEnabled>
-            <View style={styles.uploadControls}>
-              <Text style={styles.uploadLabel}>后台上传中… 切换到上传标签页查看详情</Text>
+          <TouchableOpacity style={styles.uploadBar} onPress={() => setUploadExpanded(v => !v)} activeOpacity={0.7}>
+            <View style={styles.uploadBarLeft}>
+              <Text style={styles.uploadBarIcon}>⬆</Text>
+              <Text style={styles.uploadBarText}>
+                {uploadItems.filter(i => i.status === 'uploading').length} 项上传中
+              </Text>
             </View>
-            {uploadItems.slice(0, 5).map(item => (
-              <UploadProgressRow
-                key={item.id}
-                item={{
-                  id: parseInt(item.id, 36) || 0,
-                  name: item.filename,
-                  progress: item.progress,
-                  status: item.status as 'pending' | 'uploading' | 'done' | 'error',
-                  error: item.error,
-                }}
-                onRetry={(id) => retryFailed()}
-              />
-            ))}
-            {uploadItems.length > 5 && (
-              <Text style={styles.uploadMoreText}>还有 {uploadItems.length - 5} 项…</Text>
-            )}
-            <View style={styles.uploadActionsRow}>
-              <TouchableOpacity style={styles.uploadActionBtn} onPress={() => clearCompleted()}>
-                <Text style={styles.uploadActionBtnText}>清除已完成</Text>
-              </TouchableOpacity>
+            <Text style={styles.uploadBarArrow}>{uploadExpanded ? '▾' : '▸'}</Text>
+          </TouchableOpacity>
+          {uploadExpanded && (
+            <View style={styles.uploadExpanded}>
+              {uploadItems.slice(0, 5).map(item => (
+                <UploadProgressRow
+                  key={item.id}
+                  item={{
+                    id: parseInt(item.id, 36) || 0,
+                    name: item.filename,
+                    progress: item.progress,
+                    status: item.status as 'pending' | 'uploading' | 'done' | 'error',
+                    error: item.error,
+                  }}
+                  onRetry={(id) => retryFailed()}
+                />
+              ))}
+              {uploadItems.length > 5 && (
+                <Text style={styles.uploadMoreText}>还有 {uploadItems.length - 5} 项…</Text>
+              )}
+              <View style={styles.uploadActionsRow}>
+                <TouchableOpacity style={styles.uploadActionBtn} onPress={() => clearCompleted()}>
+                  <Text style={styles.uploadActionBtnText}>清除已完成</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </ScrollView>
+          )}
         </View>
       ) : null}
 
@@ -550,59 +553,65 @@ export function FilesScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
 
-  // Header
+  // Header (merged with breadcrumb)
   header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 12,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 12, paddingVertical: 10,
     borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight,
+    minHeight: 44,
   },
-  headerTitle: { fontSize: 22, fontWeight: '600', color: theme.colors.text },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerBreadcrumbScroll: { flex: 1, marginRight: 8 },
+  headerBreadcrumbContent: { alignItems: 'center', gap: 3 },
+  headerBreadcrumbSeg: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  headerBreadcrumbLink: { fontSize: 15, color: theme.colors.textSecondary },
+  headerBreadcrumbActive: { color: theme.colors.text, fontWeight: '600' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 0 },
   headerBtn: { padding: 4 },
-  logoutText: { fontSize: 14, color: theme.colors.accent, fontWeight: '500' },
+  headerBtnText: { fontSize: 13, color: theme.colors.accent, fontWeight: '500' },
 
   // File list wrapper
   listWrapper: { flex: 1 },
 
   // Search
   searchBar: {
-    flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 8,
-    paddingHorizontal: 12, paddingVertical: 2, borderRadius: theme.radii.lg,
-    backgroundColor: theme.colors.zinc100, gap: 6,
+    flexDirection: 'row', alignItems: 'center', marginHorizontal: 12, marginTop: 4, marginBottom: 2,
+    paddingHorizontal: 10, paddingVertical: 0, borderRadius: theme.radii.md,
+    backgroundColor: theme.colors.zinc100, gap: 4,
   },
   searchInputScroll: { flex: 1 },
-  searchInput: { flex: 1, paddingVertical: 10, fontSize: 14, color: theme.colors.text },
-  searchClear: { fontSize: 14, color: theme.colors.textTertiary, padding: 4 },
+  searchInput: { flex: 1, paddingVertical: 7, fontSize: 13, color: theme.colors.text },
+  searchClear: { fontSize: 13, color: theme.colors.textTertiary, padding: 2 },
 
-  // Breadcrumb
-  breadcrumbContent: { alignItems: 'center', gap: 4 },
-  breadcrumbBar: { paddingHorizontal: 16, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
-  breadcrumbSeg: { flexDirection: 'row', alignItems: 'center' },
-  breadcrumbLink: { fontSize: 14, color: theme.colors.textSecondary },
-  breadcrumbActive: { color: theme.colors.accent, fontWeight: '500' },
+  // (breadcrumb merged into header above)
 
   // Action bar
   actionBar: {
-    flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 8, gap: 8,
+    flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 6, gap: 6,
     borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight, backgroundColor: theme.colors.zinc50,
   },
   actionBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: theme.radii.md,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: theme.radii.sm,
     backgroundColor: '#fff', borderWidth: 1, borderColor: theme.colors.border,
   },
-  actionBtnText: { fontSize: 13, fontWeight: '500', color: theme.colors.textSecondary },
-  selectCount: { fontSize: 13, color: theme.colors.textSecondary },
+  actionBtnText: { fontSize: 12, fontWeight: '500', color: theme.colors.textSecondary },
+  selectCount: { fontSize: 12, color: theme.colors.textSecondary },
 
-  // Upload
-  uploadSection: { maxHeight: 280, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight, backgroundColor: theme.colors.zinc50 },
-  uploadList: { paddingHorizontal: 16, paddingVertical: 8 },
-  uploadControls: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  uploadLabel: { fontSize: 12, color: theme.colors.textTertiary },
-  uploadMoreText: { fontSize: 12, color: theme.colors.textTertiary, textAlign: 'center', paddingVertical: 8, },
+  // Upload (compact collapsible)
+  uploadSection: { borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight, backgroundColor: theme.colors.zinc50 },
+  uploadBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 12, paddingVertical: 8,
+  },
+  uploadBarLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  uploadBarIcon: { fontSize: 12 },
+  uploadBarText: { fontSize: 12, color: theme.colors.textSecondary },
+  uploadBarArrow: { fontSize: 12, color: theme.colors.textTertiary },
+  uploadExpanded: { paddingHorizontal: 12, paddingBottom: 8, maxHeight: 180 },
+  uploadMoreText: { fontSize: 12, color: theme.colors.textTertiary, textAlign: 'center', paddingVertical: 6 },
   uploadActionsRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  uploadActionBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, borderWidth: 1, borderColor: theme.colors.border },
-  uploadActionBtnText: { fontSize: 12, color: theme.colors.textSecondary },
+  uploadActionBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: theme.colors.border },
+  uploadActionBtnText: { fontSize: 11, color: theme.colors.textSecondary },
   uploadDanger: { borderColor: theme.colors.danger },
   uploadDangerText: { fontSize: 12, color: theme.colors.danger },
 

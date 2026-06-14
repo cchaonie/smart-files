@@ -97,6 +97,11 @@ export interface ShareEntry {
   role: string;
 }
 
+export interface TagWithCount {
+  tag: string;
+  count: number;
+}
+
 export interface PhotoTimelineResponse {
   photos: Photo[];
   nextCursor: string | null;
