@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiClient, { withAuth } from './client';
-import type { Photo, PhotoTimelineResponse } from '../types';
+import type { Photo, PhotoTimelineResponse, TagWithCount } from '../types';
 
 export interface PhotoUploadResult {
   id: string;
@@ -39,10 +39,18 @@ export const photosApi = {
     });
   },
 
-  list: async (cursor?: string, limit: number = 20): Promise<PhotoTimelineResponse> => {
+  list: async (cursor?: string, limit: number = 20, tag?: string): Promise<PhotoTimelineResponse> => {
     const params: Record<string, string | number> = { limit };
     if (cursor) params.cursor = cursor;
+    if (tag) params.tag = tag;
     const res = await apiClient.get('/photos', { params });
+    return res.data;
+  },
+
+  getTags: async (q?: string): Promise<{ tags: TagWithCount[] }> => {
+    const params: Record<string, string> = {};
+    if (q) params.q = q;
+    const res = await apiClient.get('/photos/tags', { params });
     return res.data;
   },
 

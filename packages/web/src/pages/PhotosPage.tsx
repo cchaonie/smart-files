@@ -509,49 +509,45 @@ export function PhotosPage() {
         </div>
       )}
 
-      {/* Floating action buttons */}
-      {photos.length > 0 && (
-        <>
-          <button
-            onClick={() => {
-              void loadTagsForBrowser();
-              setTagBrowserOpen(true);
-            }}
-            className="fixed bottom-36 right-4 z-30 w-12 h-12 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
-            aria-label="Tag browser"
-          >
-            <TagIcon className="w-5 h-5" />
-          </button>
+      {/* Floating action buttons — always visible */}
+      <button
+        onClick={() => {
+          void loadTagsForBrowser();
+          setTagBrowserOpen(true);
+        }}
+        className="fixed bottom-36 right-4 z-30 w-12 h-12 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+        aria-label="Tag browser"
+      >
+        <TagIcon className="w-5 h-5" />
+      </button>
 
-          <button
-            onClick={() => setDatePickerOpen(true)}
-            className="fixed bottom-24 right-4 z-30 w-12 h-12 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
-            aria-label="Date picker"
-          >
-            <CalendarIcon className="w-5 h-5" />
-          </button>
+      <button
+        onClick={() => setDatePickerOpen(true)}
+        className="fixed bottom-24 right-4 z-30 w-12 h-12 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+        aria-label="Date picker"
+      >
+        <CalendarIcon className="w-5 h-5" />
+      </button>
 
-          <AnimatePresence>
-            {datePickerOpen && (
-              <DatePickerOverlay
-                months={getMonthsFromPhotos(photos)}
-                onSelect={handleMonthSelect}
-                onClose={() => setDatePickerOpen(false)}
-              />
-            )}
-          </AnimatePresence>
+      <AnimatePresence>
+        {datePickerOpen && (
+          <DatePickerOverlay
+            months={getMonthsFromPhotos(photos)}
+            onSelect={handleMonthSelect}
+            onClose={() => setDatePickerOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
-          <AnimatePresence>
-            {tagBrowserOpen && (
-              <TagBrowserOverlay
-                tags={browserTags}
-                onSelect={applyTagFilter}
-                onClose={() => setTagBrowserOpen(false)}
-              />
-            )}
-          </AnimatePresence>
-        </>
-      )}
+      <AnimatePresence>
+        {tagBrowserOpen && (
+          <TagBrowserOverlay
+            tags={browserTags}
+            onSelect={applyTagFilter}
+            onClose={() => setTagBrowserOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Photo detail modal */}
       <AnimatePresence>

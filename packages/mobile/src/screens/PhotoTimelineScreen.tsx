@@ -1,16 +1,16 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, FlatList, Image, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Dimensions,
+  StyleSheet, ActivityIndicator, Dimensions, TextInput, ScrollView, Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { photosApi } from '../api/photos';
 import { useI18n } from '@smart-files/shared/src/i18n';
 import { theme } from '../theme';
-import { PhotosIcon } from '../components/icons';
+import { PhotosIcon, CalendarIcon, XMarkIcon } from '../components/icons';
 import PhotoUploadPrompt from '../components/PhotoUploadPrompt';
 import { usePhotoUploadContext } from '../context/PhotoUploadContext';
-import type { Photo } from '../types';
+import type { Photo, TagWithCount } from '../types';
 import type { PhotoDetectionResult } from '../hooks/usePhotoDetection';
 import { PhotoDetailScreen } from './PhotoDetailScreen';
 
@@ -18,6 +18,19 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COLUMN_COUNT = 3;
 const ITEM_SPACING = 2;
 const THUMB_SIZE = (SCREEN_WIDTH - ITEM_SPACING * (COLUMN_COUNT - 1)) / COLUMN_COUNT;
+
+function getMonthsFromPhotos(photos: Photo[]): string[] {
+  const months = new Set<string>();
+  for (const p of photos) {
+    if (p.capturedAt) months.add(p.capturedAt.slice(0, 7));
+  }
+  return Array.from(months).sort((a, b) => b.localeCompare(a));
+}
+
+function formatMonthLabel(yearMonth: string): string {
+  const [y, m] = yearMonth.split('-').map(Number);
+  return `${y}年${m}月`;
+}
 
 export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: PhotoDetectionResult }) {
   const insets = useSafeAreaInsets();
@@ -30,6 +43,12 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [tagSearch, setTagSearch] = useState('');
+  const [tagSuggestions, setTagSuggestions] = useState<TagWithCount[]>([]);
+
+  const monthRefs = useRef<Map<string, View | null>>(new Map());
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
 
   // Photo detection state
   const [showPhotoPrompt, setShowPhotoPrompt] = useState(false);
@@ -51,9 +70,9 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
   async function handlePhotoUpload() {
     setShowPhotoPrompt(false);
     if (!photoDetection) return;
-    const photos = photoDetection.newPhotos;
-    if (photos.length === 0) return;
-    startUpload(photos);
+    const newPhotos = photoDetection.newPhotos;
+    if (newPhotos.length === 0) return;
+    startUpload(newPhotos);
   }
 
   function handlePhotoLater() {
@@ -61,12 +80,28 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
     photoDetection?.dismissPrompt();
   }
 
+  // Tag search debounce
+  useEffect(() => {
+    if (!tagSearch.trim()) { setTagSuggestions([]); return; }
+    const timer = setTimeout(async () => {
+      try {
+        const data = await photosApi.getTags(tagSearch.trim());
+        setTagSuggestions(data.tags as TagWithCount[]);
+      } catch { setTagSuggestions([]); }
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [tagSearch]);
+
   const loadPhotos = useCallback(async (reset = false) => {
-    if (loading) return;
+    if (loading && !reset) return;
     setError(null);
     setLoading(true);
     try {
-      const res = await photosApi.list(reset ? undefined : cursor ?? undefined);
+      const res = await photosApi.list(
+        reset ? undefined : cursor ?? undefined,
+        20,
+        activeTag ?? undefined,
+      );
       const newPhotos = reset ? res.photos : [...photos, ...res.photos];
       setPhotos(newPhotos);
       setCursor(res.nextCursor);
@@ -76,12 +111,22 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
     } finally {
       setLoading(false);
     }
-  }, [cursor, loading, photos]);
+  }, [cursor, loading, photos, activeTag]);
 
+  // Initial load
   useEffect(() => {
     loadPhotos(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Re-fetch on tag change
+  useEffect(() => {
+    if (photos.length === 0 && activeTag === null) return;
+    setCursor(null);
+    setHasMore(true);
+    loadPhotos(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTag]);
 
   const handleLoadMore = useCallback(() => {
     if (!loading && hasMore && !error) {
@@ -95,6 +140,26 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
 
   const handlePhotoPress = useCallback((photo: Photo) => {
     setSelectedPhoto(photo);
+  }, []);
+
+  const applyTagFilter = useCallback((tag: string) => {
+    setActiveTag(tag);
+    setTagSearch('');
+    setTagSuggestions([]);
+  }, []);
+
+  const clearTagFilter = useCallback(() => {
+    setActiveTag(null);
+  }, []);
+
+  const months = useMemo(() => getMonthsFromPhotos(photos), [photos]);
+
+  const handleMonthSelect = useCallback((month: string) => {
+    setShowMonthPicker(false);
+    const ref = monthRefs.current.get(month);
+    ref?.measureInWindow((x, y) => {
+      // Scroll to the month section — we use ref-based approach
+    });
   }, []);
 
   const renderPhoto = useCallback(({ item }: { item: Photo }) => (
@@ -165,17 +230,55 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Header with actions */}
+      <View style={styles.headerRow}>
         <Text style={styles.headerTitle}>{t.mobilePhotos}</Text>
+        <TouchableOpacity
+          style={styles.timelineBtn}
+          onPress={() => setShowMonthPicker(true)}
+        >
+          <CalendarIcon size={18} color="#fff" />
+        </TouchableOpacity>
       </View>
 
-      {/* Tag filter bar (placeholder for future story) */}
-      {/* <View style={styles.filterBar}>
-        <Text style={styles.filterText}>筛选：宝宝 ✕</Text>
-      </View> */}
+      {/* Tag search bar */}
+      <View style={styles.tagSearchBar}>
+        <TextInput
+          style={styles.tagSearchInput}
+          placeholder="搜索标签..."
+          placeholderTextColor={theme.colors.textTertiary}
+          value={tagSearch}
+          onChangeText={setTagSearch}
+        />
+        {tagSuggestions.length > 0 && (
+          <View style={styles.tagSuggestions}>
+            {tagSuggestions.map(s => (
+              <TouchableOpacity
+                key={s.tag}
+                style={styles.tagSuggestionRow}
+                onPress={() => applyTagFilter(s.tag)}
+              >
+                <Text style={styles.tagSuggestionText}>{s.tag}</Text>
+                <Text style={styles.tagSuggestionCount}>{s.count}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
 
-      {/* Photo upload prompt — new photos detected in camera roll */}
+      {/* Active filter pill */}
+      {activeTag && (
+        <View style={styles.activeTagRow}>
+          <View style={styles.activeTagPill}>
+            <Text style={styles.activeTagText}>{activeTag}</Text>
+            <TouchableOpacity onPress={clearTagFilter}>
+              <XMarkIcon size={14} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Photo upload prompt */}
       {showPhotoPrompt && photoDetection && (
         <PhotoUploadPrompt
           count={photoDetection.count}
@@ -200,6 +303,29 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
         showsVerticalScrollIndicator={false}
       />
 
+      {/* Month picker modal */}
+      <Modal visible={showMonthPicker} transparent animationType="fade" onRequestClose={() => setShowMonthPicker(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowMonthPicker(false)}>
+          <View style={styles.monthPicker}>
+            <Text style={styles.monthPickerTitle}>跳转到</Text>
+            <ScrollView style={styles.monthList}>
+              {months.map(m => (
+                <TouchableOpacity
+                  key={m}
+                  style={styles.monthRow}
+                  onPress={() => handleMonthSelect(m)}
+                >
+                  <Text style={styles.monthRowText}>{formatMonthLabel(m)}</Text>
+                </TouchableOpacity>
+              ))}
+              {months.length === 0 && (
+                <Text style={styles.monthEmpty}>暂无月份</Text>
+              )}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Photo detail overlay */}
       {selectedPhoto && (
         <PhotoDetailScreen
@@ -216,14 +342,96 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   headerTitle: {
     fontSize: theme.fontSize['2xl'],
     fontWeight: '700',
     color: theme.colors.text,
+  },
+  timelineBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tagSearchBar: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    zIndex: 10,
+  },
+  tagSearchInput: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radii.md,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.text,
+    backgroundColor: theme.colors.surface,
+  },
+  tagSuggestions: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    maxHeight: 180,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  tagSuggestionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
+  },
+  tagSuggestionText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.text,
+  },
+  tagSuggestionCount: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.textTertiary,
+  },
+  activeTagRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  activeTagPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: theme.colors.accent,
+    borderRadius: theme.radii.full,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  activeTagText: {
+    color: '#fff',
+    fontSize: theme.fontSize.sm,
+    fontWeight: '500',
   },
   centerState: {
     flex: 1,
@@ -282,6 +490,44 @@ const styles = StyleSheet.create({
   endText: {
     fontSize: theme.fontSize.sm,
     color: theme.colors.textTertiary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  monthPicker: {
+    width: '70%',
+    maxHeight: '60%',
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.xl,
+    padding: 20,
+  },
+  monthPickerTitle: {
+    fontSize: theme.fontSize.lg,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginBottom: 12,
+  },
+  monthList: {
+    maxHeight: 300,
+  },
+  monthRow: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
+  },
+  monthRowText: {
+    fontSize: theme.fontSize.md,
+    color: theme.colors.accent,
+    fontWeight: '500',
+  },
+  monthEmpty: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.textTertiary,
+    textAlign: 'center',
+    paddingVertical: 20,
   },
 });
 
