@@ -460,6 +460,23 @@ export function FilesPage() {
             />
           ) : (
             <>
+              {/* 全选 / 批量操作栏 */}
+              <div className="mb-3 flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    const allIds = trashFiles.map(f => f.id);
+                    const allSelected = allIds.every(id => selectedTrashIds.has(id));
+                    if (allSelected) {
+                      setSelectedTrashIds(new Set());
+                    } else {
+                      setSelectedTrashIds(new Set(allIds));
+                    }
+                  }}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                >
+                  {trashFiles.every(f => selectedTrashIds.has(f.id)) ? t.deselectAll : t.selectAll}
+                </button>
+              </div>
               {selectedTrashIds.size > 0 && (
                 <div className="mb-3 flex items-center gap-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-2">
                   <span className="text-sm font-medium text-zinc-700 dark:text-zinc-200">

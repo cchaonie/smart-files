@@ -8,10 +8,10 @@ function authUrl(path: string): string {
 }
 
 export const photosApi = {
-  list: async (cursor?: string, limit: number = 20, tag?: string): Promise<PhotoTimelineResponse> => {
+  list: async (cursor?: string, limit: number = 20, tags?: string[]): Promise<PhotoTimelineResponse> => {
     const params: Record<string, string | number> = { limit };
     if (cursor) params.cursor = cursor;
-    if (tag) params.tag = tag;
+    if (tags && tags.length > 0) params.tags = tags.join(',');
     const res = await apiClient.get<PhotoTimelineResponse>('/photos', { params });
     return res.data;
   },

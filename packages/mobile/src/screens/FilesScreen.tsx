@@ -85,6 +85,15 @@ export function FilesScreen() {
   const [batchMoveTargets, setBatchMoveTargets] = useState<FileItem[] | null>(null);
   const [uploadExpanded, setUploadExpanded] = useState(false);
 
+  // Trash state
+  const [viewingTrash, setViewingTrash] = useState(false);
+  const [trashFiles, setTrashFiles] = useState<Array<{
+    id: string; name: string; size: string; folderName: string | null;
+    deletedAt: string; folderId: string | null;
+  }> | null>(null);
+  const [trashLoading, setTrashLoading] = useState(false);
+  const [selectedTrashIds, setSelectedTrashIds] = useState<Set<string>>(new Set());
+
   const currentParentId = path.length === 0 ? null : path[path.length - 1].id;
 
   // --- Data loading ---
@@ -188,6 +197,76 @@ export function FilesScreen() {
       return;
     }
     setBatchMoveTargets(targetFiles);
+  }
+
+  // --- Trash ---
+  function toggleTrashSelect(id: string) {
+    setSelectedTrashIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  async function loadTrash() {
+    setTrashLoading(true);
+    try {
+      const files = await filesApi.listTrash();
+      setTrashFiles(files);
+    } catch {
+      setTrashFiles([]);
+    } finally {
+      setTrashLoading(false);
+    }
+  }
+
+  async function handleRestore(id: string) {
+    try {
+      await filesApi.restoreFile(id);
+      await loadTrash();
+    } catch { Alert.alert('错误', '恢复失败'); }
+  }
+
+  async function handlePurge(id: string) {
+    Alert.alert('永久删除', '确认永久删除该文件？', [
+      { text: '取消', style: 'cancel' },
+      { text: '删除', style: 'destructive', onPress: async () => {
+        try { await filesApi.purgeFile(id); await loadTrash(); }
+        catch { Alert.alert('错误', '删除失败'); }
+      }},
+    ]);
+  }
+
+  async function handleBatchRestoreTrash() {
+    try {
+      await filesApi.batchRestore(Array.from(selectedTrashIds));
+      setSelectedTrashIds(new Set());
+      await loadTrash();
+    } catch { Alert.alert('错误', '批量恢复失败'); }
+  }
+
+  async function handleBatchPurgeTrash() {
+    Alert.alert('永久删除', `确认永久删除选中的 ${selectedTrashIds.size} 个文件？`, [
+      { text: '取消', style: 'cancel' },
+      { text: '删除', style: 'destructive', onPress: async () => {
+        try {
+          await filesApi.batchPurge(Array.from(selectedTrashIds));
+          setSelectedTrashIds(new Set());
+          await loadTrash();
+        } catch { Alert.alert('错误', '批量永久删除失败'); }
+      }},
+    ]);
+  }
+
+  async function handleEmptyTrash() {
+    if (!trashFiles) return;
+    Alert.alert('清空回收站', `确认永久删除所有 ${trashFiles.length} 个文件？此操作不可恢复。`, [
+      { text: '取消', style: 'cancel' },
+      { text: '清空', style: 'destructive', onPress: async () => {
+        try { await filesApi.emptyTrash(); await loadTrash(); }
+        catch { Alert.alert('错误', '清空回收站失败'); }
+      }},
+    ]);
   }
 
   // --- File ops ---
@@ -375,8 +454,8 @@ export function FilesScreen() {
         </View>
       </View>
 
-      {/* Search bar — always visible */}
-      <View style={styles.searchBar}>
+      {/* Search bar — hidden in trash view */}
+      {!viewingTrash && (<View style={styles.searchBar}>
         <MagnifyingGlassIcon size={14} color={theme.colors.textTertiary} />
         <ScrollView horizontal style={styles.searchInputScroll}>
           <TextInput
@@ -392,11 +471,11 @@ export function FilesScreen() {
             <Text style={styles.searchClear}>✕</Text>
           </TouchableOpacity>
         ) : null}
-      </View>
+      </View>)}
 
       {/* Action bar */}
       <View style={styles.actionBar}>
-        {isSelecting ? (
+        {isSelecting && !viewingTrash ? (
           <>
             <TouchableOpacity style={styles.actionBtn} onPress={() => {
               const allIds = [...folders, ...files].map(i => i.id);
@@ -412,6 +491,31 @@ export function FilesScreen() {
             </TouchableOpacity>
             <Text style={styles.selectCount}>已选 {selectedIds.size} 项</Text>
           </>
+        ) : viewingTrash ? (
+          <>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => {
+              if (!trashFiles) return;
+              const allIds = trashFiles.map(f => f.id);
+              if (allIds.every(id => selectedTrashIds.has(id))) {
+                setSelectedTrashIds(new Set());
+              } else {
+                setSelectedTrashIds(new Set(allIds));
+              }
+            }}>
+              <Text style={styles.actionBtnText}>
+                {trashFiles && trashFiles.every(f => selectedTrashIds.has(f.id)) ? '取消全选' : '全选'}
+              </Text>
+            </TouchableOpacity>
+            <Text style={styles.selectCount}>{t.trashTitle}</Text>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => {
+              setViewingTrash(false);
+              setSelectedTrashIds(new Set());
+              setTrashFiles(null);
+              loadData();
+            }}>
+              <Text style={styles.actionBtnText}>{t.backToFiles}</Text>
+            </TouchableOpacity>
+          </>
         ) : (
           <>
             <TouchableOpacity style={styles.actionBtn} onPress={() => setCreateFolderVisible(true)}>
@@ -421,6 +525,9 @@ export function FilesScreen() {
             <TouchableOpacity style={styles.actionBtn} onPress={pickFiles}>
               <Text style={styles.actionBtnText}>{t.upload}</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => { setViewingTrash(true); setSearchQuery(''); setSearchResults(null); loadTrash(); }}>
+              <TrashIcon size={16} color={theme.colors.textSecondary} />
+            </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn} onPress={loadData}>
               <ArrowPathIcon size={16} color={theme.colors.textSecondary} />
             </TouchableOpacity>
@@ -429,7 +536,7 @@ export function FilesScreen() {
       </View>
 
       {/* Upload section — compact collapsible */}
-      {hasUploads ? (
+      {!viewingTrash && hasUploads ? (
         <View style={styles.uploadSection}>
           <TouchableOpacity style={styles.uploadBar} onPress={() => setUploadExpanded(v => !v)} activeOpacity={0.7}>
             <View style={styles.uploadBarLeft}>
@@ -471,8 +578,71 @@ export function FilesScreen() {
       {/* File list wrapper — takes remaining flex space */}
       <View style={styles.listWrapper}>
 
-      {/* File list */}
-      {listError ? <Text style={styles.errorText}>{listError}</Text> : null}
+      {/* Trash view */}
+      {viewingTrash ? (
+        <FlatList
+          data={trashFiles ?? []}
+          renderItem={({ item }) => {
+            const isSelected = selectedTrashIds.has(item.id);
+            return (
+              <TouchableOpacity
+                style={[styles.fileRow, isSelected && styles.selectedRow]}
+                activeOpacity={0.7}
+                onPress={() => toggleTrashSelect(item.id)}
+                onLongPress={() => {
+                  Alert.alert(item.name, undefined, [
+                    { text: '恢复', onPress: () => handleRestore(item.id) },
+                    { text: '永久删除', style: 'destructive', onPress: () => handlePurge(item.id) },
+                    { text: '取消', style: 'cancel' },
+                  ]);
+                }}
+              >
+                <View style={styles.checkbox}>
+                  <View style={[styles.checkboxBox, isSelected && styles.checkboxChecked]}>
+                    {isSelected && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                </View>
+                <View style={styles.fileInfo}>
+                  <View style={[styles.thumbBox, styles.thumbPlaceholder]}>
+                    <Text style={styles.thumbText}>{item.name.split('.').pop()?.toUpperCase().slice(0, 3) || '?'}</Text>
+                  </View>
+                  <View style={styles.fileDetails}>
+                    <Text style={styles.fileName} numberOfLines={1}>{item.name}</Text>
+                    <Text style={styles.fileSize}>
+                      {(item.folderName || t.root)} · {new Date(item.deletedAt).toLocaleDateString()}
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity style={styles.actionDot} onPress={() => handleRestore(item.id)}>
+                  <Text style={{ fontSize: 18 }}>↩</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.actionDot} onPress={() => handlePurge(item.id)}>
+                  <Text style={{ fontSize: 18, color: '#ef4444' }}>✕</Text>
+                </TouchableOpacity>
+              </TouchableOpacity>
+            );
+          }}
+          keyExtractor={item => item.id}
+          refreshControl={<RefreshControl refreshing={trashLoading} onRefresh={loadTrash} tintColor={theme.colors.accent} />}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyIcon}>🗑️</Text>
+              <Text style={styles.emptyTitle}>{trashLoading ? '加载中...' : t.trashEmpty}</Text>
+            </View>
+          }
+          contentContainerStyle={!trashFiles || trashFiles.length === 0 ? styles.listEmpty : undefined}
+          ListFooterComponent={
+            trashFiles && trashFiles.length > 0 ? (
+              <TouchableOpacity
+                onPress={handleEmptyTrash}
+                style={{ paddingVertical: 16, alignItems: 'center' }}
+              >
+                <Text style={{ fontSize: 13, color: theme.colors.danger }}>{t.emptyTrash}</Text>
+              </TouchableOpacity>
+            ) : null
+          }
+        />
+      ) : listError ? <Text style={styles.errorText}>{listError}</Text> : null}
 
       {/* Search results */}
       {searchResults ? (
@@ -512,8 +682,8 @@ export function FilesScreen() {
 
       </View>{/* end listWrapper */}
 
-      {/* Batch action bar */}
-      {selectedIds.size > 0 && (
+      {/* Batch action bar for files */}
+      {selectedIds.size > 0 && !viewingTrash && (
         <View style={styles.batchBar}>
           <Text style={styles.batchBarCount}>已选择 {selectedIds.size} 项</Text>
           <View style={styles.batchBarActions}>
@@ -526,6 +696,24 @@ export function FilesScreen() {
               <Text style={styles.batchBarBtnText}>删除</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.batchBarBtn} onPress={clearSelection}>
+              <XMarkIcon size={18} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Batch action bar for trash */}
+      {selectedTrashIds.size > 0 && viewingTrash && (
+        <View style={styles.batchBar}>
+          <Text style={styles.batchBarCount}>已选择 {selectedTrashIds.size} 项</Text>
+          <View style={styles.batchBarActions}>
+            <TouchableOpacity style={styles.batchBarBtn} onPress={handleBatchRestoreTrash}>
+              <Text style={styles.batchBarBtnText}>↩ 恢复</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.batchBarBtn, styles.batchBarBtnDanger]} onPress={handleBatchPurgeTrash}>
+              <Text style={styles.batchBarBtnText}>永久删除</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.batchBarBtn} onPress={() => setSelectedTrashIds(new Set())}>
               <XMarkIcon size={18} color="#fff" />
             </TouchableOpacity>
           </View>

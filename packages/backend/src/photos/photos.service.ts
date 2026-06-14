@@ -184,15 +184,15 @@ export class PhotosService {
     userId: string,
     cursor?: string,
     limit?: number,
-    tag?: string,
+    tags?: string[],
   ) {
     const take = Math.min(limit ?? 20, 100);
 
     // Build where clause
     const where: any = { userId };
 
-    if (tag) {
-      where.tags = { some: { tag } };
+    if (tags && tags.length > 0) {
+      where.tags = { some: { tag: { in: tags } } };
     }
 
     if (cursor) {
