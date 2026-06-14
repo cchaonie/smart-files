@@ -1,6 +1,6 @@
 {
   "name": "smart-files",
-  "version": "0.1.0",
+  "version": "0.0.20",
   "private": true,
   "workspaces": [
     "packages/*"
@@ -27,7 +27,8 @@
     "pm2:logs": "pm2 logs smart-files-backend",
     "pm2:status": "pm2 status",
     "deploy:api": "npm run prd:backendbuild && pm2 restart smart-files-backend",
-    "deploy": "bash ./scripts/deploy.sh"
+    "deploy": "bash ./scripts/deploy.sh",
+    "version:sync": "node -e \"var v=process.argv[1];['package.json','packages/mobile/package.json'].forEach(function(f){var p=require('./'+f);p.version=v;require('fs').writeFileSync(f,JSON.stringify(p,null,2)+'\\n')});console.log('version ->',v)\""
   },
   "devDependencies": {
     "@types/multer": "^2.1.0",
