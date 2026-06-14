@@ -20,7 +20,7 @@ import { theme } from '../theme';
 import {
   FolderIcon, FolderOpenIcon, PlusIcon, TrashIcon,
   MagnifyingGlassIcon, ArrowPathIcon, EllipsisVerticalIcon,
-  ChevronRightIcon,
+  ChevronRightIcon, XMarkIcon,
 } from '../components/icons';
 import { PhotoDetailScreen } from './PhotoDetailScreen';
 import type { FileItem, Folder, Photo } from '../types';
@@ -80,6 +80,10 @@ export function FilesScreen() {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<FileItem[] | null>(null);
+
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchMoveTargets, setBatchMoveTargets] = useState<FileItem[] | null>(null);
 
   const currentParentId = path.length === 0 ? null : path[path.length - 1].id;
 
@@ -142,6 +146,48 @@ export function FilesScreen() {
         } catch (e) { Alert.alert('错误', e instanceof Error ? e.message : '删除失败'); }
       }},
     ]);
+  }
+
+  // --- Selection ---
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+    setIsSelecting(false);
+  }
+
+  async function handleBatchDelete() {
+    const count = selectedIds.size;
+    Alert.alert('删除', `确认删除选中的 ${count} 个项目？`, [
+      { text: '取消', style: 'cancel' },
+      { text: '删除', style: 'destructive', onPress: async () => {
+        try {
+          const fileIds = files.filter(f => selectedIds.has(f.id)).map(f => f.id);
+          const folderIds = folders.filter(f => selectedIds.has(f.id)).map(f => f.id);
+          if (fileIds.length > 0) await filesApi.batchDelete(fileIds);
+          for (const fid of folderIds) await foldersApi.deleteFolder(fid);
+          clearSelection();
+          await loadData();
+        } catch (e) {
+          Alert.alert('错误', e instanceof Error ? e.message : '批量删除失败');
+        }
+      }},
+    ]);
+  }
+
+  function handleBatchMove() {
+    const targetFiles = files.filter(f => selectedIds.has(f.id));
+    if (targetFiles.length === 0) {
+      Alert.alert('提示', '请选择要移动的文件');
+      return;
+    }
+    setBatchMoveTargets(targetFiles);
   }
 
   // --- File ops ---
@@ -213,10 +259,13 @@ export function FilesScreen() {
     if ('mimeType' in item) {
       const file = item as FileItem;
       const previewable = isPreviewableImage(file.mimeType, file.name);
+      const isSelected = selectedIds.has(file.id);
       return (
-        <TouchableOpacity style={styles.fileRow} activeOpacity={0.7}
+        <TouchableOpacity style={[styles.fileRow, isSelecting && isSelected && styles.selectedRow]} activeOpacity={0.7}
           onPress={() => {
-            if (file.photoId) {
+            if (isSelecting) {
+              toggleSelect(file.id);
+            } else if (file.photoId) {
               setPreviewFile(null);
               photosApi.getById(file.photoId).then(setSelectedPhoto).catch(() => {
                 setPreviewFile(file);
@@ -225,8 +274,15 @@ export function FilesScreen() {
               setPreviewFile(file);
             }
           }}
-          onLongPress={() => showFileActions(file)}
+          onLongPress={() => { if (!isSelecting) showFileActions(file); }}
         >
+          {isSelecting && (
+            <View style={styles.checkbox}>
+              <View style={[styles.checkboxBox, isSelected && styles.checkboxChecked]}>
+                {isSelected && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+            </View>
+          )}
           <View style={styles.fileInfo}>
             <View style={[styles.thumbBox, previewable ? undefined : styles.thumbPlaceholder]}>
               {previewable ? (
@@ -242,18 +298,34 @@ export function FilesScreen() {
               </Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.actionDot} onPress={() => showFileActions(file)}>
-            <EllipsisVerticalIcon size={18} color={theme.colors.textTertiary} />
-          </TouchableOpacity>
+          {!isSelecting && (
+            <TouchableOpacity style={styles.actionDot} onPress={() => showFileActions(file)}>
+              <EllipsisVerticalIcon size={18} color={theme.colors.textTertiary} />
+            </TouchableOpacity>
+          )}
         </TouchableOpacity>
       );
     }
     const folder = item as Folder;
+    const isSelected = selectedIds.has(folder.id);
     return (
-      <TouchableOpacity style={styles.fileRow} activeOpacity={0.7}
-        onPress={() => setPath(p => [...p, { id: folder.id, name: folder.name }])}
-        onLongPress={() => showFolderActions(folder)}
+      <TouchableOpacity style={[styles.fileRow, isSelecting && isSelected && styles.selectedRow]} activeOpacity={0.7}
+        onPress={() => {
+          if (isSelecting) {
+            toggleSelect(folder.id);
+          } else {
+            setPath(p => [...p, { id: folder.id, name: folder.name }]);
+          }
+        }}
+        onLongPress={() => { if (!isSelecting) showFolderActions(folder); }}
       >
+        {isSelecting && (
+          <View style={styles.checkbox}>
+            <View style={[styles.checkboxBox, isSelected && styles.checkboxChecked]}>
+              {isSelected && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+          </View>
+        )}
         <View style={styles.fileInfo}>
           <View style={[styles.thumbBox, { backgroundColor: '#fef3c7' }]}>
             <FolderIcon size={22} color="#d97706" />
@@ -263,9 +335,11 @@ export function FilesScreen() {
             <Text style={styles.fileSize}>文件夹 · {new Date(folder.createdAt).toLocaleDateString()}</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.actionDot} onPress={() => showFolderActions(folder)}>
-          <EllipsisVerticalIcon size={18} color={theme.colors.textTertiary} />
-        </TouchableOpacity>
+        {!isSelecting && (
+          <TouchableOpacity style={styles.actionDot} onPress={() => showFolderActions(folder)}>
+            <EllipsisVerticalIcon size={18} color={theme.colors.textTertiary} />
+          </TouchableOpacity>
+        )}
       </TouchableOpacity>
     );
   };
@@ -276,6 +350,9 @@ export function FilesScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{t.yourFiles}</Text>
         <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => { setIsSelecting(!isSelecting); if (isSelecting) setSelectedIds(new Set()); }} style={styles.headerBtn}>
+            <Text style={styles.logoutText}>{isSelecting ? '完成' : '选择'}</Text>
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => setShowSearch(!showSearch)} style={styles.headerBtn}>
             <MagnifyingGlassIcon size={20} color={theme.colors.textSecondary} />
           </TouchableOpacity>
@@ -324,16 +401,36 @@ export function FilesScreen() {
 
       {/* Action bar */}
       <View style={styles.actionBar}>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => setCreateFolderVisible(true)}>
-          <PlusIcon size={16} color={theme.colors.textSecondary} />
-          <Text style={styles.actionBtnText}>新建文件夹</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={pickFiles}>
-          <Text style={styles.actionBtnText}>上传</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={loadData}>
-          <ArrowPathIcon size={16} color={theme.colors.textSecondary} />
-        </TouchableOpacity>
+        {isSelecting ? (
+          <>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => {
+              const allIds = [...folders, ...files].map(i => i.id);
+              if (allIds.every(id => selectedIds.has(id))) {
+                setSelectedIds(new Set());
+              } else {
+                setSelectedIds(new Set(allIds));
+              }
+            }}>
+              <Text style={styles.actionBtnText}>
+                {[...folders, ...files].every(i => selectedIds.has(i.id)) ? '取消全选' : '全选'}
+              </Text>
+            </TouchableOpacity>
+            <Text style={styles.selectCount}>已选 {selectedIds.size} 项</Text>
+          </>
+        ) : (
+          <>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => setCreateFolderVisible(true)}>
+              <PlusIcon size={16} color={theme.colors.textSecondary} />
+              <Text style={styles.actionBtnText}>新建文件夹</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionBtn} onPress={pickFiles}>
+              <Text style={styles.actionBtnText}>上传</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionBtn} onPress={loadData}>
+              <ArrowPathIcon size={16} color={theme.colors.textSecondary} />
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
       {/* Upload section — items managed by background service */}
@@ -412,6 +509,26 @@ export function FilesScreen() {
 
       </View>{/* end listWrapper */}
 
+      {/* Batch action bar */}
+      {selectedIds.size > 0 && (
+        <View style={styles.batchBar}>
+          <Text style={styles.batchBarCount}>已选择 {selectedIds.size} 项</Text>
+          <View style={styles.batchBarActions}>
+            <TouchableOpacity style={styles.batchBarBtn} onPress={handleBatchMove}>
+              <FolderIcon size={16} color="#fff" />
+              <Text style={styles.batchBarBtnText}>移动</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.batchBarBtn, styles.batchBarBtnDanger]} onPress={handleBatchDelete}>
+              <TrashIcon size={16} color="#fff" />
+              <Text style={styles.batchBarBtnText}>删除</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.batchBarBtn} onPress={clearSelection}>
+              <XMarkIcon size={18} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       {/* Photo detail overlay for photo-linked files */}
       {selectedPhoto && (
         <PhotoDetailScreen photo={selectedPhoto} onClose={() => setSelectedPhoto(null)} />
@@ -421,7 +538,8 @@ export function FilesScreen() {
       <CreateFolderModal visible={createFolderVisible} onClose={() => setCreateFolderVisible(false)} onCreate={handleCreateFolder} />
       {renameTarget && <RenameFolderModal visible initialName={renameTarget.name} onClose={() => setRenameTarget(null)} onRename={name => handleRenameFolder(renameTarget, name)} />}
       {previewFile && <FilePreviewModal file={previewFile} visible={!!previewFile} onClose={() => setPreviewFile(null)} onOpenExternal={url => Linking.openURL(url).catch(() => Alert.alert('错误', '无法打开'))} />}
-      {moveTarget && <MoveFileModal file={moveTarget} onClose={() => setMoveTarget(null)} onMoved={() => loadData()} />}
+      {moveTarget && <MoveFileModal files={[moveTarget]} onClose={() => setMoveTarget(null)} onMoved={() => loadData()} />}
+      {batchMoveTargets && <MoveFileModal files={batchMoveTargets} onClose={() => setBatchMoveTargets(null)} onMoved={() => { clearSelection(); loadData(); }} />}
       {renameFileTarget && <RenameFileModal visible fileName={renameFileTarget.name} onClose={() => setRenameFileTarget(null)} onRename={name => handleRenameFile(renameFileTarget, name)} />}
       {shareTarget && <ShareFileModal file={shareTarget} visible={!!shareTarget} onClose={() => setShareTarget(null)} />}
       <ActionSheet visible={actionSheetVisible} title={actionSheetTitle} actions={actionSheetActions} onClose={() => setActionSheetVisible(false)} />
@@ -457,10 +575,10 @@ const styles = StyleSheet.create({
   searchClear: { fontSize: 14, color: theme.colors.textTertiary, padding: 4 },
 
   // Breadcrumb
-  breadcrumbContent: { alignItems: 'center' },
-  breadcrumbBar: { paddingHorizontal: 16, paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
+  breadcrumbContent: { alignItems: 'center', gap: 4 },
+  breadcrumbBar: { paddingHorizontal: 16, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
   breadcrumbSeg: { flexDirection: 'row', alignItems: 'center' },
-  breadcrumbLink: { fontSize: 13, color: theme.colors.textSecondary, marginHorizontal: 4 },
+  breadcrumbLink: { fontSize: 14, color: theme.colors.textSecondary },
   breadcrumbActive: { color: theme.colors.accent, fontWeight: '500' },
 
   // Action bar
@@ -474,6 +592,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', borderWidth: 1, borderColor: theme.colors.border,
   },
   actionBtnText: { fontSize: 13, fontWeight: '500', color: theme.colors.textSecondary },
+  selectCount: { fontSize: 13, color: theme.colors.textSecondary },
 
   // Upload
   uploadSection: { maxHeight: 280, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight, backgroundColor: theme.colors.zinc50 },
@@ -507,6 +626,34 @@ const styles = StyleSheet.create({
   fileSize: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
   actionDot: { padding: 8 },
 
+  // Selection
+  checkbox: { width: 24, marginRight: 8, alignItems: 'center', justifyContent: 'center' },
+  checkboxBox: {
+    width: 22, height: 22, borderRadius: 11, borderWidth: 2,
+    borderColor: theme.colors.textTertiary, alignItems: 'center', justifyContent: 'center',
+  },
+  checkboxChecked: { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent },
+  checkmark: { fontSize: 13, color: '#fff', fontWeight: '700' },
+  selectedRow: { backgroundColor: theme.colors.accent + '15' },
+
+  // Batch action bar
+  batchBar: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 12,
+    backgroundColor: '#1c1c1e', borderTopLeftRadius: 16, borderTopRightRadius: 16,
+    elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.2, shadowRadius: 8,
+  },
+  batchBarCount: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  batchBarActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  batchBarBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  batchBarBtnDanger: { backgroundColor: '#ef4444' },
+  batchBarBtnText: { fontSize: 14, color: '#fff', fontWeight: '500' },
+
   // Errors, empty
   errorText: { color: theme.colors.danger, fontSize: 14, textAlign: 'center', padding: 16 },
   listEmpty: { flex: 1 },
@@ -515,6 +662,4 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 16, fontWeight: '600', color: theme.colors.text },
   emptySubtitle: { fontSize: 13, color: theme.colors.textTertiary, marginTop: 4 },
 });
-
-// Missing import I need to add
 

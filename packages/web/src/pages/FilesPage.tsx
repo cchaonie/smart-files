@@ -75,6 +75,7 @@ export function FilesPage() {
 
   // Multi-select + action sheet state
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
+  const [selectedFolderIds, setSelectedFolderIds] = useState<Set<string>>(new Set());
   const [isSelecting, setIsSelecting] = useState(false);
   const [actionFile, setActionFile] = useState<FileItem | null>(null);
   const [showActionSheet, setShowActionSheet] = useState(false);
@@ -83,6 +84,14 @@ export function FilesPage() {
 
   function toggleFileSelect(id: string) {
     setSelectedFileIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleFolderSelect(id: string) {
+    setSelectedFolderIds(prev => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
@@ -99,14 +108,17 @@ export function FilesPage() {
 
   function clearAllSelections() {
     setSelectedFileIds(new Set());
+    setSelectedFolderIds(new Set());
     setSelectedTrashIds(new Set());
   }
 
   async function handleBatchDelete() {
-    if (!window.confirm(tFormat(t.deleteConfirm, { n: selectedFileIds.size }))) return;
+    if (!window.confirm(tFormat(t.deleteConfirm, { n: selectedFileIds.size + selectedFolderIds.size }))) return;
     try {
-      await filesApi.batchDelete(Array.from(selectedFileIds));
+      if (selectedFileIds.size > 0) await filesApi.batchDelete(Array.from(selectedFileIds));
+      for (const fid of selectedFolderIds) await foldersApi.deleteFolder(fid);
       setSelectedFileIds(new Set());
+      setSelectedFolderIds(new Set());
       setIsSelecting(false);
       await loadBrowse();
     } catch (err) {
@@ -353,12 +365,33 @@ export function FilesPage() {
         </h1>
         <div className="flex items-center gap-2">
           {!viewingTrash && (
-            <button
-              onClick={() => setIsSelecting(!isSelecting)}
-              className="px-3 py-1.5 rounded-lg text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-            >
-              {isSelecting ? t.done : t.select}
-            </button>
+            <>
+              <button
+                onClick={() => setIsSelecting(!isSelecting)}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              >
+                {isSelecting ? t.done : t.select}
+              </button>
+              {isSelecting && (
+                <button
+                  onClick={() => {
+                    const allFileIds = files.map(f => f.id);
+                    const allFolderIds = folders.map(f => f.id);
+                    const allSelected = [...allFileIds, ...allFolderIds].every(id => selectedFileIds.has(id) || selectedFolderIds.has(id));
+                    if (allSelected) {
+                      setSelectedFileIds(new Set());
+                      setSelectedFolderIds(new Set());
+                    } else {
+                      setSelectedFileIds(new Set(allFileIds));
+                      setSelectedFolderIds(new Set(allFolderIds));
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                >
+                  {[...files, ...folders].every(i => selectedFileIds.has(i.id) || selectedFolderIds.has(i.id)) ? '取消全选' : '全选'}
+                </button>
+              )}
+            </>
           )}
           <button
             onClick={() => {
@@ -517,8 +550,16 @@ export function FilesPage() {
           ) : (
             <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-800">
               {folders.map(folder => (
-                <div key={folder.id} className="flex items-center gap-3 p-3 bg-white dark:bg-zinc-900">
-                  {isSelecting && (
+                <div key={folder.id} className={`flex items-center gap-3 p-3 bg-white dark:bg-zinc-900 ${isSelecting && selectedFolderIds.has(folder.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
+                  {isSelecting ? (
+                    <input
+                      type="checkbox"
+                      checked={selectedFolderIds.has(folder.id)}
+                      onChange={() => toggleFolderSelect(folder.id)}
+                      className="w-5 h-5 rounded border-zinc-300 text-blue-500 focus:ring-blue-500"
+                      onClick={e => e.stopPropagation()}
+                    />
+                  ) : (
                     <div className="w-5" />
                   )}
                   <div className="w-12 h-12 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
@@ -609,9 +650,9 @@ export function FilesPage() {
 
       {/* Batch actions bar */}
       <AnimatePresence>
-        {isSelecting && selectedFileIds.size > 0 && (
+        {(isSelecting && (selectedFileIds.size > 0 || selectedFolderIds.size > 0)) && (
           <BatchActionsBar
-            count={selectedFileIds.size}
+            count={selectedFileIds.size + selectedFolderIds.size}
             onMove={() => {
               const targets = files.filter(f => selectedFileIds.has(f.id));
               if (targets.length > 0) setMoveTargets(targets);

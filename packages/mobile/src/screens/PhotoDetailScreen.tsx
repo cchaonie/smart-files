@@ -5,6 +5,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useI18n } from '@smart-files/shared/src/i18n';
 import { XMarkIcon } from '../components/icons';
+import { photosApi } from '../api/photos';
 import { theme } from '../theme';
 import type { Photo } from '../types';
 
@@ -43,7 +44,7 @@ export function PhotoDetailScreen({ photo, onClose }: PhotoDetailScreenProps) {
       {/* Preview image */}
       <View style={styles.imageContainer}>
         <Image
-          source={{ uri: photo.previewPath }}
+          source={{ uri: photosApi.previewUrl(photo) }}
           style={styles.previewImage}
           resizeMode="contain"
         />

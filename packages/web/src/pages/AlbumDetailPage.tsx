@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { useI18n } from '@smart-files/shared/src/i18n';
+import { photosApi } from '../api/photos';
 import { albumsApi, usersApi } from '../api/albums';
 import type { Album, Photo, ShareEntry } from '../types';
 import { ArrowRightIcon, ImageIcon, XMarkIcon, UserIcon, PlusIcon } from '../components/icons';
@@ -183,7 +184,7 @@ export function AlbumDetailPage() {
                 >
                   {photo.status === 'READY' ? (
                     <img
-                      src={photo.thumbnailPath}
+                      src={photosApi.thumbnailUrl(photo)}
                       alt={photo.originalName}
                       loading="lazy"
                       className="w-full h-full object-cover"

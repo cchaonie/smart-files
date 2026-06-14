@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import apiClient from './client';
+import apiClient, { withAuth } from './client';
 import type { Photo, PhotoTimelineResponse } from '../types';
 
 export interface PhotoUploadResult {
@@ -52,11 +52,11 @@ export const photosApi = {
   },
 
   thumbnailUrl: (photo: Pick<Photo, 'id'>): string => {
-    return `${apiClient.defaults.baseURL}/api/photos/${photo.id}/thumbnail`;
+    return withAuth(`${apiClient.defaults.baseURL}/photos/${photo.id}/thumbnail`);
   },
 
   previewUrl: (photo: Pick<Photo, 'id'>): string => {
-    return `${apiClient.defaults.baseURL}/api/photos/${photo.id}/preview`;
+    return withAuth(`${apiClient.defaults.baseURL}/photos/${photo.id}/preview`);
   },
 };
 
