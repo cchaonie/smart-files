@@ -307,6 +307,38 @@ export class PhotosService {
   }
 
   /**
+   * Batch delete photos by IDs.
+   * Also soft-deletes associated File records so they appear in trash.
+   */
+  async batchDelete(ids: string[], userId: string) {
+    // Verify all photos belong to user
+    const photos = await this.prisma.photo.findMany({
+      where: { id: { in: ids }, userId },
+      include: { file: true },
+    });
+
+    if (photos.length !== ids.length) {
+      throw new NotFoundException('One or more photos not found');
+    }
+
+    // Soft-delete associated File records
+    const fileIds = photos.filter(p => p.file?.id).map(p => p.file!.id);
+    if (fileIds.length > 0) {
+      await this.prisma.file.updateMany({
+        where: { id: { in: fileIds } },
+        data: { deletedAt: new Date() },
+      });
+    }
+
+    // Delete Photo records (cascades to PhotoTag, AlbumPhotoMember; sets File.photoId to null)
+    await this.prisma.photo.deleteMany({
+      where: { id: { in: ids }, userId },
+    });
+
+    return { deleted: ids.length };
+  }
+
+  /**
    * Get a readable stream for a photo's thumbnail file.
    * Returns the stream and mime type.
    */

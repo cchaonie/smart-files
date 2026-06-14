@@ -11,6 +11,7 @@ import {
   BadRequestException,
   StreamableFile,
   Header,
+  Delete,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../common/guards/jwt.guard';
@@ -86,6 +87,17 @@ export class PhotosController {
     @CurrentUser() user: { id: string; name: string },
   ) {
     return this.photosService.findById(id, user.id);
+  }
+
+  @Post('batch/delete')
+  async batchDelete(
+    @Body('ids') ids: string[],
+    @CurrentUser() user: { id: string; name: string },
+  ) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      throw new BadRequestException('ids must be a non-empty array');
+    }
+    return this.photosService.batchDelete(ids, user.id);
   }
 
   @Get(':id/thumbnail')

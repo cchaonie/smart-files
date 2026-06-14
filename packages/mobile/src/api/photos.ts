@@ -66,6 +66,10 @@ export const photosApi = {
   previewUrl: (photo: Pick<Photo, 'id'>): string => {
     return withAuth(`${apiClient.defaults.baseURL}/photos/${photo.id}/preview`);
   },
+
+  batchDelete: async (ids: string[]): Promise<void> => {
+    await apiClient.post('/photos/batch/delete', { ids });
+  },
 };
 
 export default photosApi;
