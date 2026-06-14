@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,15 @@ import { useNavigation } from '@react-navigation/native';
 import { authApi } from '../api/auth';
 import { theme } from '../theme';
 import { UserIcon, GearIcon, GlobeIcon, LockIcon } from '../components/icons';
+import {
+  checkForUpdate,
+  downloadApk,
+  installApk,
+  saveDownloadedPath,
+  clearDownloadedPath,
+  getCurrentVersion,
+  type UpdateInfo,
+} from '../services/updateService';
 
 export function SettingsScreen() {
   const { user, logout } = useAuth();
@@ -30,6 +39,60 @@ export function SettingsScreen() {
   const [confirmPw, setConfirmPw] = useState('');
   const [pwLoading, setPwLoading] = useState(false);
   const [pwError, setPwError] = useState<string | null>(null);
+
+  // Update check state
+  const [updateStatus, setUpdateStatus] = useState<
+    | { type: 'idle' }
+    | { type: 'checking' }
+    | { type: 'latest' }
+    | { type: 'available'; info: UpdateInfo }
+    | { type: 'downloading'; progress: number }
+    | { type: 'downloaded'; localPath: string }
+    | { type: 'error'; message: string }
+  >({ type: 'idle' });
+
+  const currentVersion = getCurrentVersion();
+
+  const handleCheckUpdate = useCallback(async () => {
+    setUpdateStatus({ type: 'checking' });
+    try {
+      const info = await checkForUpdate();
+      if (!info || !info.hasUpdate) {
+        setUpdateStatus({ type: 'latest' });
+        setTimeout(() => setUpdateStatus({ type: 'idle' }), 3000);
+      } else if (!info.downloadUrl) {
+        setUpdateStatus({ type: 'error', message: t.downloadFailed || '没有可用的 APK 下载链接' });
+      } else {
+        setUpdateStatus({ type: 'available', info });
+      }
+    } catch (e: any) {
+      setUpdateStatus({ type: 'error', message: e?.message || t.updateCheckFailed });
+    }
+  }, [t]);
+
+  const handleDownload = useCallback(async () => {
+    if (updateStatus.type !== 'available' || !updateStatus.info.downloadUrl) return;
+
+    setUpdateStatus({ type: 'downloading', progress: 0 });
+    try {
+      const localPath = await downloadApk(updateStatus.info.downloadUrl, (progress) => {
+        setUpdateStatus({ type: 'downloading', progress });
+      });
+      await saveDownloadedPath(localPath);
+      setUpdateStatus({ type: 'downloaded', localPath });
+    } catch (e: any) {
+      setUpdateStatus({ type: 'error', message: e?.message || t.downloadFailed });
+    }
+  }, [updateStatus, t]);
+
+  const handleInstall = useCallback(async () => {
+    if (updateStatus.type !== 'downloaded') return;
+    try {
+      await installApk(updateStatus.localPath);
+    } catch (e: any) {
+      Alert.alert(t.error || '错误', e?.message || t.downloadFailed);
+    }
+  }, [updateStatus, t]);
 
   const handleLogout = () => {
     Alert.alert('退出登录', '确认退出？', [
@@ -61,6 +124,55 @@ export function SettingsScreen() {
     } finally {
       setPwLoading(false);
     }
+  };
+
+  const renderUpdateRow = () => {
+    const isActive = updateStatus.type !== 'idle';
+
+    return (
+      <TouchableOpacity
+        style={styles.row}
+        onPress={() => {
+          if (updateStatus.type === 'available') {
+            handleDownload();
+          } else if (updateStatus.type === 'downloaded') {
+            handleInstall();
+          } else if (updateStatus.type === 'idle' || updateStatus.type === 'error' || updateStatus.type === 'latest') {
+            handleCheckUpdate();
+          }
+        }}
+        disabled={updateStatus.type === 'checking' || updateStatus.type === 'downloading'}
+      >
+        <View style={styles.rowIcon}>
+          <GearIcon size={20} color={theme.colors.textSecondary} />
+        </View>
+        <View style={styles.rowContent}>
+          <Text style={styles.rowLabel}>
+            {updateStatus.type === 'checking' && t.checkingUpdate}
+            {updateStatus.type === 'latest' && (t.alreadyLatest || '已是最新版本')}
+            {updateStatus.type === 'available' && (t.newVersionFound?.replace('{version}', updateStatus.info.latestVersion) || `发现新版本 v${updateStatus.info.latestVersion}`)}
+            {updateStatus.type === 'downloading' && (t.downloadingUpdate?.replace('{progress}', String(updateStatus.progress)) || `下载更新 ${updateStatus.progress}%`)}
+            {updateStatus.type === 'downloaded' && (t.downloadComplete || '下载完成')}
+            {updateStatus.type === 'error' && t.updateCheckFailed}
+            {updateStatus.type === 'idle' && (t.checkUpdate || '检查更新')}
+          </Text>
+          <Text style={styles.rowValue}>
+            {updateStatus.type === 'idle' && (t.currentVersion || '当前版本') + `: v${currentVersion}`}
+            {updateStatus.type === 'checking' && '…'}
+            {updateStatus.type === 'latest' && (t.currentVersion || '当前版本') + `: v${currentVersion}`}
+            {updateStatus.type === 'available' && (t.installUpdate || '点击下载')}
+            {updateStatus.type === 'downloading' && (t.checkUpdate || '正在下载…')}
+            {updateStatus.type === 'downloaded' && (t.installUpdate || '点击安装')}
+            {updateStatus.type === 'error' && updateStatus.message}
+          </Text>
+        </View>
+        {updateStatus.type === 'checking' || updateStatus.type === 'downloading' ? (
+          <ActivityIndicator size="small" color={theme.colors.accent} />
+        ) : (
+          <Text style={styles.rowArrow}>›</Text>
+        )}
+      </TouchableOpacity>
+    );
   };
 
   return (
@@ -98,6 +210,12 @@ export function SettingsScreen() {
             </View>
             <Text style={styles.rowArrow}>›</Text>
           </TouchableOpacity>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>应用</Text>
+
+          {renderUpdateRow()}
         </View>
 
         <View style={styles.section}>

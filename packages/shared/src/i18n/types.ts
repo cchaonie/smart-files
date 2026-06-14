@@ -106,6 +106,17 @@ export interface I18nStrings {
   };
   /* Login */
   rememberPassword: string;
+  /* Update check */
+  checkUpdate: string;
+  checkingUpdate: string;
+  alreadyLatest: string;
+  newVersionFound: string;
+  downloadingUpdate: string;
+  downloadComplete: string;
+  installUpdate: string;
+  updateCheckFailed: string;
+  downloadFailed: string;
+  currentVersion: string;
 }
 
 export interface I18nContextType {
