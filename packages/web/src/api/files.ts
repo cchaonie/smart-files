@@ -25,7 +25,9 @@ export const filesApi = {
   },
 
   downloadUrl: (id: string): string => {
-    return `${apiClient.defaults.baseURL}/files/${id}/download`;
+    const token = localStorage.getItem('access_token');
+    const url = `${apiClient.defaults.baseURL}/files/${id}/download`;
+    return token ? `${url}?token=${encodeURIComponent(token)}` : url;
   },
 
   previewUrl: (id: string): string => {

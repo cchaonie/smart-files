@@ -463,7 +463,7 @@ export function PhotosPage() {
                           >
                             {photo.status === 'READY' ? (
                               <img
-                                src={photo.thumbnailPath}
+                                src={photosApi.thumbnailUrl(photo)}
                                 alt={photo.originalName}
                                 loading="lazy"
                                 className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"

@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import { photosApi } from '../api/photos';
 import type { Photo } from '../types';
 import { useI18n } from '@smart-files/shared/src/i18n';
 import { formatBytes } from '@smart-files/shared/src/utils';
@@ -45,7 +46,7 @@ export function PhotoDetailPage({ photo, onClose }: { photo: Photo; onClose: () 
         {/* Preview image */}
         <div className="relative flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 max-h-[80vh] overflow-hidden">
           <img
-            src={photo.previewPath}
+            src={photosApi.previewUrl(photo)}
             alt={photo.originalName}
             className="object-contain max-h-[80vh] w-full"
             onError={(e) => {

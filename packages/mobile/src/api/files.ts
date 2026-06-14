@@ -1,4 +1,4 @@
-import apiClient from './client';
+import apiClient, { withAuth } from './client';
 import { FileItem, Folder, BrowseResponse } from '../types';
 
 export const filesApi = {
@@ -18,11 +18,11 @@ export const filesApi = {
   },
 
   downloadUrl: (id: string): string => {
-    return `${apiClient.defaults.baseURL}/files/${id}/download`;
+    return withAuth(`${apiClient.defaults.baseURL}/files/${id}/download`);
   },
 
   previewUrl: (id: string): string => {
-    return `${apiClient.defaults.baseURL}/files/${id}/preview`;
+    return withAuth(`${apiClient.defaults.baseURL}/files/${id}/preview`);
   },
 
   moveFile: async (id: string, folderId: string | null): Promise<void> => {

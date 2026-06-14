@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiClient } from '../api/client';
+import { photosApi } from '../api/photos';
 import type { Photo, PhotoTimelineResponse } from '../types';
 import { useI18n } from '@smart-files/shared/src/i18n';
 import { ImageIcon } from '../components/icons';
@@ -212,7 +213,7 @@ export function FamilyTimelinePage() {
                           >
                             {photo.status === 'READY' ? (
                               <img
-                                src={photo.thumbnailPath}
+                                src={photosApi.thumbnailUrl(photo)}
                                 alt={photo.originalName}
                                 loading="lazy"
                                 className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"

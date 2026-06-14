@@ -9,11 +9,11 @@ import { filesApi } from '../api/files'
 import { useI18n } from '@smart-files/shared/src/i18n'
 
 function MoveFileModal({
-  file,
+  files,
   onClose,
   onMoved,
 }: {
-  file: FileItem;
+  files: FileItem[];
   onClose: () => void;
   onMoved: () => void;
 }) {
@@ -44,14 +44,14 @@ function MoveFileModal({
     load();
   }, [load]);
 
-  const sameLocation =
-    (file.folderId === null && modalParentId === null) ||
-    file.folderId === modalParentId;
+  const sameLocation = files.every(f =>
+    (f.folderId === null && modalParentId === null) || f.folderId === modalParentId
+  );
 
   async function confirmMove() {
     setErr(null);
     try {
-      await filesApi.moveFile(file.id, modalParentId);
+      await filesApi.batchMove(files.map(f => f.id), modalParentId);
       onMoved();
       onClose();
     } catch (e) {
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingBottom: 4,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
