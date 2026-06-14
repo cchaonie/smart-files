@@ -133,7 +133,7 @@ export async function clearDownloadedPath(): Promise<void> {
 
 /**
  * Install the downloaded APK by opening it with the system package installer.
- * On Android we use IntentLauncher; fallback to Linking.openURL.
+ * Uses Linking.openURL with a content:// URI which triggers Android's package installer.
  */
 export async function installApk(localPath: string): Promise<void> {
   if (Platform.OS !== 'android') {
@@ -143,16 +143,6 @@ export async function installApk(localPath: string): Promise<void> {
   // Convert file:// URI to content:// URI via FileProvider
   const contentUri = await getContentUriAsync(localPath);
 
-  // Open the content URI with the package installer
-  try {
-    const IntentLauncher = require('expo-intent-launcher');
-    await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-      data: contentUri,
-      type: 'application/vnd.android.package-archive',
-      flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
-    });
-  } catch {
-    // Fallback: try Linking.openURL
-    await Linking.openURL(contentUri);
-  }
+  // Open the content URI — Android will handle it with the package installer
+  await Linking.openURL(contentUri);
 }
