@@ -20,8 +20,9 @@ function createIcon(paths: React.ReactNode, viewBox = '0 0 24 24') {
 
 export const CloudArrowUpIcon = createIcon(
   <>
-    <Path d="M12 16v-8m0 0-3 3m3-3 3 3" />
-    <Path d="M20 16.7A4 4 0 0 0 18 9h-1.26A8 8 0 1 0 4 16.7" />
+    <Path d="M12 13v8" />
+    <Path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+    <Path d="m8 17 4-4 4 4" />
   </>
 );
 
@@ -117,10 +118,10 @@ export const MagnifyingGlassIcon = createIcon(
 
 export const CloudArrowUpFilledIcon = createIcon(
   <>
-    <Path d="M12 16v-8m0 0-3 3m3-3 3 3" />
-    <Path d="M20 16.7A4 4 0 0 0 18 9h-1.26A8 8 0 1 0 4 16.7" />
+    <Path d="M12 13v8" />
+    <Path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+    <Path d="m8 17 4-4 4 4" />
   </>,
-  '0 0 24 24'
 );
 
 export const PhotosIcon = createIcon(
