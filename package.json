@@ -28,7 +28,8 @@
     "pm2:status": "pm2 status",
     "deploy:api": "npm run prd:backendbuild && pm2 restart smart-files-backend",
     "deploy": "bash ./scripts/deploy.sh",
-    "version:sync": "node -e \"var v=process.argv[1];['package.json','packages/mobile/package.json'].forEach(function(f){var p=require('./'+f);p.version=v;require('fs').writeFileSync(f,JSON.stringify(p,null,2)+'\\n')});console.log('version ->',v)\""
+    "version:sync": "node -e \"var v=process.argv[1];['package.json','packages/mobile/package.json'].forEach(function(f){var p=require('./'+f);p.version=v;require('fs').writeFileSync(f,JSON.stringify(p,null,2)+'\\n')});console.log('version ->',v)\"",
+    "version": "npm run version:sync -- $(node -p \"require('./package.json').version\") && git add packages/mobile/package.json"
   },
   "devDependencies": {
     "@types/multer": "^2.1.0",
