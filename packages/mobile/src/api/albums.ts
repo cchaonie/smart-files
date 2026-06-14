@@ -48,6 +48,12 @@ export const albumsApi = {
     const res = await apiClient.get(`/albums/${albumId}/photos`);
     return res.data;
   },
+  addPhoto: async (albumId: string, photoId: string): Promise<void> => {
+    await apiClient.post(`/albums/${albumId}/photos`, { photoId });
+  },
+  removePhoto: async (albumId: string, photoId: string): Promise<void> => {
+    await apiClient.delete(`/albums/${albumId}/photos/${photoId}`);
+  },
 
   familyTimeline: async (cursor?: string, limit: number = 20): Promise<{ photos: Photo[]; nextCursor: string | null }> => {
     const params: Record<string, string | number> = { limit };
