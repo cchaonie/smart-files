@@ -44,7 +44,7 @@ export type UpdateState =
  */
 export function getCurrentVersion(): string {
   const manifest = Constants.expoConfig as any;
-  return manifest?.version || '1.0.0';
+  return manifest?.version || '0.0.20';
 }
 
 /**
