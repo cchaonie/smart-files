@@ -110,11 +110,12 @@ export class FilesController {
     @Req() req: RequestLike,
     @Res() res: ResponseLike,
   ) {
-    const { mimeType, size, path: filePath } = await this.filesService.previewFile(user.id, id);
+    const { mimeType, size, path: filePath, filename } = await this.filesService.previewFile(user.id, id);
 
     const range = typeof req.headers.range === 'string' ? req.headers.range : undefined;
     if (mimeType) res.setHeader('Content-Type', mimeType);
     res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(filename)}"`);
 
     if (range && size) {
       const parts = range.replace(/bytes=/, '').split('-');
@@ -128,8 +129,7 @@ export class FilesController {
       createReadStream(filePath, { start, end }).pipe(res);
     } else {
       if (size) res.setHeader('Content-Length', size);
-      const { stream } = await this.filesService.previewFile(user.id, id);
-      stream.pipe(res);
+      createReadStream(filePath).pipe(res);
     }
   }
 

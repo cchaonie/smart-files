@@ -79,6 +79,7 @@ export class FilesService {
         size: true,
         mimeType: true,
         folderId: true,
+        photoId: true,
         createdAt: true,
       },
     });
@@ -191,9 +192,10 @@ export class FilesService {
 
     return {
       stream: createReadStream(filePath),
-      mimeType: file.mimeType,
+      mimeType: file.mimeType || 'application/octet-stream',
       size: Number(file.size),
       path: filePath,
+      filename: file.name,
     };
   }
 
