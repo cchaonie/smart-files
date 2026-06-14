@@ -99,9 +99,11 @@ const PhotoUploadContext = createContext<PhotoUploadContextType | undefined>(
 export function PhotoUploadProvider({
   children,
   onMarkSynced,
+  onAssetUploaded,
 }: {
   children: React.ReactNode;
   onMarkSynced?: () => Promise<void>;
+  onAssetUploaded?: (assetId: string) => Promise<void>;
 }) {
   const [items, setItems] = useState<UploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -251,6 +253,10 @@ export function PhotoUploadProvider({
         'uploaded_photos_tracking',
         JSON.stringify(uploadedPhotosRef.current),
       );
+      // Mark this specific asset as synced so it won't be re-detected
+      if (item.sourceAssetId && onAssetUploaded) {
+        await onAssetUploaded(item.sourceAssetId);
+      }
     } catch (err) {
       await updateQueueItem(item.id, {
         status: 'error',
@@ -330,6 +336,7 @@ export function PhotoUploadProvider({
       // Enqueue items
       const items: UploadQueueItem[] = photos.map((p) => ({
         id: `photo_${p.id}_${Date.now()}`,
+        sourceAssetId: p.id,
         type: 'photo',
         uri: p.uri,
         filename: p.filename,
