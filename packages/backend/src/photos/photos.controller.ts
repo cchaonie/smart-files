@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Post,
   Get,
@@ -31,6 +32,7 @@ export class PhotosController {
   @UseInterceptors(FileInterceptor('file'))
   async upload(
     @UploadedFile() file: UploadedFile,
+    @Body('captureDate') captureDate: string | undefined,
     @CurrentUser() user: { id: string; name: string },
   ) {
     if (!file) {
@@ -43,6 +45,7 @@ export class PhotosController {
       file.originalname,
       file.mimetype,
       file.buffer,
+      captureDate,
     );
   }
 

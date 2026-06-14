@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useI18n } from '@smart-files/shared/src/i18n';
-import { XMarkIcon } from '../components/icons';
+import { XMarkIcon, AlbumsIcon } from '../components/icons';
 import { photosApi } from '../api/photos';
+import { AlbumPicker } from '../components/AlbumPicker';
 import { theme } from '../theme';
 import type { Photo } from '../types';
 
@@ -29,6 +30,7 @@ interface PhotoDetailScreenProps {
 export function PhotoDetailScreen({ photo, onClose }: PhotoDetailScreenProps) {
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
+  const [showAlbumPicker, setShowAlbumPicker] = useState(false);
 
   return (
     <View style={styles.overlay}>
@@ -77,8 +79,25 @@ export function PhotoDetailScreen({ photo, onClose }: PhotoDetailScreenProps) {
               ))}
             </View>
           ) : null}
+
+          {/* Add to album */}
+          <TouchableOpacity
+            style={styles.addToAlbumBtn}
+            onPress={() => setShowAlbumPicker(true)}
+            activeOpacity={0.7}
+          >
+            <AlbumsIcon size={16} color="#fff" />
+            <Text style={styles.addToAlbumText}>{t.addPhoto}</Text>
+          </TouchableOpacity>
         </ScrollView>
       </View>
+
+      {/* Album picker */}
+      <AlbumPicker
+        visible={showAlbumPicker}
+        photoId={photo.id}
+        onClose={() => setShowAlbumPicker(false)}
+      />
     </View>
   );
 }
@@ -135,6 +154,21 @@ const styles = StyleSheet.create({
   tagText: {
     color: '#fff',
     fontSize: theme.fontSize.sm,
+  },
+  addToAlbumBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: theme.colors.accent,
+    borderRadius: theme.radii.md,
+    paddingVertical: 10,
+    marginTop: 16,
+  },
+  addToAlbumText: {
+    color: '#fff',
+    fontSize: theme.fontSize.md,
+    fontWeight: '600',
   },
 });
 

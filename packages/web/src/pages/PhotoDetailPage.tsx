@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { motion } from 'motion/react';
 import { photosApi } from '../api/photos';
 import type { Photo } from '../types';
 import { useI18n } from '@smart-files/shared/src/i18n';
 import { formatBytes } from '@smart-files/shared/src/utils';
-import { XMarkIcon } from '../components/icons';
+import { XMarkIcon, AlbumsIcon } from '../components/icons';
+import { AlbumPicker } from '../components/AlbumPicker';
 
 export function formatCaptured(capturedAt: string | null, locale: string): string {
   if (!capturedAt) return '—';
@@ -16,6 +18,7 @@ export function formatCaptured(capturedAt: string | null, locale: string): strin
 
 export function PhotoDetailPage({ photo, onClose }: { photo: Photo; onClose: () => void }) {
   const { t, lang } = useI18n();
+  const [showAlbumPicker, setShowAlbumPicker] = useState(false);
 
   return (
     <motion.div
@@ -88,7 +91,23 @@ export function PhotoDetailPage({ photo, onClose }: { photo: Photo; onClose: () 
               ))}
             </div>
           )}
+
+          {/* Add to album */}
+          <button
+            onClick={() => setShowAlbumPicker(true)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
+          >
+            <AlbumsIcon className="w-4 h-4" />
+            <span>{t.addPhoto}</span>
+          </button>
         </div>
+
+        {/* Album picker */}
+        <AlbumPicker
+          visible={showAlbumPicker}
+          photoId={photo.id}
+          onClose={() => setShowAlbumPicker(false)}
+        />
       </motion.div>
     </motion.div>
   );

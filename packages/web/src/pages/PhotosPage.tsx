@@ -267,6 +267,12 @@ export function PhotosPage() {
     void loadMore(true);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Re-fetch when tag filter changes
+  useEffect(() => {
+    if (photos.length === 0 && activeTag === null) return;
+    void loadMore(true);
+  }, [activeTag]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // IntersectionObserver for infinite scroll
   useEffect(() => {
     const sentinel = sentinelRef.current;
