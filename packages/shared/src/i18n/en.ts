@@ -152,4 +152,15 @@ export const en: I18nStrings = {
     user: 'User',
   },
   rememberPassword: 'Remember Password',
+  /* Update check */
+  checkUpdate: 'Check Update',
+  checkingUpdate: 'Checking for update…',
+  alreadyLatest: 'Already up to date',
+  newVersionFound: 'New version v{version} available',
+  downloadingUpdate: 'Downloading {progress}%',
+  downloadComplete: 'Download complete',
+  installUpdate: 'Install Update',
+  updateCheckFailed: 'Failed to check for updates',
+  downloadFailed: 'Download failed',
+  currentVersion: 'Current Version',
 };

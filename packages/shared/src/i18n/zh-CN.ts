@@ -152,4 +152,15 @@ export const zhCN: I18nStrings = {
     user: '普通用户',
   },
   rememberPassword: '记住密码',
+  /* Update check */
+  checkUpdate: '检查更新',
+  checkingUpdate: '检查更新…',
+  alreadyLatest: '已是最新版本',
+  newVersionFound: '发现新版本 v{version}',
+  downloadingUpdate: '下载更新 {progress}%',
+  downloadComplete: '下载完成',
+  installUpdate: '安装更新',
+  updateCheckFailed: '检查更新失败',
+  downloadFailed: '下载失败',
+  currentVersion: '当前版本',
 };

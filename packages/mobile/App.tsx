@@ -33,6 +33,13 @@ if (Platform.OS === 'android') {
     sound: null,
     vibrationPattern: null,
   }).catch(() => {});
+  Notifications.setNotificationChannelAsync('updates', {
+    name: '应用更新',
+    importance: Notifications.AndroidImportance.DEFAULT,
+    lightColor: '#22C55E',
+    sound: null,
+    vibrationPattern: null,
+  }).catch(() => {});
 }
 
 export type RootStackParamList = {
