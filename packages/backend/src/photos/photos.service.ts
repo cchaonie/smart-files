@@ -8,6 +8,7 @@ import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
 import { v4 as uuidv4 } from 'uuid';
+import * as exifr from 'exifr';
 
 @Injectable()
 export class PhotosService {
@@ -65,6 +66,7 @@ export class PhotosService {
     originalName: string,
     mimeType: string,
     buffer: Buffer,
+    captureDate?: string,
   ): Promise<{ id: string; status: string }> {
     const hash = this.computeHash(buffer);
     const size = buffer.length;
@@ -77,12 +79,28 @@ export class PhotosService {
       return { id: existing.id, status: existing.status };
     }
 
+    // Determine capturedAt: client-provided > EXIF > server time
+    let capturedAt: Date;
+    if (captureDate) {
+      capturedAt = new Date(captureDate);
+    } else {
+      try {
+        const exif = await exifr.parse(buffer, ['DateTimeOriginal']);
+        if (exif?.DateTimeOriginal) {
+          capturedAt = new Date(exif.DateTimeOriginal);
+        } else {
+          capturedAt = new Date();
+        }
+      } catch {
+        capturedAt = new Date();
+      }
+    }
+
     // Determine storage path
     const ext = path.extname(originalName).replace(/^\./, '') || 'bin';
-    const now = new Date();
     const { relativePath, absolutePath, dir } = this.buildStoragePath(
       username,
-      now,
+      capturedAt,
       ext,
     );
 
@@ -99,7 +117,7 @@ export class PhotosService {
         size,
         hash,
         storageKey: relativePath,
-        capturedAt: now,
+        capturedAt,
         status: 'PROCESSING',
       },
     });
