@@ -11,8 +11,7 @@
     "db:studio": "dotenv -e ../../.env -- prisma studio --schema=./prisma/schema.prisma"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.3",
-    "react": "19.1.0"
+    "@prisma/client": "^6.19.3"
   },
   "devDependencies": {
     "dotenv-cli": "^7.4.2",
