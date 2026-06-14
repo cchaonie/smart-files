@@ -1,0 +1,8 @@
+{
+  "platforms": ["android"],
+  "android": {
+    "modules": [
+      "life.inkxel.smartfiles.foregrounddownload.ForegroundDownloadModule"
+    ]
+  }
+}

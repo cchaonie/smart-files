@@ -20,6 +20,7 @@ import { UserIcon, GearIcon, GlobeIcon, LockIcon } from '../components/icons';
 import {
   checkForUpdate,
   downloadApk,
+  cancelDownload,
   installApk,
   saveDownloadedPath,
   clearDownloadedPath,
@@ -75,15 +76,52 @@ export function SettingsScreen() {
 
     setUpdateStatus({ type: 'downloading', progress: 0 });
     try {
-      const localPath = await downloadApk(updateStatus.info.downloadUrl, (progress) => {
-        setUpdateStatus({ type: 'downloading', progress });
-      });
-      await saveDownloadedPath(localPath);
-      setUpdateStatus({ type: 'downloaded', localPath });
+      const localPath = await downloadApk(
+        updateStatus.info.downloadUrl,
+        // onProgress
+        (bytesWritten, bytesTotal) => {
+          const pct = bytesTotal > 0 ? Math.round((bytesWritten / bytesTotal) * 100) : 0;
+          setUpdateStatus({ type: 'downloading', progress: pct });
+        },
+        // onComplete
+        async (path) => {
+          await saveDownloadedPath(path);
+          setUpdateStatus({ type: 'downloaded', localPath: path });
+        },
+        // onError
+        (message) => {
+          setUpdateStatus({ type: 'error', message });
+        },
+        // onCancel
+        () => {
+          setUpdateStatus({ type: 'idle' });
+        },
+      );
+
+      // iOS: downloadApk returns the path directly
+      if (localPath) {
+        await saveDownloadedPath(localPath);
+        setUpdateStatus({ type: 'downloaded', localPath });
+      }
     } catch (e: any) {
-      setUpdateStatus({ type: 'error', message: e?.message || t.downloadFailed });
+      // Only catch if not already handled by onError callback
+      setUpdateStatus(prev =>
+        prev.type !== 'error'
+          ? { type: 'error' as const, message: e?.message || '下载失败' }
+          : prev,
+      );
     }
-  }, [updateStatus, t]);
+  }, [updateStatus]);
+
+  const handleCancelDownload = useCallback(async () => {
+    try {
+      await cancelDownload();
+      setUpdateStatus({ type: 'idle' });
+    } catch (e: any) {
+      // Silently handle if cancel fails
+      setUpdateStatus({ type: 'idle' });
+    }
+  }, []);
 
   const handleInstall = useCallback(async () => {
     if (updateStatus.type !== 'downloaded') return;
@@ -135,13 +173,15 @@ export function SettingsScreen() {
         onPress={() => {
           if (updateStatus.type === 'available') {
             handleDownload();
+          } else if (updateStatus.type === 'downloading') {
+            handleCancelDownload();
           } else if (updateStatus.type === 'downloaded') {
             handleInstall();
           } else if (updateStatus.type === 'idle' || updateStatus.type === 'error' || updateStatus.type === 'latest') {
             handleCheckUpdate();
           }
         }}
-        disabled={updateStatus.type === 'checking' || updateStatus.type === 'downloading'}
+        disabled={updateStatus.type === 'checking'}
       >
         <View style={styles.rowIcon}>
           <GearIcon size={20} color={theme.colors.textSecondary} />
