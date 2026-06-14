@@ -8,7 +8,10 @@ import { photosApi } from '../api/photos';
 import { useI18n } from '@smart-files/shared/src/i18n';
 import { theme } from '../theme';
 import { PhotosIcon } from '../components/icons';
+import PhotoUploadPrompt from '../components/PhotoUploadPrompt';
+import { usePhotoUploadContext } from '../context/PhotoUploadContext';
 import type { Photo } from '../types';
+import type { PhotoDetectionResult } from '../hooks/usePhotoDetection';
 import { PhotoDetailScreen } from './PhotoDetailScreen';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -16,9 +19,10 @@ const COLUMN_COUNT = 3;
 const ITEM_SPACING = 2;
 const THUMB_SIZE = (SCREEN_WIDTH - ITEM_SPACING * (COLUMN_COUNT - 1)) / COLUMN_COUNT;
 
-export function PhotoTimelineScreen() {
+export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: PhotoDetectionResult }) {
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
+  const { startUpload } = usePhotoUploadContext();
 
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -26,6 +30,36 @@ export function PhotoTimelineScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+
+  // Photo detection state
+  const [showPhotoPrompt, setShowPhotoPrompt] = useState(false);
+
+  // Photo detection — show prompt when new photos found
+  useEffect(() => {
+    if (!photoDetection) return;
+    if (
+      photoDetection.count > 0 &&
+      !photoDetection.isPromptDismissed &&
+      !photoDetection.isLoading
+    ) {
+      setShowPhotoPrompt(true);
+    } else {
+      setShowPhotoPrompt(false);
+    }
+  }, [photoDetection?.count, photoDetection?.isPromptDismissed, photoDetection?.isLoading]);
+
+  async function handlePhotoUpload() {
+    setShowPhotoPrompt(false);
+    if (!photoDetection) return;
+    const photos = photoDetection.newPhotos;
+    if (photos.length === 0) return;
+    startUpload(photos);
+  }
+
+  function handlePhotoLater() {
+    setShowPhotoPrompt(false);
+    photoDetection?.dismissPrompt();
+  }
 
   const loadPhotos = useCallback(async (reset = false) => {
     if (loading) return;
@@ -140,6 +174,16 @@ export function PhotoTimelineScreen() {
       {/* <View style={styles.filterBar}>
         <Text style={styles.filterText}>筛选：宝宝 ✕</Text>
       </View> */}
+
+      {/* Photo upload prompt — new photos detected in camera roll */}
+      {showPhotoPrompt && photoDetection && (
+        <PhotoUploadPrompt
+          count={photoDetection.count}
+          isLoading={photoDetection.isLoading}
+          onUpload={handlePhotoUpload}
+          onLater={handlePhotoLater}
+        />
+      )}
 
       {/* Photo grid */}
       <FlatList

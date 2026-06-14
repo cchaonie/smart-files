@@ -14,6 +14,8 @@ export type UploadType = 'photo' | 'file';
 export interface UploadQueueItem {
   /** Unique identifier for this upload */
   id: string;
+  /** Camera roll asset ID (for photo uploads) */
+  sourceAssetId?: string;
   /** 'photo' or 'file' to determine the upload API */
   type: UploadType;
   /** Local file URI */

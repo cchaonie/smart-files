@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LAST_SYNC_KEY = 'photo_last_sync_timestamp';
 const DISMISSED_SESSION_KEY = 'photo_dismissed_this_session';
+const SYNCED_ASSET_IDS_KEY = 'synced_asset_ids';
 
 export interface NewPhotoAsset {
   id: string;
@@ -24,6 +25,7 @@ export interface PhotoDetectionResult {
   scan: () => Promise<void>;
   dismissPrompt: () => Promise<void>;
   markSynced: () => Promise<void>;
+  markAssetSynced: (assetId: string) => Promise<void>;
   requestPermission: () => Promise<boolean>;
 }
 
@@ -49,6 +51,7 @@ export function usePhotoDetection(): PhotoDetectionResult {
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isPromptDismissed, setIsPromptDismissed] = useState(false);
+  const syncedAssetIdsRef = useRef<Set<string>>(new Set());
   const hasScanned = useRef(false);
 
   // Check session dismissal state on mount
@@ -58,6 +61,59 @@ export function usePhotoDetection(): PhotoDetectionResult {
         setIsPromptDismissed(true);
       }
     });
+  }, []);
+
+  // Load previously synced asset IDs on mount
+  useEffect(() => {
+    AsyncStorage.getItem(SYNCED_ASSET_IDS_KEY).then((val) => {
+      if (val) {
+        try {
+          const ids: string[] = JSON.parse(val);
+          syncedAssetIdsRef.current = new Set(ids);
+        } catch {}
+      }
+    });
+  }, []);
+
+  // One-time migration: import previously uploaded photo asset IDs
+  // from uploaded_photos_tracking (composite `photo_${id}_${timestamp}`)
+  // into synced_asset_ids so they don't get re-detected
+  useEffect(() => {
+    const migrate = async () => {
+      const migratedKey = 'synced_asset_ids_migrated_v1';
+      const alreadyMigrated = await AsyncStorage.getItem(migratedKey);
+      if (alreadyMigrated) return;
+
+      const raw = await AsyncStorage.getItem('uploaded_photos_tracking');
+      if (!raw) {
+        await AsyncStorage.setItem(migratedKey, '1');
+        return;
+      }
+      try {
+        const tracked: { assetId: string; filename: string }[] = JSON.parse(raw);
+        const prefix = 'photo_';
+        const extractedIds: string[] = [];
+        for (const entry of tracked) {
+          if (entry.assetId.startsWith(prefix)) {
+            // photo_${cameraRollId}_${timestamp} → extract camera roll ID
+            const withoutPrefix = entry.assetId.slice(prefix.length);
+            const cameraRollId = withoutPrefix.replace(/_\d+$/, '');
+            if (cameraRollId) extractedIds.push(cameraRollId);
+          }
+        }
+        if (extractedIds.length > 0) {
+          for (const id of extractedIds) {
+            syncedAssetIdsRef.current.add(id);
+          }
+          await AsyncStorage.setItem(
+            SYNCED_ASSET_IDS_KEY,
+            JSON.stringify([...syncedAssetIdsRef.current]),
+          );
+        }
+      } catch {}
+      await AsyncStorage.setItem(migratedKey, '1');
+    };
+    migrate();
   }, []);
 
   const scan = useCallback(async () => {
@@ -97,16 +153,18 @@ export function usePhotoDetection(): PhotoDetectionResult {
         endCursor = page.endCursor;
       }
 
-      // Map to our simplified type
-      const newPhotoAssets: NewPhotoAsset[] = assets.map((a) => ({
-        id: a.id,
-        uri: a.uri,
-        filename: a.filename,
-        mimeType: a.mediaType === 'photo' ? 'image/jpeg' : a.mediaType,
-        creationTime: a.creationTime,
-        width: a.width,
-        height: a.height,
-      }));
+      // Map to our simplified type, filtering out already-synced assets
+      const newPhotoAssets: NewPhotoAsset[] = assets
+        .filter((a) => !syncedAssetIdsRef.current.has(a.id))
+        .map((a) => ({
+          id: a.id,
+          uri: a.uri,
+          filename: a.filename,
+          mimeType: a.mediaType === 'photo' ? 'image/jpeg' : a.mediaType,
+          creationTime: a.creationTime,
+          width: a.width,
+          height: a.height,
+        }));
 
       setNewPhotos(newPhotoAssets);
     } catch (error) {
@@ -122,6 +180,14 @@ export function usePhotoDetection(): PhotoDetectionResult {
     await AsyncStorage.setItem(DISMISSED_SESSION_KEY, 'true');
   }, []);
 
+  const markAssetSynced = useCallback(async (assetId: string) => {
+    syncedAssetIdsRef.current = new Set(syncedAssetIdsRef.current).add(assetId);
+    await AsyncStorage.setItem(
+      SYNCED_ASSET_IDS_KEY,
+      JSON.stringify([...syncedAssetIdsRef.current]),
+    );
+  }, []);
+
   const markSynced = useCallback(async () => {
     const now = Date.now();
     // Use the current time minus 60s grace period so we don't miss photos taken during upload
@@ -131,6 +197,9 @@ export function usePhotoDetection(): PhotoDetectionResult {
     // Reset session dismissal so next session can prompt again
     await AsyncStorage.removeItem(DISMISSED_SESSION_KEY);
     setIsPromptDismissed(false);
+    // Clear individual asset tracking now that timestamp covers everything
+    syncedAssetIdsRef.current = new Set();
+    await AsyncStorage.removeItem(SYNCED_ASSET_IDS_KEY);
   }, []);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
@@ -153,6 +222,7 @@ export function usePhotoDetection(): PhotoDetectionResult {
     scan,
     dismissPrompt,
     markSynced,
+    markAssetSynced,
     requestPermission,
   };
 }

@@ -63,7 +63,7 @@ function WrappedMainApp() {
   }, [user]);
 
   return (
-    <PhotoUploadProvider onMarkSynced={photoDetection.markSynced}>
+    <PhotoUploadProvider onMarkSynced={photoDetection.markSynced} onAssetUploaded={photoDetection.markAssetSynced}>
       <InnerApp photoDetection={photoDetection} />
     </PhotoUploadProvider>
   );
@@ -92,9 +92,9 @@ function InnerApp({ photoDetection }: { photoDetection: ReturnType<typeof usePho
       case 'files':
         return <FilesScreen />;
       case 'photos':
-        return <PhotoTimelineScreen />;
+        return <PhotoTimelineScreen photoDetection={photoDetection} />;
       case 'albums':
-        return <AlbumsScreen photoDetection={photoDetection} />;
+        return <AlbumsScreen />;
       case 'admin':
         return <AdminScreen />;
       case 'uploads':
