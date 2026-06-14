@@ -6,7 +6,10 @@ import { useI18n } from '@smart-files/shared/src/i18n'
 
 function MediaPreview({ file, onClose }: { file: FileItem; onClose: () => void }) {
   const { t } = useI18n();
-  const url = filesApi.previewUrl(file.id);
+  /** For photo-linked files, add hint so backend can serve photo-original content */
+  const url = file.photoId
+    ? `${filesApi.previewUrl(file.id)}&photo=1`
+    : filesApi.previewUrl(file.id);
   const isVideo = isPreviewableVideo(file.mimeType, file.name);
   const isAudio = isPreviewableAudio(file.mimeType, file.name);
 

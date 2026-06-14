@@ -31,6 +31,11 @@ function PreviewThumb({ file, onOpen }: { file: FileItem; onOpen: () => void }) 
 
   const icon = isVideo ? '▶' : isAudio ? '♪' : null;
 
+  /** For photo-linked files, use the photo thumbnail endpoint for higher quality */
+  const thumbUrl = file.photoId
+    ? `${filesApi.previewUrl(file.id)}&t=thumb`
+    : filesApi.previewUrl(file.id);
+
   return (
     <button
       type="button"
@@ -44,7 +49,7 @@ function PreviewThumb({ file, onOpen }: { file: FileItem; onOpen: () => void }) 
         </span>
       ) : (
         <img
-          src={filesApi.previewUrl(file.id)}
+          src={thumbUrl}
           alt=""
           loading="lazy"
           className="h-full w-full object-cover"
