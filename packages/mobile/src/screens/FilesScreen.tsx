@@ -77,7 +77,6 @@ export function FilesScreen() {
   const [renameFileTarget, setRenameFileTarget] = useState<FileItem | null>(null);
   const [shareTarget, setShareTarget] = useState<FileItem | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
-  const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<FileItem[] | null>(null);
 
@@ -370,36 +369,30 @@ export function FilesScreen() {
           <TouchableOpacity onPress={() => { setIsSelecting(!isSelecting); if (isSelecting) setSelectedIds(new Set()); }} style={styles.headerBtn}>
             <Text style={styles.headerBtnText}>{isSelecting ? '完成' : '选择'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setShowSearch(!showSearch)} style={styles.headerBtn}>
-            <MagnifyingGlassIcon size={18} color={theme.colors.textSecondary} />
-          </TouchableOpacity>
           <TouchableOpacity onPress={logout} style={styles.headerBtn}>
             <Text style={styles.headerBtnText}>{t.signOut}</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Search bar */}
-      {showSearch && (
-        <View style={styles.searchBar}>
-          <MagnifyingGlassIcon size={14} color={theme.colors.textTertiary} />
-          <ScrollView horizontal style={styles.searchInputScroll}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="搜索文件..."
-              placeholderTextColor={theme.colors.textTertiary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoFocus
-            />
-          </ScrollView>
-          {searchQuery ? (
-            <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchResults(null); }}>
-              <Text style={styles.searchClear}>✕</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-      )}
+      {/* Search bar — always visible */}
+      <View style={styles.searchBar}>
+        <MagnifyingGlassIcon size={14} color={theme.colors.textTertiary} />
+        <ScrollView horizontal style={styles.searchInputScroll}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="搜索文件..."
+            placeholderTextColor={theme.colors.textTertiary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </ScrollView>
+        {searchQuery ? (
+          <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchResults(null); }}>
+            <Text style={styles.searchClear}>✕</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
 
       {/* Action bar */}
       <View style={styles.actionBar}>
