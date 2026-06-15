@@ -307,6 +307,56 @@ export class PhotosService {
   }
 
   /**
+   * Add a manual tag to a photo. Confidence is null for user-added tags.
+   * New tags become available in the tag cloud and autocomplete immediately.
+   */
+  async addTag(photoId: string, userId: string, tag: string) {
+    // Verify ownership
+    const photo = await this.prisma.photo.findUnique({
+      where: { id: photoId },
+    });
+    if (!photo || photo.userId !== userId) {
+      throw new NotFoundException('Photo not found');
+    }
+
+    try {
+      const photoTag = await this.prisma.photoTag.create({
+        data: { photoId, tag, confidence: null },
+      });
+      return { tag: photoTag.tag };
+    } catch (e: any) {
+      // Unique constraint violation — tag already exists on this photo
+      if (e.code === 'P2002') {
+        throw new ConflictException(`Tag "${tag}" already exists on this photo`);
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Remove a manual tag from a photo.
+   */
+  async removeTag(photoId: string, userId: string, tag: string) {
+    // Verify ownership
+    const photo = await this.prisma.photo.findUnique({
+      where: { id: photoId },
+    });
+    if (!photo || photo.userId !== userId) {
+      throw new NotFoundException('Photo not found');
+    }
+
+    const result = await this.prisma.photoTag.deleteMany({
+      where: { photoId, tag },
+    });
+
+    if (result.count === 0) {
+      throw new NotFoundException(`Tag "${tag}" not found on this photo`);
+    }
+
+    return { removed: tag };
+  }
+
+  /**
    * Batch delete photos by IDs.
    * Also soft-deletes associated File records so they appear in trash.
    */

@@ -70,6 +70,14 @@ export const photosApi = {
   batchDelete: async (ids: string[]): Promise<void> => {
     await apiClient.post('/photos/batch/delete', { ids });
   },
+
+  addTag: async (photoId: string, tag: string): Promise<void> => {
+    await apiClient.post(`/photos/${photoId}/tags`, { tag });
+  },
+
+  removeTag: async (photoId: string, tag: string): Promise<void> => {
+    await apiClient.delete(`/photos/${photoId}/tags/${encodeURIComponent(tag)}`);
+  },
 };
 
 export default photosApi;
