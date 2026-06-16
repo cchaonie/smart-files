@@ -10,6 +10,7 @@ import { theme } from '../theme';
 import { PhotosIcon, CalendarIcon, XMarkIcon, CheckCircleIcon } from '../components/icons';
 import PhotoUploadPrompt from '../components/PhotoUploadPrompt';
 import { usePhotoUploadContext } from '../context/PhotoUploadContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Photo, TagWithCount } from '../types';
 import type { PhotoDetectionResult } from '../hooks/usePhotoDetection';
 import { PhotoDetailScreen } from './PhotoDetailScreen';
@@ -59,26 +60,38 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
   // Photo detection state
   const [showPhotoPrompt, setShowPhotoPrompt] = useState(false);
 
-  // Photo detection — show prompt when new photos found
+  // Photo detection — show prompt when new photos found and auto-sync is enabled
   useEffect(() => {
     if (!photoDetection) return;
     if (
       photoDetection.count > 0 &&
       !photoDetection.isPromptDismissed &&
-      !photoDetection.isLoading
+      !photoDetection.isLoading &&
+      photoDetection.autoSyncEnabled
     ) {
       setShowPhotoPrompt(true);
     } else {
       setShowPhotoPrompt(false);
     }
-  }, [photoDetection?.count, photoDetection?.isPromptDismissed, photoDetection?.isLoading]);
+  }, [photoDetection?.count, photoDetection?.isPromptDismissed, photoDetection?.isLoading, photoDetection?.autoSyncEnabled]);
+
+  // Re-scan when auto-sync is re-enabled (user turned it back on in Settings)
+  const prevAutoSyncRef = useRef(photoDetection?.autoSyncEnabled);
+  useEffect(() => {
+    if (!photoDetection) return;
+    const prev = prevAutoSyncRef.current;
+    prevAutoSyncRef.current = photoDetection.autoSyncEnabled;
+    if (!prev && photoDetection.autoSyncEnabled) {
+      photoDetection.scan();
+    }
+  }, [photoDetection?.autoSyncEnabled]);
 
   async function handlePhotoUpload() {
     setShowPhotoPrompt(false);
     if (!photoDetection) return;
     const newPhotos = photoDetection.newPhotos;
     if (newPhotos.length === 0) return;
-    startUpload(newPhotos);
+    startUpload(newPhotos, photoDetection.deviceModel || undefined);
   }
 
   function handlePhotoLater() {
@@ -402,6 +415,7 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
         <PhotoUploadPrompt
           count={photoDetection.count}
           isLoading={photoDetection.isLoading}
+          deviceFolderName={photoDetection.deviceFolderName}
           onUpload={handlePhotoUpload}
           onLater={handlePhotoLater}
         />

@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as MediaLibrary from 'expo-media-library';
+import * as Device from 'expo-device';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LAST_SYNC_KEY = 'photo_last_sync_timestamp';
 const DISMISSED_SESSION_KEY = 'photo_dismissed_this_session';
 const SYNCED_ASSET_IDS_KEY = 'synced_asset_ids';
+const DEVICE_MODEL_KEY = 'photo_sync_device_model';
+const AUTO_SYNC_KEY = 'photo_auto_sync_enabled';
 
 export interface NewPhotoAsset {
   id: string;
@@ -22,35 +25,64 @@ export interface PhotoDetectionResult {
   isPromptDismissed: boolean;
   permissionGranted: boolean | null;
   isLoading: boolean;
+  deviceModel: string | null;
+  deviceFolderName: string | null;
+  autoSyncEnabled: boolean;
   scan: () => Promise<void>;
   dismissPrompt: () => Promise<void>;
   markSynced: () => Promise<void>;
   markAssetSynced: (assetId: string) => Promise<void>;
   requestPermission: () => Promise<boolean>;
+  setAutoSyncEnabled: (enabled: boolean) => Promise<void>;
 }
 
 /**
- * Hook that scans the device camera roll for untracked photos since the last sync.
- *
- * On mount (when user is logged in), it attempts to scan automatically.
- * The `lastSyncTimestamp` is persisted in AsyncStorage so re-scans only find new photos.
- *
- * Returns:
- *  - newPhotos: array of new photo assets found
- *  - count: number of new photos
- *  - isPromptDismissed: true if user tapped "Later" this session
- *  - permissionGranted: null=not checked, true/false
- *  - isLoading: currently scanning
- *  - scan(): trigger a manual re-scan
- *  - dismissPrompt(): user tapped "Later" — dismisses for this session
- *  - markSynced(): update lastSyncTimestamp to now (after upload completes)
- *  - requestPermission(): request media library permission
+ * Sanitize a string for folder name use: uppercase, keep alphanum and underscore.
  */
+function sanitizeSegment(s: string): string {
+  return s
+    .toUpperCase()
+    .replace(/[^A-Z0-9_]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+}
+
+/**
+ * Detect device model and build folder name like XIAOMI_15_DCIM.
+ */
+async function detectDeviceModel(): Promise<{ model: string; folderName: string } | null> {
+  // Try cached value first
+  const cached = await AsyncStorage.getItem(DEVICE_MODEL_KEY);
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch {}
+  }
+
+  const brand = Device.brand;
+  const modelName = Device.modelName;
+
+  if (!brand && !modelName) return null;
+
+  const cleanBrand = sanitizeSegment(brand || '');
+  const cleanModel = sanitizeSegment(modelName || '');
+
+  // Build folder name: {BRAND}_{MODEL}_DCIM
+  const model = cleanModel ? `${cleanBrand}_${cleanModel}` : cleanBrand;
+  const folderName = `${model}_DCIM`;
+
+  const result = { model, folderName };
+  await AsyncStorage.setItem(DEVICE_MODEL_KEY, JSON.stringify(result));
+  return result;
+}
+
 export function usePhotoDetection(): PhotoDetectionResult {
   const [newPhotos, setNewPhotos] = useState<NewPhotoAsset[]>([]);
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isPromptDismissed, setIsPromptDismissed] = useState(false);
+  const [deviceInfo, setDeviceInfo] = useState<{ model: string; folderName: string } | null>(null);
+  const [autoSyncEnabled, setAutoSyncEnabledState] = useState(true);
   const syncedAssetIdsRef = useRef<Set<string>>(new Set());
   const hasScanned = useRef(false);
 
@@ -71,6 +103,20 @@ export function usePhotoDetection(): PhotoDetectionResult {
           const ids: string[] = JSON.parse(val);
           syncedAssetIdsRef.current = new Set(ids);
         } catch {}
+      }
+    });
+  }, []);
+
+  // Detect device model on mount
+  useEffect(() => {
+    detectDeviceModel().then(setDeviceInfo);
+  }, []);
+
+  // Load auto-sync setting on mount
+  useEffect(() => {
+    AsyncStorage.getItem(AUTO_SYNC_KEY).then((val) => {
+      if (val !== null) {
+        setAutoSyncEnabledState(val === 'true');
       }
     });
   }, []);
@@ -208,9 +254,22 @@ export function usePhotoDetection(): PhotoDetectionResult {
     setPermissionGranted(granted);
     if (granted && !hasScanned.current) {
       hasScanned.current = true;
-      scan();
+      // Only auto-scan if auto-sync is enabled
+      const enabled = await AsyncStorage.getItem(AUTO_SYNC_KEY);
+      if (enabled === null || enabled === 'true') {
+        scan();
+      }
     }
     return granted;
+  }, [scan]);
+
+  const setAutoSyncEnabled = useCallback(async (enabled: boolean) => {
+    setAutoSyncEnabledState(enabled);
+    await AsyncStorage.setItem(AUTO_SYNC_KEY, enabled ? 'true' : 'false');
+    // When re-enabled, trigger a scan
+    if (enabled) {
+      await scan();
+    }
   }, [scan]);
 
   return {
@@ -219,11 +278,15 @@ export function usePhotoDetection(): PhotoDetectionResult {
     isPromptDismissed,
     permissionGranted,
     isLoading,
+    deviceModel: deviceInfo?.model ?? null,
+    deviceFolderName: deviceInfo?.folderName ?? null,
+    autoSyncEnabled,
     scan,
     dismissPrompt,
     markSynced,
     markAssetSynced,
     requestPermission,
+    setAutoSyncEnabled,
   };
 }
 

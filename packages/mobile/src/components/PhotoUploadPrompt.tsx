@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 interface PhotoUploadPromptProps {
   count: number;
   isLoading: boolean;
+  deviceFolderName: string | null;
   onUpload: () => void;
   onLater: () => void;
 }
@@ -11,42 +12,96 @@ interface PhotoUploadPromptProps {
 export function PhotoUploadPrompt({
   count,
   isLoading,
+  deviceFolderName,
   onUpload,
   onLater,
 }: PhotoUploadPromptProps) {
+  const [showConfirm, setShowConfirm] = useState(false);
+
   if (count === 0) return null;
 
+  // Step 1: Show detection result
+  if (!showConfirm) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.banner}>
+          <Text style={styles.icon}>📸</Text>
+          <View style={styles.content}>
+            <Text style={styles.title}>
+              发现 {count} 张新照片
+            </Text>
+            <Text style={styles.subtitle}>
+              上传到 NAS 以释放手机空间
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={[styles.btn, styles.btnPrimary]}
+            onPress={() => {
+              if (deviceFolderName) {
+                setShowConfirm(true);
+              } else {
+                onUpload();
+              }
+            }}
+            disabled={isLoading}
+          >
+            <Text style={styles.btnPrimaryText}>
+              {isLoading ? '扫描中...' : '同步'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.btn, styles.btnSecondary]}
+            onPress={onLater}
+            disabled={isLoading}
+          >
+            <Text style={styles.btnSecondaryText}>稍后</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // Step 2: Show folder confirmation
   return (
     <View style={styles.container}>
       <View style={styles.banner}>
-        <Text style={styles.icon}>📸</Text>
+        <Text style={styles.icon}>📁</Text>
         <View style={styles.content}>
           <Text style={styles.title}>
-            发现 {count} 张新照片
+            确认同步文件夹
           </Text>
           <Text style={styles.subtitle}>
-            上传到 NAS 以释放手机空间
+            照片将同步到以下文件夹
           </Text>
         </View>
+      </View>
+
+      <View style={styles.folderPreview}>
+        <Text style={styles.folderName}>
+          {deviceFolderName}
+        </Text>
+        <Text style={styles.folderHint}>
+          {count} 张照片将上传到此文件夹
+        </Text>
       </View>
 
       <View style={styles.actions}>
         <TouchableOpacity
           style={[styles.btn, styles.btnPrimary]}
           onPress={onUpload}
-          disabled={isLoading}
         >
-          <Text style={styles.btnPrimaryText}>
-            {isLoading ? '扫描中...' : '上传'}
-          </Text>
+          <Text style={styles.btnPrimaryText}>确认同步</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.btn, styles.btnSecondary]}
-          onPress={onLater}
-          disabled={isLoading}
+          onPress={() => setShowConfirm(false)}
         >
-          <Text style={styles.btnSecondaryText}>稍后</Text>
+          <Text style={styles.btnSecondaryText}>取消</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -84,6 +139,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#0ea5e9',
     marginTop: 2,
+  },
+  folderPreview: {
+    marginHorizontal: 12,
+    marginBottom: 8,
+    padding: 12,
+    backgroundColor: '#e0f2fe',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  folderName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0369a1',
+    letterSpacing: 0.5,
+  },
+  folderHint: {
+    fontSize: 12,
+    color: '#0ea5e9',
+    marginTop: 4,
   },
   actions: {
     flexDirection: 'row',

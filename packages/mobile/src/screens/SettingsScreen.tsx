@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,14 @@ import {
   TextInput,
   Modal,
   ActivityIndicator,
+  Switch,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
 import { useI18n } from '@smart-files/shared/src/i18n';
 import { useNavigation } from '@react-navigation/native';
 import { authApi } from '../api/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
 import { UserIcon, GearIcon, GlobeIcon, LockIcon } from '../components/icons';
 import {
@@ -53,6 +55,18 @@ export function SettingsScreen() {
   >({ type: 'idle' });
 
   const currentVersion = getCurrentVersion();
+
+  // Auto-sync state
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
+  const AUTO_SYNC_KEY = 'photo_auto_sync_enabled';
+
+  useEffect(() => {
+    AsyncStorage.getItem(AUTO_SYNC_KEY).then((val) => {
+      if (val !== null) {
+        setAutoSyncEnabled(val === 'true');
+      }
+    });
+  }, []);
 
   const handleCheckUpdate = useCallback(async () => {
     setUpdateStatus({ type: 'checking' });
@@ -215,6 +229,11 @@ export function SettingsScreen() {
     );
   };
 
+  const handleAutoSyncToggle = useCallback(async (value: boolean) => {
+    setAutoSyncEnabled(value);
+    await AsyncStorage.setItem(AUTO_SYNC_KEY, value ? 'true' : 'false');
+  }, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -256,6 +275,24 @@ export function SettingsScreen() {
           <Text style={styles.sectionTitle}>应用</Text>
 
           {renderUpdateRow()}
+
+          <View style={styles.row}>
+            <View style={styles.rowIcon}>
+              <Text style={{ fontSize: 20 }}>📸</Text>
+            </View>
+            <View style={styles.rowContent}>
+              <Text style={styles.rowLabel}>自动检测同步</Text>
+              <Text style={styles.rowValue}>
+                {autoSyncEnabled ? '开启：进入照片 Tab 自动检测新照片' : '关闭：不会自动检测相册'}
+              </Text>
+            </View>
+            <Switch
+              value={autoSyncEnabled}
+              onValueChange={handleAutoSyncToggle}
+              trackColor={{ false: '#d1d5db', true: '#93c5fd' }}
+              thumbColor={autoSyncEnabled ? '#3b82f6' : '#9ca3af'}
+            />
+          </View>
         </View>
 
         <View style={styles.section}>

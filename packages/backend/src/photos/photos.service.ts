@@ -33,17 +33,21 @@ export class PhotosService {
 
   /**
    * Build the storage path for a photo.
-   * Format: {PHOTO_ROOT}/{username}/{YYYY}/{MM}/{uuid}.{ext}
+   * Format: {PHOTO_ROOT}/{username}[/{deviceModel}]/{YYYY}/{MM}/{uuid}.{ext}
    */
   buildStoragePath(
     username: string,
     date: Date,
     ext: string,
+    deviceModel?: string,
   ): { relativePath: string; absolutePath: string; dir: string } {
     const yyyy = date.getFullYear().toString();
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     const fileName = `${uuidv4()}.${ext}`;
-    const relativePath = path.join(username, yyyy, mm, fileName);
+    const deviceSegment = deviceModel ? path.posix.join(deviceModel) : '';
+    const relativePath = deviceSegment
+      ? path.posix.join(username, deviceSegment, yyyy, mm, fileName)
+      : path.posix.join(username, yyyy, mm, fileName);
     const absolutePath = path.join(this.photoRoot, relativePath);
     const dir = path.dirname(absolutePath);
     return { relativePath, absolutePath, dir };
@@ -67,6 +71,7 @@ export class PhotosService {
     mimeType: string,
     buffer: Buffer,
     captureDate?: string,
+    deviceModel?: string,
   ): Promise<{ id: string; status: string }> {
     const hash = this.computeHash(buffer);
     const size = buffer.length;
@@ -97,12 +102,29 @@ export class PhotosService {
     }
 
     // Determine storage path
-    const ext = path.extname(originalName).replace(/^\./, '') || 'bin';
+    const ext = path.extname(originalName).replace(/^\\./, '') || 'bin';
     const { relativePath, absolutePath, dir } = this.buildStoragePath(
       username,
       capturedAt,
       ext,
+      deviceModel,
     );
+
+    // Find or create device folder in Files if deviceModel is provided
+    let deviceFolderId: string | null = null;
+    if (deviceModel) {
+      const existingFolder = await this.prisma.folder.findFirst({
+        where: { userId, name: deviceModel, parentId: null },
+      });
+      if (existingFolder) {
+        deviceFolderId = existingFolder.id;
+      } else {
+        const newFolder = await this.prisma.folder.create({
+          data: { userId, name: deviceModel, parentId: null },
+        });
+        deviceFolderId = newFolder.id;
+      }
+    }
 
     // Write file
     await this.ensureDir(dir);
@@ -131,6 +153,7 @@ export class PhotosService {
         size: BigInt(size),
         mimeType,
         photoId: photo.id,
+        folderId: deviceFolderId,
         deletedAt: null,
       },
     });
