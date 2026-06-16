@@ -3,6 +3,14 @@ import { createDownloadResumable, getContentUriAsync, cacheDirectory } from 'exp
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Native foreground download module (Android only)
+let foregroundDownloadModule: any = null;
+try {
+  foregroundDownloadModule = require('../../modules/foreground-download').default;
+} catch {
+  // Not available — will use expo-file-system fallback
+}
+
 const GITHUB_OWNER = 'cchaonie';
 const GITHUB_REPO = 'smart-files';
 const GITHUB_API = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
@@ -36,11 +44,23 @@ export type UpdateState =
   | { status: 'available'; info: UpdateInfo }
   | { status: 'downloading'; progress: number }
   | { status: 'downloaded'; localPath: string }
+  | { status: 'foreground'; progress: number }
   | { status: 'error'; message: string };
+
+// Type for the progress callback used by native module
+type ProgressCallback = (bytesWritten: number, bytesTotal: number) => void;
+type CompleteCallback = (localPath: string) => void;
+type ErrorCallback = (message: string) => void;
+type CancelCallback = () => void;
+
+let onProgressCallback: ProgressCallback | null = null;
+let onCompleteCallback: CompleteCallback | null = null;
+let onErrorCallback: ErrorCallback | null = null;
+let onCancelCallback: CancelCallback | null = null;
 
 /**
  * Get the currently running app version from app config.
- * Falls back to '1.0.0' if unavailable.
+ * Falls back to '0.0.20' if unavailable.
  */
 export function getCurrentVersion(): string {
   const manifest = Constants.expoConfig as any;
@@ -77,12 +97,79 @@ export async function checkForUpdate(): Promise<UpdateInfo | null> {
 }
 
 /**
- * Download the APK to a local path with progress callback.
- * Returns the local file URI.
+ * Download the APK — uses Android foreground service on Android,
+ * falls back to expo-file-system on iOS.
+ *
+ * @param url  Download URL for the APK
+ * @param onProgress  Called with (bytesWritten, bytesTotal) for progress tracking
+ * @param onComplete  Called with the local file path when done
+ * @param onError  Called with error message on failure
+ * @param onCancel  Called when download is cancelled (e.g. via notification dismiss)
+ * @returns  The local file path (iOS) or undefined (Android, async via callback)
  */
 export async function downloadApk(
   url: string,
-  onProgress?: (progress: number) => void,
+  onProgress?: ProgressCallback,
+  onComplete?: CompleteCallback,
+  onError?: ErrorCallback,
+  onCancel?: CancelCallback,
+): Promise<string | undefined> {
+  // Android: use native foreground service
+  if (Platform.OS === 'android' && foregroundDownloadModule) {
+    return downloadApkWithForegroundService(
+      url,
+      onProgress ?? null,
+      onComplete ?? null,
+      onError ?? null,
+      onCancel ?? null,
+    );
+  }
+
+  // iOS / fallback: use expo-file-system
+  return downloadApkWithFileSystem(url, onProgress ?? null);
+}
+
+/**
+ * Start foreground service download on Android.
+ * The download continues even if the app is backgrounded.
+ * File path is returned via onComplete callback, not as return value.
+ */
+async function downloadApkWithForegroundService(
+  url: string,
+  onProgress: ProgressCallback | null,
+  onComplete: CompleteCallback | null,
+  onError: ErrorCallback | null,
+  onCancel: CancelCallback | null,
+): Promise<undefined> {
+  const filename = `smart-files-${Date.now()}.apk`;
+
+  onProgressCallback = onProgress;
+  onCompleteCallback = onComplete;
+  onErrorCallback = onError;
+  onCancelCallback = onCancel;
+
+  // Start the foreground service
+  await foregroundDownloadModule.startDownload(url, filename);
+
+  return undefined;
+}
+
+/**
+ * Cancel a running foreground service download.
+ */
+export async function cancelDownload(): Promise<void> {
+  if (Platform.OS === 'android' && foregroundDownloadModule) {
+    await foregroundDownloadModule.cancelDownload();
+  }
+  onCancelCallback?.();
+}
+
+/**
+ * Download using expo-file-system (iOS fallback).
+ */
+async function downloadApkWithFileSystem(
+  url: string,
+  onProgress: ProgressCallback | null,
 ): Promise<string> {
   const filename = `smart-files-${Date.now()}.apk`;
   const localPath = `${cacheDirectory}${filename}`;
@@ -98,7 +185,12 @@ export async function downloadApk(
               (downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite) * 100,
             )
           : 0;
-      onProgress?.(progress);
+      if (onProgress) {
+        onProgress(
+          downloadProgress.totalBytesWritten,
+          downloadProgress.totalBytesExpectedToWrite,
+        );
+      }
     },
   );
 

@@ -307,6 +307,88 @@ export class PhotosService {
   }
 
   /**
+   * Add a manual tag to a photo. Confidence is null for user-added tags.
+   * New tags become available in the tag cloud and autocomplete immediately.
+   */
+  async addTag(photoId: string, userId: string, tag: string) {
+    // Verify ownership
+    const photo = await this.prisma.photo.findUnique({
+      where: { id: photoId },
+    });
+    if (!photo || photo.userId !== userId) {
+      throw new NotFoundException('Photo not found');
+    }
+
+    try {
+      const photoTag = await this.prisma.photoTag.create({
+        data: { photoId, tag, confidence: null },
+      });
+      return { tag: photoTag.tag };
+    } catch (e: any) {
+      // Unique constraint violation — tag already exists on this photo
+      if (e.code === 'P2002') {
+        throw new ConflictException(`Tag "${tag}" already exists on this photo`);
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Remove a manual tag from a photo.
+   */
+  async removeTag(photoId: string, userId: string, tag: string) {
+    // Verify ownership
+    const photo = await this.prisma.photo.findUnique({
+      where: { id: photoId },
+    });
+    if (!photo || photo.userId !== userId) {
+      throw new NotFoundException('Photo not found');
+    }
+
+    const result = await this.prisma.photoTag.deleteMany({
+      where: { photoId, tag },
+    });
+
+    if (result.count === 0) {
+      throw new NotFoundException(`Tag "${tag}" not found on this photo`);
+    }
+
+    return { removed: tag };
+  }
+
+  /**
+   * Batch delete photos by IDs.
+   * Also soft-deletes associated File records so they appear in trash.
+   */
+  async batchDelete(ids: string[], userId: string) {
+    // Verify all photos belong to user
+    const photos = await this.prisma.photo.findMany({
+      where: { id: { in: ids }, userId },
+      include: { file: true },
+    });
+
+    if (photos.length !== ids.length) {
+      throw new NotFoundException('One or more photos not found');
+    }
+
+    // Soft-delete associated File records
+    const fileIds = photos.filter(p => p.file?.id).map(p => p.file!.id);
+    if (fileIds.length > 0) {
+      await this.prisma.file.updateMany({
+        where: { id: { in: fileIds } },
+        data: { deletedAt: new Date() },
+      });
+    }
+
+    // Delete Photo records (cascades to PhotoTag, AlbumPhotoMember; sets File.photoId to null)
+    await this.prisma.photo.deleteMany({
+      where: { id: { in: ids }, userId },
+    });
+
+    return { deleted: ids.length };
+  }
+
+  /**
    * Get a readable stream for a photo's thumbnail file.
    * Returns the stream and mime type.
    */

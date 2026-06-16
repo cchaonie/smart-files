@@ -11,6 +11,8 @@ import {
   BadRequestException,
   StreamableFile,
   Header,
+  Delete,
+  ConflictException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../common/guards/jwt.guard';
@@ -86,6 +88,38 @@ export class PhotosController {
     @CurrentUser() user: { id: string; name: string },
   ) {
     return this.photosService.findById(id, user.id);
+  }
+
+  @Post('batch/delete')
+  async batchDelete(
+    @Body('ids') ids: string[],
+    @CurrentUser() user: { id: string; name: string },
+  ) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      throw new BadRequestException('ids must be a non-empty array');
+    }
+    return this.photosService.batchDelete(ids, user.id);
+  }
+
+  @Post(':id/tags')
+  async addTag(
+    @Param('id') id: string,
+    @Body('tag') tag: string,
+    @CurrentUser() user: { id: string; name: string },
+  ) {
+    if (!tag || typeof tag !== 'string' || tag.trim().length === 0) {
+      throw new BadRequestException('tag must be a non-empty string');
+    }
+    return this.photosService.addTag(id, user.id, tag.trim());
+  }
+
+  @Delete(':id/tags/:tag')
+  async removeTag(
+    @Param('id') id: string,
+    @Param('tag') tag: string,
+    @CurrentUser() user: { id: string; name: string },
+  ) {
+    return this.photosService.removeTag(id, user.id, decodeURIComponent(tag));
   }
 
   @Get(':id/thumbnail')

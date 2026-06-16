@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, FlatList, Image, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Dimensions, ScrollView, Modal,
+  StyleSheet, ActivityIndicator, Dimensions, ScrollView, Modal, Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { photosApi } from '../api/photos';
 import { useI18n } from '@smart-files/shared/src/i18n';
 import { theme } from '../theme';
-import { PhotosIcon, CalendarIcon, XMarkIcon } from '../components/icons';
+import { PhotosIcon, CalendarIcon, XMarkIcon, CheckCircleIcon } from '../components/icons';
 import PhotoUploadPrompt from '../components/PhotoUploadPrompt';
 import { usePhotoUploadContext } from '../context/PhotoUploadContext';
 import type { Photo, TagWithCount } from '../types';
@@ -44,6 +44,10 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
   const [error, setError] = useState<string | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  // Selection mode
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Tag word cloud state
   const [allTags, setAllTags] = useState<TagWithCount[] | null>(null);
@@ -154,9 +158,66 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
     loadPhotos(true);
   }, [loadPhotos]);
 
-  const handlePhotoPress = useCallback((photo: Photo) => {
-    setSelectedPhoto(photo);
+  // ── Selection handlers ──────────────────────────────────
+
+  const enterSelection = useCallback((photo: Photo) => {
+    setIsSelecting(true);
+    setSelectedIds(new Set([photo.id]));
   }, []);
+
+  const toggleSelection = useCallback((photoId: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(photoId)) {
+        next.delete(photoId);
+      } else {
+        next.add(photoId);
+      }
+      // Auto-exit selection when nothing selected
+      if (next.size === 0) {
+        setIsSelecting(false);
+      }
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setIsSelecting(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleBatchDelete = useCallback(() => {
+    const count = selectedIds.size;
+    if (count === 0) return;
+    Alert.alert(
+      '删除照片',
+      `确定要删除选中的 ${count} 张照片吗？`,
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '删除',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await photosApi.batchDelete(Array.from(selectedIds));
+              clearSelection();
+              loadPhotos(true);
+            } catch (e: any) {
+              Alert.alert('删除失败', e instanceof Error ? e.message : '请稍后重试');
+            }
+          },
+        },
+      ],
+    );
+  }, [selectedIds, clearSelection, loadPhotos]);
+
+  const handlePhotoPress = useCallback((photo: Photo) => {
+    if (isSelecting) {
+      toggleSelection(photo.id);
+    } else {
+      setSelectedPhoto(photo);
+    }
+  }, [isSelecting, toggleSelection]);
 
   const toggleTagFilter = useCallback((tag: string) => {
     setSelectedTags(prev => {
@@ -179,19 +240,32 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
     });
   }, []);
 
-  const renderPhoto = useCallback(({ item }: { item: Photo }) => (
-    <TouchableOpacity
-      style={styles.photoCell}
-      activeOpacity={0.8}
-      onPress={() => handlePhotoPress(item)}
-    >
-      <Image
-        source={{ uri: photosApi.thumbnailUrl(item) }}
-        style={styles.thumbnail}
-        resizeMode="cover"
-      />
-    </TouchableOpacity>
-  ), [handlePhotoPress]);
+  const renderPhoto = useCallback(({ item }: { item: Photo }) => {
+    const isSelected = isSelecting && selectedIds.has(item.id);
+    return (
+      <TouchableOpacity
+        style={styles.photoCell}
+        activeOpacity={0.8}
+        onPress={() => handlePhotoPress(item)}
+        onLongPress={() => {
+          if (!isSelecting) {
+            enterSelection(item);
+          }
+        }}
+      >
+        <Image
+          source={{ uri: photosApi.thumbnailUrl(item) }}
+          style={styles.thumbnail}
+          resizeMode="cover"
+        />
+        {isSelected && (
+          <View style={styles.selectedOverlay}>
+            <CheckCircleIcon size={24} color="#fff" />
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  }, [handlePhotoPress, enterSelection, isSelecting, selectedIds]);
 
   const renderFooter = useCallback(() => {
     if (loading && photos.length > 0) {
@@ -248,15 +322,25 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header with actions */}
-      <View style={styles.headerRow}>
-        <Text style={styles.headerTitle}>{t.mobilePhotos}</Text>
-        <TouchableOpacity
-          style={styles.timelineBtn}
-          onPress={() => setShowMonthPicker(true)}
-        >
-          <CalendarIcon size={18} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      {isSelecting ? (
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={clearSelection}>
+            <Text style={styles.cancelBtn}>取消</Text>
+          </TouchableOpacity>
+          <Text style={styles.selectCount}>已选 {selectedIds.size} 张</Text>
+          <View style={{ width: 40 }} />
+        </View>
+      ) : (
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>{t.mobilePhotos}</Text>
+          <TouchableOpacity
+            style={styles.timelineBtn}
+            onPress={() => setShowMonthPicker(true)}
+          >
+            <CalendarIcon size={18} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Top 3 tags row */}
       {topTags.length > 0 && (
@@ -337,6 +421,24 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
         ListEmptyComponent={renderEmpty}
         showsVerticalScrollIndicator={false}
       />
+
+      {/* Batch action bar */}
+      {isSelecting && selectedIds.size > 0 && (
+        <View style={styles.batchBar}>
+          <Text style={styles.batchBarCount}>已选择 {selectedIds.size} 项</Text>
+          <View style={styles.batchBarActions}>
+            <TouchableOpacity
+              style={[styles.batchBarBtn, styles.batchBarBtnDanger]}
+              onPress={handleBatchDelete}
+            >
+              <Text style={styles.batchBarBtnText}>删除</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.batchBarBtn} onPress={clearSelection}>
+              <Text style={styles.batchBarBtnText}>取消</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Month picker modal */}
       <Modal visible={showMonthPicker} transparent animationType="fade" onRequestClose={() => setShowMonthPicker(false)}>
@@ -704,6 +806,63 @@ const styles = StyleSheet.create({
     color: theme.colors.textTertiary,
     textAlign: 'center',
     paddingVertical: 20,
+  },
+
+  // ── Selection mode ──────────────────────────────────────
+  cancelBtn: {
+    fontSize: theme.fontSize.md,
+    color: theme.colors.accent,
+    fontWeight: '600',
+  },
+  selectCount: {
+    fontSize: theme.fontSize.lg,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  selectedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(37, 99, 235, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  batchBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: theme.colors.accent,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    paddingBottom: 24,
+    borderTopLeftRadius: theme.radii.lg,
+    borderTopRightRadius: theme.radii.lg,
+  },
+  batchBarCount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  batchBarActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  batchBarBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: theme.radii.md,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  batchBarBtnDanger: {
+    backgroundColor: theme.colors.danger,
+  },
+  batchBarBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 
