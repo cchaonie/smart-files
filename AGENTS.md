@@ -98,7 +98,7 @@ data/storage/
 ## Mobile
 
 - `EXPO_PUBLIC_API_URL` for server URL config. Physical devices need LAN IP (not localhost).
-- Expo SDK 54. iOS simulator uses `localhost`, Android emulator uses `10.0.2.2` automatically.
+- **Expo SDK 54** — 所有新增的 `expo-*` 依赖必须兼容 SDK 54（如 `expo-device` 用 `~8.x`，非 `56.x`）。使用 `npm view <pkg> versions` 确认版本后再安装。iOS simulator 使用 `localhost`，Android emulator 自动使用 `10.0.2.2`。
 
 ## Database
 
