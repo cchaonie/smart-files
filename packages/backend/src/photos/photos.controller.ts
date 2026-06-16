@@ -35,6 +35,7 @@ export class PhotosController {
   async upload(
     @UploadedFile() file: UploadedFile,
     @Body('captureDate') captureDate: string | undefined,
+    @Body('deviceModel') deviceModel: string | undefined,
     @CurrentUser() user: { id: string; name: string },
   ) {
     if (!file) {
@@ -48,6 +49,7 @@ export class PhotosController {
       file.mimetype,
       file.buffer,
       captureDate,
+      deviceModel,
     );
   }
 

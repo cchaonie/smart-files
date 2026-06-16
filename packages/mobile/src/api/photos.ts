@@ -13,6 +13,7 @@ export const photosApi = {
   upload: async (
     uri: string, fileName: string, mimeType: string,
     captureDate?: string, onProgress?: (progress: number) => void,
+    deviceModel?: string,
   ): Promise<PhotoUploadResult> => {
     const token = await AsyncStorage.getItem('access_token');
     const baseUrl = apiClient.defaults.baseURL;
@@ -20,6 +21,7 @@ export const photosApi = {
     const formData = new FormData();
     formData.append('file', { uri, name: fileName, type: mimeType } as any);
     if (captureDate) formData.append('captureDate', captureDate);
+    if (deviceModel) formData.append('deviceModel', deviceModel);
     return new Promise<PhotoUploadResult>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', url);

@@ -72,7 +72,7 @@ interface PhotoUploadContextType {
   } | null;
 
   /** Start uploading a batch of photos */
-  startUpload: (photos: NewPhotoAsset[]) => Promise<void>;
+  startUpload: (photos: NewPhotoAsset[], deviceModel?: string) => Promise<void>;
   /** Start uploading files (from DocumentPicker) */
   startFileUpload: (
     files: { uri: string; name: string; mimeType: string; size?: number }[],
@@ -243,6 +243,7 @@ export function PhotoUploadProvider({
         (pct) => {
           updateQueueItem(item.id, { progress: pct });
         },
+        item.deviceModel,
       );
       await updateQueueItem(item.id, { status: 'done', progress: 100 });
       uploadedPhotosRef.current.push({
@@ -330,7 +331,7 @@ export function PhotoUploadProvider({
   // ── Batch upload processors ───────────────────────────────────────────
 
   const startUpload = useCallback(
-    async (photos: NewPhotoAsset[]) => {
+    async (photos: NewPhotoAsset[], deviceModel?: string) => {
       if (photos.length === 0 || isProcessingRef.current) return;
 
       // Enqueue items
@@ -342,6 +343,7 @@ export function PhotoUploadProvider({
         filename: p.filename,
         mimeType: p.mimeType || 'image/jpeg',
         captureDate: new Date(p.creationTime).toISOString(),
+        deviceModel,
         status: 'pending',
         progress: 0,
         createdAt: Date.now(),

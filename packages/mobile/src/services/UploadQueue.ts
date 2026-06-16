@@ -30,6 +30,8 @@ export interface UploadQueueItem {
   captureDate?: string;
   /** Destination folder ID (for files) */
   folderId?: string | null;
+  /** Device model for photo sync folder organization */
+  deviceModel?: string;
   /** Current status */
   status: 'pending' | 'uploading' | 'done' | 'error';
   /** Progress percentage 0–100 */
