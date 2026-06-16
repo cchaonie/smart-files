@@ -50,6 +50,14 @@ export default {
     plugins: [
       './plugins/withNetworkSecurityConfig',
       [
+        'expo-build-properties',
+        {
+          android: {
+            minSdkVersion: 26,
+          },
+        },
+      ],
+      [
         'expo-notifications',
         {
           android: {
