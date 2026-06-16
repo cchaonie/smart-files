@@ -36,6 +36,7 @@ import {
 import { photosApi } from '../api/photos';
 import { uploadApi, CHUNK_SIZE } from '../api/upload';
 import type { NewPhotoAsset } from '../hooks/usePhotoDetection';
+import * as FileSystem from 'expo-file-system/legacy';
 
 export type UploadStatus = 'pending' | 'uploading' | 'done' | 'error';
 
@@ -276,7 +277,7 @@ export function PhotoUploadProvider({
 
     try {
       // Create upload session
-      const fileInfo = await require('expo-file-system').FileSystem.getInfoAsync(
+      const fileInfo = await FileSystem.getInfoAsync(
         item.uri,
       );
       if (!fileInfo.exists) throw new Error('File does not exist');
@@ -297,11 +298,10 @@ export function PhotoUploadProvider({
         const end = Math.min(start + CHUNK_SIZE, totalSize);
         const chunkSize = end - start;
 
-        const fileSystem = require('expo-file-system');
-        const chunkBase64 = await fileSystem.FileSystem.readAsStringAsync(
+        const chunkBase64 = await FileSystem.readAsStringAsync(
           item.uri,
           {
-            encoding: fileSystem.FileSystem.EncodingType.Base64,
+            encoding: FileSystem.EncodingType.Base64,
             position: start,
             length: chunkSize,
           },
