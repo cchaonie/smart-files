@@ -27,4 +27,10 @@ export const photosApi = {
   },
   thumbnailUrl: (photo: Pick<Photo, 'id'>): string => authUrl(`/photos/${photo.id}/thumbnail`),
   previewUrl: (photo: Pick<Photo, 'id'>): string => authUrl(`/photos/${photo.id}/preview`),
+  addTag: async (photoId: string, tag: string): Promise<void> => {
+    await apiClient.post(`/photos/${photoId}/tags`, { tag });
+  },
+  removeTag: async (photoId: string, tag: string): Promise<void> => {
+    await apiClient.delete(`/photos/${photoId}/tags/${encodeURIComponent(tag)}`);
+  },
 };

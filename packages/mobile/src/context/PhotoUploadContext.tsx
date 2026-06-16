@@ -38,7 +38,7 @@ import { uploadApi, CHUNK_SIZE } from '../api/upload';
 import type { NewPhotoAsset } from '../hooks/usePhotoDetection';
 import * as FileSystem from 'expo-file-system/legacy';
 
-export type UploadStatus = 'pending' | 'uploading' | 'done' | 'error';
+export type UploadStatus = 'pending' | 'uploading' | 'paused' | 'done' | 'error';
 
 export interface UploadItem {
   id: string;
@@ -79,6 +79,20 @@ interface PhotoUploadContextType {
     files: { uri: string; name: string; mimeType: string; size?: number }[],
     folderId?: string | null,
   ) => Promise<void>;
+  /** Pause a single upload */
+  pauseUpload: (id: string) => void;
+  /** Resume a single upload */
+  resumeUpload: (id: string) => void;
+  /** Cancel a single upload */
+  cancelUpload: (id: string) => void;
+  /** Retry a single failed upload */
+  retryUpload: (id: string) => void;
+  /** Pause all active uploads */
+  pauseAll: () => void;
+  /** Resume all paused uploads */
+  resumeAll: () => void;
+  /** Cancel all uploads */
+  cancelAll: () => void;
   /** Remove completed items from the list */
   clearCompleted: () => Promise<void>;
   /** Retry all failed uploads */
@@ -115,6 +129,7 @@ export function PhotoUploadProvider({
     errors: string[];
   } | null>(null);
   const abortRef = useRef(false);
+  const pausedRef = useRef<Set<string>>(new Set());
   const uploadedPhotosRef = useRef<UploadedPhoto[]>([]);
   const [uploadedPhotos, setUploadedPhotos] = useState<UploadedPhoto[]>([]);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
@@ -157,12 +172,12 @@ export function PhotoUploadProvider({
     );
     setIsUploading(hasActive);
 
-    // Resume processing items that were left in 'uploading' state
-    const uploading = queue.filter((q) => q.status === 'uploading');
-    for (const item of uploading) {
+    // Resume processing items that were left in 'uploading' or 'paused' state
+    const stale = queue.filter((q) => q.status === 'uploading' || q.status === 'paused');
+    for (const item of stale) {
       await updateQueueItem(item.id, { status: 'pending', progress: 0 });
     }
-    if (uploading.length > 0) {
+    if (stale.length > 0) {
       const updated = await getQueue();
       setItems(
         updated.map((q) => ({
@@ -236,6 +251,11 @@ export function PhotoUploadProvider({
   ): Promise<void> {
     await updateQueueItem(item.id, { status: 'uploading', progress: 0 });
     try {
+      // Check if paused before starting
+      if (pausedRef.current.has(item.id)) {
+        await updateQueueItem(item.id, { status: 'paused' });
+        return;
+      }
       await photosApi.upload(
         item.uri,
         item.filename,
@@ -292,6 +312,12 @@ export function PhotoUploadProvider({
       // Upload chunks
       const totalChunks = Math.ceil(totalSize / CHUNK_SIZE);
       for (let i = 0; i < totalChunks; i++) {
+        if (abortRef.current) throw new Error('已取消');
+
+        // Check if paused — busy-wait until resumed or cancelled
+        while (pausedRef.current.has(item.id) && !abortRef.current) {
+          await new Promise((r) => setTimeout(r, 200));
+        }
         if (abortRef.current) throw new Error('已取消');
 
         const start = i * CHUNK_SIZE;
@@ -415,9 +441,9 @@ export function PhotoUploadProvider({
 
         const queue = await getQueue();
         const next = queue.find(
-          (i) => i.status === 'pending',
+          (i) => i.status === 'pending' && !pausedRef.current.has(i.id),
         );
-        if (!next) break; // All done
+        if (!next) break; // All done or all paused
 
         try {
           if (next.type === 'photo') {
@@ -564,6 +590,84 @@ export function PhotoUploadProvider({
     }
   }, []);
 
+  // ── Per-item pause/resume/cancel/retry ────────────────────────────────
+
+  const pauseUpload = useCallback((id: string) => {
+    pausedRef.current.add(id);
+    void updateQueueItem(id, { status: 'paused' }).then(() => loadQueueFromStorage());
+  }, []);
+
+  const resumeUpload = useCallback((id: string) => {
+    pausedRef.current.delete(id);
+    void updateQueueItem(id, { status: 'pending', progress: 0 }).then(() => {
+      loadQueueFromStorage();
+      if (!isProcessingRef.current) {
+        processForegroundQueue();
+      }
+    });
+  }, []);
+
+  const cancelUpload = useCallback((id: string) => {
+    abortRef.current = true; // Signal current upload to stop
+    pausedRef.current.delete(id);
+    void (async () => {
+      await updateQueueItem(id, { status: 'done', progress: 100 });
+      abortRef.current = false;
+      await loadQueueFromStorage();
+    })();
+  }, []);
+
+  const retryUpload = useCallback((id: string) => {
+    abortRef.current = false;
+    pausedRef.current.delete(id);
+    void updateQueueItem(id, { status: 'pending', progress: 0, error: undefined }).then(() => {
+      loadQueueFromStorage();
+      if (!isProcessingRef.current) {
+        processForegroundQueue();
+      }
+    });
+  }, []);
+
+  // ── Bulk pause/resume/cancel ──────────────────────────────────────────
+
+  const pauseAll = useCallback(async () => {
+    const queue = await getQueue();
+    for (const item of queue) {
+      if (item.status === 'pending' || item.status === 'uploading') {
+        pausedRef.current.add(item.id);
+        await updateQueueItem(item.id, { status: 'paused' });
+      }
+    }
+    await loadQueueFromStorage();
+  }, []);
+
+  const resumeAll = useCallback(async () => {
+    const queue = await getQueue();
+    for (const item of queue) {
+      if (item.status === 'paused') {
+        pausedRef.current.delete(item.id);
+        await updateQueueItem(item.id, { status: 'pending', progress: 0 });
+      }
+    }
+    await loadQueueFromStorage();
+    if (!isProcessingRef.current) {
+      processForegroundQueue();
+    }
+  }, []);
+
+  const cancelAll = useCallback(async () => {
+    abortRef.current = true;
+    pausedRef.current.clear();
+    const queue = await getQueue();
+    for (const item of queue) {
+      if (item.status !== 'done') {
+        await updateQueueItem(item.id, { status: 'done', progress: 100 });
+      }
+    }
+    abortRef.current = false;
+    await loadQueueFromStorage();
+  }, []);
+
   const cleanupCompletedPhotos = useCallback(async () => {
     const toCleanup = uploadedPhotosRef.current;
     if (toCleanup.length === 0) return;
@@ -623,7 +727,7 @@ export function PhotoUploadProvider({
 
   const badgeCount = items.filter(
     (i) =>
-      i.status === 'pending' || i.status === 'uploading' || i.status === 'error',
+      i.status === 'pending' || i.status === 'uploading' || i.status === 'paused' || i.status === 'error',
   ).length;
 
   return (
@@ -637,6 +741,13 @@ export function PhotoUploadProvider({
         cleanupResult,
         startUpload,
         startFileUpload,
+        pauseUpload,
+        resumeUpload,
+        cancelUpload,
+        retryUpload,
+        pauseAll,
+        resumeAll,
+        cancelAll,
         clearCompleted,
         retryFailed,
         cleanupCompletedPhotos,

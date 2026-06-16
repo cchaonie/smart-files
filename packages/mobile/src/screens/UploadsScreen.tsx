@@ -2,50 +2,127 @@ import React from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { theme } from '../theme';
 import { CloudArrowUpIcon, TrashIcon, CheckCircleIcon } from '../components/icons';
-import { usePhotoUploadContext } from '../context/PhotoUploadContext';
+import { usePhotoUploadContext, type UploadItem } from '../context/PhotoUploadContext';
 
-function statusIcon(status: string): string {
+function statusConfig(status: string) {
   switch (status) {
-    case 'pending': return '⏳';
-    case 'uploading': return '⬆️';
-    case 'done': return '✅';
-    case 'error': return '❌';
-    default: return '❓';
+    case 'pending': return { label: '排队中', color: '#71717a', bg: '#f4f4f5' };
+    case 'uploading': return { label: '上传中', color: '#2563eb', bg: '#eff6ff' };
+    case 'paused': return { label: '已暂停', color: '#d97706', bg: '#fffbeb' };
+    case 'done': return { label: '完成', color: '#16a34a', bg: '#f0fdf4' };
+    case 'error': return { label: '失败', color: '#dc2626', bg: '#fef2f2' };
+    default: return { label: '?', color: '#71717a', bg: '#f4f4f5' };
   }
+}
+
+function timeAgo(dateStr: string): string {
+  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (seconds < 60) return '刚刚';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}分钟前`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}小时前`;
+  return `${Math.floor(hours / 24)}天前`;
+}
+
+function UploadItemCard({
+  item,
+  onPause,
+  onResume,
+  onCancel,
+  onRetry,
+}: {
+  item: UploadItem;
+  onPause: () => void;
+  onResume: () => void;
+  onCancel: () => void;
+  onRetry: () => void;
+}) {
+  const cfg = statusConfig(item.status);
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardRow}>
+        <View style={styles.cardIcon}>
+          <CloudArrowUpIcon size={20} color={theme.colors.textTertiary} />
+        </View>
+        <View style={styles.cardInfo}>
+          <Text style={styles.cardName} numberOfLines={1}>{item.filename}</Text>
+          {item.error && (
+            <Text style={styles.cardError} numberOfLines={1}>{item.error}</Text>
+          )}
+        </View>
+        <View style={[styles.badge, { backgroundColor: cfg.bg }]}>
+          <Text style={[styles.badgeText, { color: cfg.color }]}>{cfg.label}</Text>
+        </View>
+      </View>
+
+      {/* Progress bar for uploading and paused */}
+      {(item.status === 'uploading' || item.status === 'paused') && (
+        <View style={styles.progressSection}>
+          <View style={styles.progressBarBg}>
+            <View style={[styles.progressBarFill, { width: `${item.progress}%` }]} />
+          </View>
+          <Text style={styles.progressText}>{item.progress}%</Text>
+        </View>
+      )}
+
+      {/* Action buttons */}
+      {item.status !== 'done' && (
+        <View style={styles.cardActions}>
+          {item.status === 'uploading' && (
+            <TouchableOpacity style={styles.actionBtn} onPress={onPause}>
+              <Text style={styles.actionBtnText}>⏸</Text>
+            </TouchableOpacity>
+          )}
+          {item.status === 'paused' && (
+            <TouchableOpacity style={styles.actionBtn} onPress={onResume}>
+              <Text style={styles.actionBtnText}>▶</Text>
+            </TouchableOpacity>
+          )}
+          {item.status === 'error' && (
+            <TouchableOpacity style={styles.actionBtn} onPress={onRetry}>
+              <Text style={styles.actionBtnText}>↻</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={[styles.actionBtn, styles.cancelBtn]} onPress={onCancel}>
+            <Text style={[styles.actionBtnText, { color: theme.colors.danger }]}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  );
 }
 
 export function UploadsScreen() {
   const {
-    items, isUploading, uploadedPhotos,
+    items,
+    isUploading,
+    uploadedPhotos,
     isCleaningUp, cleanupResult, clearCompleted,
     cleanupCompletedPhotos, dismissCleanupResult,
+    pauseUpload, resumeUpload, cancelUpload, retryUpload,
+    pauseAll, resumeAll, cancelAll, retryFailed,
   } = usePhotoUploadContext();
 
   const totalDone = items.filter(i => i.status === 'done').length;
   const totalFailed = items.filter(i => i.status === 'error').length;
   const totalActive = items.filter(i => i.status === 'pending' || i.status === 'uploading').length;
+  const totalPaused = items.filter(i => i.status === 'paused').length;
   const hasItems = items.length > 0;
   const allComplete = hasItems && items.every(i => i.status === 'done' || i.status === 'error');
   const canCleanup = allComplete && totalDone > 0;
+  const hasActive = items.some(i => i.status === 'pending' || i.status === 'uploading');
+  const hasPaused = items.some(i => i.status === 'paused');
 
-  const renderItem = ({ item }: { item: typeof items[0] }) => (
-    <View style={styles.item}>
-      <Text style={styles.itemIcon}>{statusIcon(item.status)}</Text>
-      <View style={styles.itemInfo}>
-        <Text style={styles.itemName} numberOfLines={1}>{item.filename}</Text>
-        {item.status === 'uploading' && (
-          <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: `${item.progress}%` }]} />
-          </View>
-        )}
-        {item.status === 'error' && item.error ? (
-          <Text style={styles.errorText} numberOfLines={1}>{item.error}</Text>
-        ) : null}
-      </View>
-      <Text style={styles.itemProgress}>
-        {item.status === 'uploading' ? `${item.progress}%` : item.status === 'done' ? '100%' : ''}
-      </Text>
-    </View>
+  const renderItem = ({ item }: { item: UploadItem }) => (
+    <UploadItemCard
+      item={item}
+      onPause={() => pauseUpload(item.id)}
+      onResume={() => resumeUpload(item.id)}
+      onCancel={() => cancelUpload(item.id)}
+      onRetry={() => retryUpload(item.id)}
+    />
   );
 
   // Cleanup result view
@@ -91,20 +168,39 @@ export function UploadsScreen() {
         {hasItems && (
           <View style={styles.headerBadge}>
             <Text style={styles.headerBadgeText}>
-              完成 {totalDone}/{items.length}
+              {totalDone}/{items.length}
             </Text>
           </View>
         )}
       </View>
+
+      {/* Global action bar */}
+      {hasItems && !allComplete && (
+        <View style={styles.actionBar}>
+          {hasActive && (
+            <TouchableOpacity style={styles.actionBarBtn} onPress={pauseAll}>
+              <Text style={styles.actionBarBtnText}>⏸ 全部暂停</Text>
+            </TouchableOpacity>
+          )}
+          {hasPaused && (
+            <TouchableOpacity style={styles.actionBarBtn} onPress={resumeAll}>
+              <Text style={styles.actionBarBtnText}>▶ 全部继续</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={[styles.actionBarBtn, styles.actionBarCancelBtn]} onPress={cancelAll}>
+            <Text style={[styles.actionBarBtnText, { color: theme.colors.danger }]}>✕ 全部取消</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {hasItems ? (
         <>
           {/* Summary */}
           <View style={styles.summary}>
             <Text style={styles.summaryText}>
-              {isUploading
-                ? `上传中 ${totalActive} 项 · 已完成 ${totalDone}${totalFailed > 0 ? ` · 失败 ${totalFailed}` : ''}`
-                : `总计 ${items.length} 项 · 完成 ${totalDone}${totalFailed > 0 ? ` · 失败 ${totalFailed}` : ''}`}
+              {isUploading || hasPaused
+                ? `上传中 ${totalActive} · 暂停 ${totalPaused} · 完成 ${totalDone}${totalFailed > 0 ? ` · 失败 ${totalFailed}` : ''}`
+                : `总计 ${items.length} · 完成 ${totalDone}${totalFailed > 0 ? ` · 失败 ${totalFailed}` : ''}`}
             </Text>
           </View>
 
@@ -138,9 +234,16 @@ export function UploadsScreen() {
                 </TouchableOpacity>
               </>
             ) : allComplete ? (
-              <TouchableOpacity style={styles.clearBtn} onPress={clearCompleted}>
-                <Text style={styles.clearBtnText}>清除完成项</Text>
-              </TouchableOpacity>
+              <View style={styles.bottomRow}>
+                {totalFailed > 0 && (
+                  <TouchableOpacity style={styles.retryAllBtn} onPress={retryFailed}>
+                    <Text style={styles.retryAllBtnText}>↻ 重试失败</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity style={styles.clearBtn} onPress={clearCompleted}>
+                  <Text style={styles.clearBtnText}>清除完成项</Text>
+                </TouchableOpacity>
+              </View>
             ) : null}
           </View>
         </>
@@ -172,6 +275,22 @@ const styles = StyleSheet.create({
   },
   headerBadgeText: { fontSize: 12, fontWeight: '500', color: theme.colors.accent },
 
+  // Action bar
+  actionBar: {
+    flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 8, gap: 6,
+    borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight,
+    backgroundColor: theme.colors.zinc50,
+  },
+  actionBarBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: theme.radii.sm,
+    backgroundColor: '#fff', borderWidth: 1, borderColor: theme.colors.border,
+  },
+  actionBarCancelBtn: {
+    borderColor: '#fecaca',
+  },
+  actionBarBtnText: { fontSize: 12, fontWeight: '500', color: theme.colors.textSecondary },
+
   summary: {
     paddingHorizontal: 16, paddingVertical: 10,
     backgroundColor: theme.colors.zinc50,
@@ -181,21 +300,51 @@ const styles = StyleSheet.create({
 
   list: { paddingVertical: 4 },
 
-  item: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 10,
+  // Card
+  card: {
+    paddingHorizontal: 16, paddingVertical: 12,
     borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight,
   },
-  itemIcon: { fontSize: 20, marginRight: 10 },
-  itemInfo: { flex: 1 },
-  itemName: { fontSize: 14, color: theme.colors.text },
-  itemProgress: {
-    fontSize: 12, color: theme.colors.textTertiary,
-    marginLeft: 8, minWidth: 36, textAlign: 'right',
+  cardRow: { flexDirection: 'row', alignItems: 'center' },
+  cardIcon: {
+    width: 40, height: 40, borderRadius: theme.radii.md,
+    backgroundColor: theme.colors.zinc100,
+    alignItems: 'center', justifyContent: 'center',
+    marginRight: 10,
   },
-  progressBarBg: { height: 4, backgroundColor: theme.colors.border, borderRadius: 2, marginTop: 4, overflow: 'hidden' },
+  cardInfo: { flex: 1 },
+  cardName: { fontSize: 14, fontWeight: '500', color: theme.colors.text },
+  cardError: { fontSize: 11, color: theme.colors.danger, marginTop: 2 },
+  badge: {
+    paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: theme.radii.full,
+  },
+  badgeText: { fontSize: 10, fontWeight: '600' },
+
+  // Progress
+  progressSection: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginTop: 8,
+  },
+  progressBarBg: {
+    flex: 1, height: 4, backgroundColor: theme.colors.border,
+    borderRadius: 2, overflow: 'hidden',
+  },
   progressBarFill: { height: '100%', backgroundColor: theme.colors.accent, borderRadius: 2 },
-  errorText: { fontSize: 11, color: theme.colors.danger, marginTop: 2 },
+  progressText: { fontSize: 11, color: theme.colors.textTertiary, minWidth: 32, textAlign: 'right' },
+
+  // Card actions
+  cardActions: {
+    flexDirection: 'row', gap: 6, marginTop: 8,
+  },
+  actionBtn: {
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: theme.radii.sm,
+    backgroundColor: theme.colors.zinc100,
+  },
+  cancelBtn: {
+    backgroundColor: '#fef2f2',
+  },
+  actionBtnText: { fontSize: 13, color: theme.colors.textSecondary },
 
   empty: {
     flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24,
@@ -216,9 +365,15 @@ const styles = StyleSheet.create({
   cleanupBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   skipBtn: { alignItems: 'center', paddingVertical: 8 },
   skipBtnText: { fontSize: 13, color: theme.colors.textTertiary },
+  bottomRow: { flexDirection: 'row', gap: 8, justifyContent: 'center' },
+  retryAllBtn: {
+    paddingVertical: 10, paddingHorizontal: 20, borderRadius: theme.radii.md,
+    backgroundColor: theme.colors.zinc100,
+  },
+  retryAllBtnText: { fontSize: 13, color: theme.colors.textSecondary, fontWeight: '500' },
   clearBtn: {
     paddingVertical: 10, paddingHorizontal: 20, borderRadius: theme.radii.md,
-    backgroundColor: theme.colors.zinc100, alignSelf: 'center',
+    backgroundColor: theme.colors.zinc100,
   },
   clearBtnText: { fontSize: 13, color: theme.colors.textSecondary, fontWeight: '500' },
 
@@ -236,7 +391,6 @@ const styles = StyleSheet.create({
   },
   cleanupDoneText: { color: '#fff', fontSize: 15, fontWeight: '600' },
 
-  // Cleaning up
   cleaningUpRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     paddingVertical: 12,
