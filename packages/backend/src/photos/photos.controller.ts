@@ -69,14 +69,15 @@ export class PhotosController {
   async list(
     @Query('cursor') cursor: string | undefined,
     @Query('limit') limit: string | undefined,
-    @Query('tag') tag: string | undefined,
+    @Query('tags') tags: string | undefined,
     @CurrentUser() user: { id: string; name: string },
   ) {
     const parsedLimit = limit ? parseInt(limit, 10) : undefined;
     if (parsedLimit !== undefined && (isNaN(parsedLimit) || parsedLimit < 1)) {
       throw new BadRequestException('limit must be a positive integer');
     }
-    return this.photosService.list(user.id, cursor, parsedLimit, tag);
+    const parsedTags = tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : undefined;
+    return this.photosService.list(user.id, cursor, parsedLimit, parsedTags);
   }
 
   @Get(':id')

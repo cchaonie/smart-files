@@ -247,7 +247,7 @@ export function PhotosPage() {
     try {
       setError(null);
       if (reset) setLoading(true);
-      const data = await photosApi.list(reset ? undefined : cursor ?? undefined, 20, activeTag ?? undefined);
+      const data = await photosApi.list(reset ? undefined : cursor ?? undefined, 20, activeTag ? [activeTag] : undefined);
       setPhotos(prev => reset ? data.photos : [...prev, ...data.photos]);
       setCursor(data.nextCursor);
       setHasMore(data.nextCursor !== null);

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, FlatList, Image, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Dimensions, TextInput, ScrollView, Modal,
+  StyleSheet, ActivityIndicator, Dimensions, ScrollView, Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { photosApi } from '../api/photos';
@@ -43,9 +43,11 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
-  const [activeTag, setActiveTag] = useState<string | null>(null);
-  const [tagSearch, setTagSearch] = useState('');
-  const [tagSuggestions, setTagSuggestions] = useState<TagWithCount[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  // Tag word cloud state
+  const [allTags, setAllTags] = useState<TagWithCount[] | null>(null);
+  const [showTagCloud, setShowTagCloud] = useState(false);
 
   const monthRefs = useRef<Map<string, View | null>>(new Map());
   const [showMonthPicker, setShowMonthPicker] = useState(false);
@@ -80,17 +82,31 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
     photoDetection?.dismissPrompt();
   }
 
-  // Tag search debounce
+  // Load all tags once on mount for top3 + word cloud
   useEffect(() => {
-    if (!tagSearch.trim()) { setTagSuggestions([]); return; }
-    const timer = setTimeout(async () => {
-      try {
-        const data = await photosApi.getTags(tagSearch.trim());
-        setTagSuggestions(data.tags as TagWithCount[]);
-      } catch { setTagSuggestions([]); }
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [tagSearch]);
+    photosApi.getTags().then(data => {
+      setAllTags(data.tags as TagWithCount[]);
+    }).catch(() => {});
+  }, []);
+
+  // Top 3 tags by count
+  const topTags = useMemo<TagWithCount[]>(() => {
+    if (!allTags) return [];
+    return [...allTags].sort((a, b) => b.count - a.count).slice(0, 3);
+  }, [allTags]);
+
+  // Compute font sizes for word cloud (min=13, max=26)
+  const wordCloudTags = useMemo(() => {
+    if (!allTags || allTags.length === 0) return [];
+    const counts = allTags.map(t => t.count);
+    const minC = Math.min(...counts);
+    const maxC = Math.max(...counts);
+    const range = maxC - minC || 1;
+    return allTags.map(t => ({
+      ...t,
+      cloudFontSize: 13 + ((t.count - minC) / range) * 13, // 13 -> 26
+    }));
+  }, [allTags]);
 
   const loadPhotos = useCallback(async (reset = false) => {
     if (loading && !reset) return;
@@ -100,7 +116,7 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
       const res = await photosApi.list(
         reset ? undefined : cursor ?? undefined,
         20,
-        activeTag ?? undefined,
+        selectedTags.length > 0 ? selectedTags : undefined,
       );
       const newPhotos = reset ? res.photos : [...photos, ...res.photos];
       setPhotos(newPhotos);
@@ -111,7 +127,7 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
     } finally {
       setLoading(false);
     }
-  }, [cursor, loading, photos, activeTag]);
+  }, [cursor, loading, photos, selectedTags]);
 
   // Initial load
   useEffect(() => {
@@ -121,12 +137,12 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
 
   // Re-fetch on tag change
   useEffect(() => {
-    if (photos.length === 0 && activeTag === null) return;
+    if (photos.length === 0 && selectedTags.length === 0) return;
     setCursor(null);
     setHasMore(true);
     loadPhotos(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTag]);
+  }, [selectedTags]);
 
   const handleLoadMore = useCallback(() => {
     if (!loading && hasMore && !error) {
@@ -142,14 +158,15 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
     setSelectedPhoto(photo);
   }, []);
 
-  const applyTagFilter = useCallback((tag: string) => {
-    setActiveTag(tag);
-    setTagSearch('');
-    setTagSuggestions([]);
+  const toggleTagFilter = useCallback((tag: string) => {
+    setSelectedTags(prev => {
+      if (prev.includes(tag)) return prev.filter(t => t !== tag);
+      return [...prev, tag];
+    });
   }, []);
 
   const clearTagFilter = useCallback(() => {
-    setActiveTag(null);
+    setSelectedTags([]);
   }, []);
 
   const months = useMemo(() => getMonthsFromPhotos(photos), [photos]);
@@ -241,40 +258,58 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
         </TouchableOpacity>
       </View>
 
-      {/* Tag search bar */}
-      <View style={styles.tagSearchBar}>
-        <TextInput
-          style={styles.tagSearchInput}
-          placeholder="搜索标签..."
-          placeholderTextColor={theme.colors.textTertiary}
-          value={tagSearch}
-          onChangeText={setTagSearch}
-        />
-        {tagSuggestions.length > 0 && (
-          <View style={styles.tagSuggestions}>
-            {tagSuggestions.map(s => (
-              <TouchableOpacity
-                key={s.tag}
-                style={styles.tagSuggestionRow}
-                onPress={() => applyTagFilter(s.tag)}
-              >
-                <Text style={styles.tagSuggestionText}>{s.tag}</Text>
-                <Text style={styles.tagSuggestionCount}>{s.count}</Text>
-              </TouchableOpacity>
-            ))}
+      {/* Top 3 tags row */}
+      {topTags.length > 0 && (
+        <View style={styles.tagBar}>
+          <View style={styles.tagPills}>
+            {topTags.map(s => {
+              const active = selectedTags.includes(s.tag);
+              return (
+                <TouchableOpacity
+                  key={s.tag}
+                  style={[styles.topTagPill, active && styles.topTagPillActive]}
+                  onPress={() => toggleTagFilter(s.tag)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.topTagText, active && styles.topTagTextActive]}>
+                    {s.tag}
+                    {active ? '' : ''}
+                  </Text>
+                  <Text style={[styles.topTagCount, active && styles.topTagCountActive]}>
+                    {s.count}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
-        )}
-      </View>
+          <TouchableOpacity
+            style={styles.moreTagBtn}
+            onPress={() => setShowTagCloud(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.moreTagBtnText}>{t.moreTags}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
-      {/* Active filter pill */}
-      {activeTag && (
+      {/* Active filter pills */}
+      {selectedTags.length > 0 && (
         <View style={styles.activeTagRow}>
-          <View style={styles.activeTagPill}>
-            <Text style={styles.activeTagText}>{activeTag}</Text>
-            <TouchableOpacity onPress={clearTagFilter}>
-              <XMarkIcon size={14} color="#fff" />
-            </TouchableOpacity>
-          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', gap: 6, paddingHorizontal: 12 }}>
+              {selectedTags.map(tag => (
+                <View key={tag} style={styles.activeTagPill}>
+                  <Text style={styles.activeTagText}>{tag}</Text>
+                  <TouchableOpacity onPress={() => toggleTagFilter(tag)}>
+                    <XMarkIcon size={14} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TouchableOpacity onPress={clearTagFilter} style={styles.activeTagPillClear}>
+                <Text style={{ fontSize: 12, color: '#fff' }}>{t.clearFilter}</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         </View>
       )}
 
@@ -326,6 +361,58 @@ export function PhotoTimelineScreen({ photoDetection }: { photoDetection?: Photo
         </TouchableOpacity>
       </Modal>
 
+      {/* Word Cloud Modal */}
+      <Modal visible={showTagCloud} transparent animationType="fade" onRequestClose={() => setShowTagCloud(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.wordCloudModal}>
+            {/* Header */}
+            <View style={styles.wordCloudHeader}>
+              <Text style={styles.wordCloudTitle}>{t.moreTags}</Text>
+              <TouchableOpacity onPress={() => setShowTagCloud(false)}>
+                <XMarkIcon size={22} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
+            {/* Tag cloud */}
+            <ScrollView style={styles.wordCloudContent} showsVerticalScrollIndicator={false}>
+              <View style={styles.wordCloudWrap}>
+                {wordCloudTags.length === 0 && (
+                  <Text style={styles.wordCloudEmpty}>暂无标签</Text>
+                )}
+                {wordCloudTags.map(s => {
+                  const active = selectedTags.includes(s.tag);
+                  return (
+                    <TouchableOpacity
+                      key={s.tag}
+                      style={[
+                        styles.cloudTagItem,
+                        active && styles.cloudTagItemActive,
+                      ]}
+                      onPress={() => {
+                        toggleTagFilter(s.tag);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.cloudTagText,
+                          { fontSize: s.cloudFontSize },
+                          active && styles.cloudTagTextActive,
+                        ]}
+                      >
+                        {s.tag}
+                      </Text>
+                      <Text style={[styles.cloudTagCount, active && styles.cloudTagCountActive]}>
+                        {s.count}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {/* Photo detail overlay */}
       {selectedPhoto && (
         <PhotoDetailScreen
@@ -366,54 +453,65 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tagSearchBar: {
-    marginHorizontal: 16,
-    marginBottom: 8,
-    zIndex: 10,
-  },
-  tagSearchInput: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radii.md,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.text,
-    backgroundColor: theme.colors.surface,
-  },
-  tagSuggestions: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radii.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    maxHeight: 180,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  tagSuggestionRow: {
+
+  // ── Top 3 tags bar ──────────────────────────────────────
+  tagBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    gap: 8,
   },
-  tagSuggestionText: {
+  tagPills: {
+    flexDirection: 'row',
+    gap: 6,
+    flex: 1,
+  },
+  topTagPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.zinc100,
+    borderRadius: theme.radii.full,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  topTagPillActive: {
+    backgroundColor: theme.colors.accent,
+    borderColor: theme.colors.accent,
+  },
+  topTagText: {
     fontSize: theme.fontSize.sm,
-    color: theme.colors.text,
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
   },
-  tagSuggestionCount: {
-    fontSize: theme.fontSize.xs,
+  topTagTextActive: {
+    color: '#fff',
+  },
+  topTagCount: {
+    fontSize: 10,
     color: theme.colors.textTertiary,
+    fontWeight: '400',
   },
+  topTagCountActive: {
+    color: 'rgba(255,255,255,0.8)',
+  },
+  moreTagBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: theme.radii.full,
+    borderWidth: 1,
+    borderColor: theme.colors.accent,
+  },
+  moreTagBtnText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.accent,
+    fontWeight: '500',
+  },
+
+  // ── Active filter pills ─────────────────────────────────
   activeTagRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,
@@ -433,6 +531,84 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSize.sm,
     fontWeight: '500',
   },
+  activeTagPillClear: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.textTertiary,
+    borderRadius: theme.radii.full,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+
+  // ── Word cloud modal ────────────────────────────────────
+  wordCloudModal: {
+    width: '85%',
+    maxHeight: '70%',
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.xl,
+    padding: 20,
+  },
+  wordCloudHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  wordCloudTitle: {
+    fontSize: theme.fontSize.lg,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  wordCloudContent: {
+    maxHeight: 350,
+  },
+  wordCloudWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  cloudTagItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: theme.colors.zinc100,
+    borderRadius: theme.radii.full,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  cloudTagItemActive: {
+    backgroundColor: theme.colors.accent,
+    borderColor: theme.colors.accent,
+  },
+  cloudTagText: {
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
+    lineHeight: undefined,
+  },
+  cloudTagTextActive: {
+    color: '#fff',
+  },
+  cloudTagCount: {
+    fontSize: 10,
+    color: theme.colors.textTertiary,
+    fontWeight: '400',
+  },
+  cloudTagCountActive: {
+    color: 'rgba(255,255,255,0.8)',
+  },
+  wordCloudEmpty: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.textTertiary,
+    textAlign: 'center',
+    paddingVertical: 20,
+  },
+
+  // ── Shared ──────────────────────────────────────────────
   centerState: {
     flex: 1,
     justifyContent: 'center',

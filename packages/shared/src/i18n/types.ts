@@ -45,6 +45,7 @@ export interface I18nStrings {
   searching: string; noMatchingFiles: string; contents: string;
   refresh: string; folderEmpty: string; pauseResume: string;
   cancelAll: string; clearCompleted: string; folderLabel: string; select: string;
+  selectAll: string; deselectAll: string;
   newNamePrompt: string; expiresPrefix: string; colAdded: string;
   unknownFolder: string;
   emailPlaceholder: string; passwordPlaceholder: string;
@@ -69,7 +70,7 @@ export interface I18nStrings {
   photoDetail: string; captured: string; dimensions: string;
   jumpToMonth: string; endOfList: string;
   searchTags: string; filteringBy: string;
-  noMatchingPhotos: string; clearFilter: string;
+  noMatchingPhotos: string; clearFilter: string; moreTags: string;
   /* Photo timeline (mobile) */
   mobilePhotos: string;
   mobileNoPhotos: string;

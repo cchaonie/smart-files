@@ -77,6 +77,7 @@ export const zhCN: I18nStrings = {
   refresh: '刷新', folderEmpty: '此文件夹为空。',
   pauseResume: '暂停 / 继续', cancelAll: '全部取消',
   clearCompleted: '清除已完成', folderLabel: '文件夹', select: '选择',
+  selectAll: '全选', deselectAll: '取消全选',
   newNamePrompt: '新名称', expiresPrefix: '有效期至',
   colAdded: '添加时间', unknownFolder: '未知',
   emailPlaceholder: 'you@example.com',
@@ -117,6 +118,7 @@ export const zhCN: I18nStrings = {
   jumpToMonth: '跳转到月份', endOfList: '已经到底了',
   searchTags: '搜索标签...', filteringBy: '筛选：',
   noMatchingPhotos: '没有匹配的照片', clearFilter: '清除筛选',
+  moreTags: '更多标签',
   /* Photo timeline (mobile) */
   mobilePhotos: '照片',
   mobileNoPhotos: '暂无照片',

@@ -77,6 +77,7 @@ export const en: I18nStrings = {
   refresh: 'Refresh', folderEmpty: 'This folder is empty.',
   pauseResume: 'Pause / resume', cancelAll: 'Cancel all',
   clearCompleted: 'Clear completed', folderLabel: 'Folder', select: 'Select',
+  selectAll: 'Select all', deselectAll: 'Deselect all',
   newNamePrompt: 'New name', expiresPrefix: 'Expires',
   colAdded: 'Added', unknownFolder: 'Unknown',
   emailPlaceholder: 'you@example.com',
@@ -117,6 +118,7 @@ export const en: I18nStrings = {
   jumpToMonth: 'Jump to month', endOfList: 'The end',
   searchTags: 'Search tags...', filteringBy: 'Filter:',
   noMatchingPhotos: 'No matching photos', clearFilter: 'Clear filter',
+  moreTags: 'More tags',
   /* Photo timeline (mobile) */
   mobilePhotos: 'Photos',
   mobileNoPhotos: 'No photos',
