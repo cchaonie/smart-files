@@ -48,7 +48,6 @@ export default {
     },
     plugins: [
       './plugins/withNetworkSecurityConfig',
-      './modules/foreground-download',
       [
         'expo-notifications',
         {
