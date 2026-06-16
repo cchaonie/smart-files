@@ -246,10 +246,12 @@ export function PhotoUploadProvider({
         item.deviceModel,
       );
       await updateQueueItem(item.id, { status: 'done', progress: 100 });
-      uploadedPhotosRef.current.push({
-        assetId: item.id,
-        filename: item.filename,
-      });
+      if (item.sourceAssetId) {
+        uploadedPhotosRef.current.push({
+          assetId: item.sourceAssetId,
+          filename: item.filename,
+        });
+      }
       await AsyncStorage.setItem(
         'uploaded_photos_tracking',
         JSON.stringify(uploadedPhotosRef.current),

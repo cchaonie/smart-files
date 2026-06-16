@@ -25,6 +25,7 @@ export default {
     },
     android: {
       package: 'life.inkxel.smartfiles',
+      minSdkVersion: 26,
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#ffffff',
