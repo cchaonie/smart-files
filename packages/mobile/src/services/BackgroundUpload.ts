@@ -18,6 +18,7 @@ import {
   UploadQueueItem,
 } from './UploadQueue';
 import { getPlatformDefaultApiUrl } from '../config/api';
+import * as FileSystem from 'expo-file-system/legacy';
 
 /** Name of the background upload task (used across app + background) */
 export const BACKGROUND_UPLOAD_TASK = 'BACKGROUND_UPLOAD';
@@ -188,8 +189,7 @@ async function processFileUpload(
   const report = (pct: number) => updateItem(item.id, { progress: pct });
 
   // Read the file
-  const fileSystem = require('expo-file-system');
-  const fileInfo = await fileSystem.FileSystem.getInfoAsync(item.uri);
+  const fileInfo = await FileSystem.getInfoAsync(item.uri);
   if (!fileInfo.exists) throw new Error('File does not exist');
   const totalSize = fileInfo.size || item.size || 0;
 
@@ -242,10 +242,10 @@ async function processFileUpload(
   for (const index of missing) {
     const start = index * chunkSize;
     const chunkSizeActual = Math.min(start + chunkSize, totalSize) - start;
-    const chunkBase64 = await fileSystem.FileSystem.readAsStringAsync(
+    const chunkBase64 = await FileSystem.readAsStringAsync(
       item.uri,
       {
-        encoding: fileSystem.FileSystem.EncodingType.Base64,
+        encoding: FileSystem.EncodingType.Base64,
         position: start,
         length: chunkSizeActual,
       },
