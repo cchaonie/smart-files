@@ -15,7 +15,7 @@
     "axios": "^1.16.0",
     "expo": "~54.0.33",
     "expo-background-fetch": "~14.0.9",
-    "expo-device": "^56.0.4",
+    "expo-device": "^8.0.10",
     "expo-document-picker": "~14.0.8",
     "expo-file-system": "19.0.22",
     "expo-intent-launcher": "~13.0.8",
