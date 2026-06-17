@@ -15,7 +15,7 @@ import { BottomSheet } from '../components/BottomSheet'
 import { EmptyState } from '../components/EmptyState'
 import {
   FolderIcon, TrashIcon, MagnifyingGlassIcon,
-  CloudArrowUpIcon, EyeIcon, ArrowRightIcon
+  CloudArrowUpIcon, EyeIcon, ArrowRightIcon, EllipsisVerticalIcon
 } from '../components/icons'
 
 const PATH_STORAGE_KEY = 'smartfiles:filesPagePath';
@@ -79,6 +79,8 @@ export function FilesPage() {
   const [isSelecting, setIsSelecting] = useState(false);
   const [actionFile, setActionFile] = useState<FileItem | null>(null);
   const [showActionSheet, setShowActionSheet] = useState(false);
+  const [actionFolder, setActionFolder] = useState<Folder | null>(null);
+  const [showFolderActionSheet, setShowFolderActionSheet] = useState(false);
   const [selectedTrashIds, setSelectedTrashIds] = useState<Set<string>>(new Set());
   const currentParentId = path.length === 0 ? null : path[path.length - 1].id;
 
@@ -320,6 +322,29 @@ export function FilesPage() {
   function closeActionSheet() {
     setActionFile(null);
     setShowActionSheet(false);
+  }
+
+  function openFolderActionSheet(folder: Folder) {
+    setActionFolder(folder);
+    setShowFolderActionSheet(true);
+  }
+
+  function closeFolderActionSheet() {
+    setActionFolder(null);
+    setShowFolderActionSheet(false);
+  }
+
+  function handleFolderAction(action: string) {
+    if (!actionFolder) return;
+    switch (action) {
+      case 'rename':
+        void renameFolder(actionFolder);
+        break;
+      case 'delete':
+        void deleteFolder(actionFolder);
+        break;
+    }
+    closeFolderActionSheet();
   }
 
   function handleAction(action: string) {
@@ -567,7 +592,7 @@ export function FilesPage() {
             <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-800">
               {folders.map(folder => (
                 <div key={folder.id} className={`flex items-center gap-3 p-3 bg-white dark:bg-zinc-900 ${isSelecting && selectedFolderIds.has(folder.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
-                  {isSelecting ? (
+                  {isSelecting && (
                     <input
                       type="checkbox"
                       checked={selectedFolderIds.has(folder.id)}
@@ -575,36 +600,25 @@ export function FilesPage() {
                       className="w-5 h-5 rounded border-zinc-300 text-blue-500 focus:ring-blue-500"
                       onClick={e => e.stopPropagation()}
                     />
-                  ) : (
-                    <div className="w-5" />
                   )}
-                  <div className="w-12 h-12 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
-                    <FolderIcon className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                  <div
+                    className="flex-1 flex items-center gap-3 min-w-0 cursor-pointer"
+                    onClick={() => setPath(p => [...p, { id: folder.id, name: folder.name }])}
+                  >
+                    <div className="w-12 h-12 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                      <FolderIcon className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">{folder.name}</p>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Folder</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{folder.name}</p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Folder</p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setPath(p => [...p, { id: folder.id, name: folder.name }])}
-                      className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-sm font-medium text-zinc-700 dark:text-zinc-300"
-                    >
-                      {t.open}
-                    </button>
-                    <button
-                      onClick={() => void renameFolder(folder)}
-                      className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-sm text-zinc-500"
-                    >
-                      {t.rename}
-                    </button>
-                    <button
-                      onClick={() => void deleteFolder(folder)}
-                      className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-500"
-                    >
-                      {t.delete}
-                    </button>
-                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); openFolderActionSheet(folder); }}
+                    className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  >
+                    <EllipsisVerticalIcon className="w-5 h-5 text-zinc-400" />
+                  </button>
                 </div>
               ))}
               {files.map(file => (
@@ -704,6 +718,19 @@ export function FilesPage() {
             <span className="text-sm text-zinc-900 dark:text-zinc-100">{t.rename}</span>
           </button>
           <button onClick={() => handleAction('delete')} className="flex items-center gap-3 px-4 py-3 text-left hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
+            <TrashIcon className="w-5 h-5 text-red-500" />
+            <span className="text-sm text-red-600 dark:text-red-400">{t.delete}</span>
+          </button>
+        </div>
+      </BottomSheet>
+
+      {/* Folder Action Sheet */}
+      <BottomSheet isOpen={showFolderActionSheet} onClose={closeFolderActionSheet} title={actionFolder?.name}>
+        <div className="flex flex-col">
+          <button onClick={() => handleFolderAction('rename')} className="flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg">
+            <span className="text-sm text-zinc-900 dark:text-zinc-100">{t.rename}</span>
+          </button>
+          <button onClick={() => handleFolderAction('delete')} className="flex items-center gap-3 px-4 py-3 text-left hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
             <TrashIcon className="w-5 h-5 text-red-500" />
             <span className="text-sm text-red-600 dark:text-red-400">{t.delete}</span>
           </button>

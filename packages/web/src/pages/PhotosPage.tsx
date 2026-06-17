@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { photosApi } from '../api/photos';
 import type { Photo, TagWithCount } from '../types';
 import { useI18n } from '@smart-files/shared/src/i18n';
-import { CalendarIcon, ImageIcon, TagIcon, XMarkIcon } from '../components/icons';
+import { CalendarIcon, ImageIcon, XMarkIcon } from '../components/icons';
 import { PhotoDetailPage } from './PhotoDetailPage';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ function getMonthsFromPhotos(photos: Photo[]): string[] {
   for (const p of photos) {
     if (p.capturedAt) months.add(p.capturedAt.slice(0, 7));
   }
-  return Array.from(months).sort((a, b) => b.localeCompare(a)); // newest first
+  return Array.from(months).sort((a, b) => b.localeCompare(a));
 }
 
 // ── Skeleton ────────────────────────────────────────────────────────────────
@@ -123,17 +123,21 @@ function DatePickerOverlay({
   );
 }
 
-// ── Tag Browser Overlay ──────────────────────────────────────────────────────
+// ── Word Cloud Overlay ───────────────────────────────────────────────────────
 
-function TagBrowserOverlay({
+function WordCloudOverlay({
   tags,
-  onSelect,
+  selectedTags,
+  onToggle,
   onClose,
 }: {
-  tags: TagWithCount[];
-  onSelect: (tag: string) => void;
+  tags: (TagWithCount & { cloudFontSize: number })[];
+  selectedTags: string[];
+  onToggle: (tag: string) => void;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -151,25 +155,32 @@ function TagBrowserOverlay({
         onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
         <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-3 text-center">
-          Tags
+          {t.moreTags}
         </h3>
         {tags.length === 0 ? (
-          <p className="text-sm text-zinc-400 text-center py-4">No tags</p>
+          <p className="text-sm text-zinc-400 text-center py-4">{t.moreTags}</p>
         ) : (
-          <div className="space-y-1">
-            {tags.map((s) => (
-              <button
-                key={s.tag}
-                onClick={() => {
-                  onSelect(s.tag);
-                  onClose();
-                }}
-                className="w-full px-4 py-2.5 text-sm text-left text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors rounded-lg flex items-center justify-between"
-              >
-                <span>{s.tag}</span>
-                <span className="text-xs text-zinc-400">{s.count}</span>
-              </button>
-            ))}
+          <div className="flex flex-wrap gap-2 justify-center py-2">
+            {tags.map((s) => {
+              const active = selectedTags.includes(s.tag);
+              return (
+                <button
+                  key={s.tag}
+                  onClick={() => onToggle(s.tag)}
+                  className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full border text-sm font-medium transition-colors ${
+                    active
+                      ? 'bg-blue-600 border-blue-600 text-white'
+                      : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                  }`}
+                  style={{ fontSize: s.cloudFontSize }}
+                >
+                  <span>{s.tag}</span>
+                  <span className={`text-[10px] font-normal ${active ? 'text-white/70' : 'text-zinc-400'}`}>
+                    {s.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
       </motion.div>
@@ -189,55 +200,41 @@ export function PhotosPage() {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
-  // Tag search & filter state
-  const [activeTag, setActiveTag] = useState<string | null>(null);
-  const [tagSearch, setTagSearch] = useState('');
-  const [tagSuggestions, setTagSuggestions] = useState<TagWithCount[]>([]);
-  const [tagBrowserOpen, setTagBrowserOpen] = useState(false);
-  const [searchingTags, setSearchingTags] = useState(false);
-  const [browserTags, setBrowserTags] = useState<TagWithCount[]>([]);
+  // Tag state
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [allTags, setAllTags] = useState<TagWithCount[]>([]);
+  const [wordCloudOpen, setWordCloudOpen] = useState(false);
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const monthRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
   const fetchingRef = useRef(false);
-  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const searchRef = useRef<HTMLDivElement>(null);
 
-  // ── Tag search: debounced autocomplete ──────────────────────────────────
+  // ── Load all tags on mount ───────────────────────────────────────────────
 
   useEffect(() => {
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    if (!tagSearch.trim()) { setTagSuggestions([]); return; }
-    searchTimeoutRef.current = setTimeout(async () => {
-      try {
-        setSearchingTags(true);
-        const data = await photosApi.getTags(tagSearch.trim());
-        setTagSuggestions(data.tags);
-      } catch { /* ignore */ } finally { setSearchingTags(false); }
-    }, 200);
-    return () => { if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current); };
-  }, [tagSearch]);
-
-  // ── Click-outside handler for search bar ────────────────────────────────
-
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setTagSuggestions([]);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    photosApi.getTags().then(data => setAllTags(data.tags)).catch(() => {});
   }, []);
 
-  // ── Load tags for browser overlay ───────────────────────────────────────
+  // ── Top 3 tags ──────────────────────────────────────────────────────────
 
-  const loadTagsForBrowser = useCallback(async () => {
-    try {
-      const data = await photosApi.getTags();
-      setBrowserTags(data.tags);
-    } catch { /* ignore */ }
-  }, []);
+  const topTags = useMemo<TagWithCount[]>(() => {
+    if (!allTags) return [];
+    return [...allTags].sort((a, b) => b.count - a.count).slice(0, 3);
+  }, [allTags]);
+
+  // ── Word cloud tags with font size scaling ──────────────────────────────
+
+  const wordCloudTags = useMemo(() => {
+    if (!allTags || allTags.length === 0) return [];
+    const counts = allTags.map(t => t.count);
+    const minC = Math.min(...counts);
+    const maxC = Math.max(...counts);
+    const range = maxC - minC || 1;
+    return allTags.map(t => ({
+      ...t,
+      cloudFontSize: 13 + ((t.count - minC) / range) * 13,
+    }));
+  }, [allTags]);
 
   // ── Load more (with optional tag filter) ────────────────────────────────
 
@@ -247,7 +244,11 @@ export function PhotosPage() {
     try {
       setError(null);
       if (reset) setLoading(true);
-      const data = await photosApi.list(reset ? undefined : cursor ?? undefined, 20, activeTag ? [activeTag] : undefined);
+      const data = await photosApi.list(
+        reset ? undefined : cursor ?? undefined,
+        20,
+        selectedTags.length > 0 ? selectedTags : undefined,
+      );
       setPhotos(prev => reset ? data.photos : [...prev, ...data.photos]);
       setCursor(data.nextCursor);
       setHasMore(data.nextCursor !== null);
@@ -257,7 +258,7 @@ export function PhotosPage() {
       fetchingRef.current = false;
       setLoading(false);
     }
-  }, [cursor, t.failedToLoad, activeTag]);
+  }, [cursor, t.failedToLoad, selectedTags]);
 
   const loadMoreRef = useRef(loadMore);
   loadMoreRef.current = loadMore;
@@ -269,9 +270,9 @@ export function PhotosPage() {
 
   // Re-fetch when tag filter changes
   useEffect(() => {
-    if (photos.length === 0 && activeTag === null) return;
+    if (photos.length === 0 && selectedTags.length === 0) return;
     void loadMore(true);
-  }, [activeTag]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedTags]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // IntersectionObserver for infinite scroll
   useEffect(() => {
@@ -293,17 +294,18 @@ export function PhotosPage() {
 
   // ── Tag filter handlers ─────────────────────────────────────────────────
 
-  const applyTagFilter = useCallback(async (tag: string) => {
-    setActiveTag(tag);
-    setTagSearch('');
-    setTagSuggestions([]);
+  const toggleTagFilter = useCallback((tag: string) => {
+    setSelectedTags(prev => {
+      if (prev.includes(tag)) return prev.filter(t => t !== tag);
+      return [...prev, tag];
+    });
     window.scrollTo(0, 0);
     setCursor(null);
     setHasMore(true);
   }, []);
 
-  const clearTagFilter = useCallback(async () => {
-    setActiveTag(null);
+  const clearTagFilter = useCallback(() => {
+    setSelectedTags([]);
     setCursor(null);
     setHasMore(true);
     window.scrollTo(0, 0);
@@ -313,7 +315,6 @@ export function PhotosPage() {
   const groupedByMonth = useMemo(() => groupByMonth(photos), [photos]);
   const monthKeys = useMemo(() => Array.from(groupedByMonth.keys()).sort((a, b) => b.localeCompare(a)), [groupedByMonth]);
 
-  // Day grouping inside each month
   const dayGroupsCache = useMemo(() => {
     const cache = new Map<string, Map<string, Photo[]>>();
     for (const [monthKey, monthPhotos] of groupedByMonth) {
@@ -331,6 +332,8 @@ export function PhotosPage() {
 
   // ── Render ──────────────────────────────────────────────────────────────
 
+  const hasActiveFilter = selectedTags.length > 0;
+
   return (
     <div className="px-4 py-6 pb-20">
       {/* Header */}
@@ -343,50 +346,59 @@ export function PhotosPage() {
         </span>
       </div>
 
-      {/* Tag search bar */}
-      <div ref={searchRef} className="relative mb-4">
-        <input
-          type="text"
-          value={tagSearch}
-          onChange={e => setTagSearch(e.target.value)}
-          placeholder={t.searchTags}
-          className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        {/* Autocomplete dropdown */}
-        {tagSuggestions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-lg max-h-48 overflow-y-auto">
-            {tagSuggestions.map(s => (
-              <button
-                key={s.tag}
-                onClick={() => void applyTagFilter(s.tag)}
-                className="w-full px-4 py-2.5 text-sm text-left text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center justify-between"
-              >
-                <span>{s.tag}</span>
-                <span className="text-xs text-zinc-400">{s.count}</span>
-              </button>
-            ))}
+      {/* Top 3 tag pills + More tags button */}
+      {topTags.length > 0 && (
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex gap-1.5 flex-1 min-w-0">
+            {topTags.map(s => {
+              const active = selectedTags.includes(s.tag);
+              return (
+                <button
+                  key={s.tag}
+                  onClick={() => toggleTagFilter(s.tag)}
+                  className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full border text-sm font-medium transition-colors ${
+                    active
+                      ? 'bg-blue-600 border-blue-600 text-white'
+                      : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                  }`}
+                >
+                  <span className="truncate">{s.tag}</span>
+                  <span className={`text-[10px] font-normal ${active ? 'text-white/70' : 'text-zinc-400'}`}>
+                    {s.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-        )}
-        {searchingTags && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <svg className="animate-spin h-4 w-4 text-zinc-400" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-          </div>
-        )}
-      </div>
+          <button
+            onClick={() => setWordCloudOpen(true)}
+            className="px-3 py-1.5 rounded-full border border-blue-500 text-blue-600 dark:text-blue-400 text-sm font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex-shrink-0"
+          >
+            {t.moreTags}
+          </button>
+        </div>
+      )}
 
-      {/* Active filter pill */}
-      {activeTag && (
-        <div className="flex items-center gap-2 mb-3 px-1">
-          <span className="text-xs text-zinc-500">{t.filteringBy}</span>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium">
-            {activeTag}
-            <button onClick={() => void clearTagFilter()} className="hover:text-blue-500">
-              <XMarkIcon className="w-3.5 h-3.5" />
-            </button>
-          </span>
+      {/* Active filter bar */}
+      {hasActiveFilter && (
+        <div className="flex items-center gap-2 mb-3 overflow-x-auto no-scrollbar">
+          {selectedTags.map(tag => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-600 text-white text-sm font-medium flex-shrink-0"
+            >
+              {tag}
+              <button onClick={() => toggleTagFilter(tag)} className="hover:text-blue-200">
+                <XMarkIcon className="w-3.5 h-3.5" />
+              </button>
+            </span>
+          ))}
+          <button
+            onClick={clearTagFilter}
+            className="inline-flex items-center px-3 py-1.5 rounded-full bg-zinc-500 text-white text-sm font-medium flex-shrink-0 hover:bg-zinc-600 transition-colors"
+          >
+            {t.clearFilter}
+          </button>
         </div>
       )}
 
@@ -407,12 +419,12 @@ export function PhotosPage() {
       {loading && photos.length === 0 && !error && <SkeletonGrid />}
 
       {/* Empty filtered state */}
-      {!loading && !error && photos.length === 0 && activeTag && (
+      {!loading && !error && photos.length === 0 && hasActiveFilter && (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <ImageIcon className="w-16 h-16 text-zinc-300 dark:text-zinc-600" />
           <p className="text-sm text-zinc-400 dark:text-zinc-500">{t.noMatchingPhotos}</p>
           <button
-            onClick={() => void clearTagFilter()}
+            onClick={clearTagFilter}
             className="px-4 py-2 rounded-xl bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-sm font-medium"
           >
             {t.clearFilter}
@@ -421,7 +433,7 @@ export function PhotosPage() {
       )}
 
       {/* Empty state (no filter) */}
-      {!loading && !error && photos.length === 0 && !activeTag && (
+      {!loading && !error && photos.length === 0 && !hasActiveFilter && (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <ImageIcon className="w-16 h-16 text-zinc-300 dark:text-zinc-600" />
           <p className="text-sm text-zinc-400 dark:text-zinc-500">{t.noPhotos}</p>
@@ -442,24 +454,19 @@ export function PhotosPage() {
                 ref={(el) => { monthRefs.current.set(monthKey, el); }}
                 className="mb-6"
               >
-                {/* Sticky month header */}
                 <div className="sticky top-0 z-10 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm pb-2 pt-0 -mx-4 px-4">
                   <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
                     {formatMonthLabel(monthKey, lang)}
                   </h2>
                 </div>
 
-                {/* Day groups within month */}
                 {dayKeys.map((dayKey) => {
                   const dayPhotos = dayGroups.get(dayKey)!;
                   return (
                     <div key={dayKey} className="mb-4">
-                      {/* Day label */}
                       <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2 font-medium">
                         {formatDayLabel(dayKey, lang)}
                       </p>
-
-                      {/* Photo grid */}
                       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                         {dayPhotos.map((photo) => (
                           <button
@@ -498,7 +505,6 @@ export function PhotosPage() {
             );
           })}
 
-          {/* Infinite scroll sentinel */}
           <div ref={sentinelRef} className="h-8" />
           {loading && photos.length > 0 && <SkeletonGrid />}
           {!hasMore && photos.length > 0 && (
@@ -509,18 +515,7 @@ export function PhotosPage() {
         </div>
       )}
 
-      {/* Floating action buttons — always visible */}
-      <button
-        onClick={() => {
-          void loadTagsForBrowser();
-          setTagBrowserOpen(true);
-        }}
-        className="fixed bottom-36 right-4 z-30 w-12 h-12 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
-        aria-label="Tag browser"
-      >
-        <TagIcon className="w-5 h-5" />
-      </button>
-
+      {/* Date picker FAB */}
       <button
         onClick={() => setDatePickerOpen(true)}
         className="fixed bottom-24 right-4 z-30 w-12 h-12 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
@@ -540,11 +535,12 @@ export function PhotosPage() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {tagBrowserOpen && (
-          <TagBrowserOverlay
-            tags={browserTags}
-            onSelect={applyTagFilter}
-            onClose={() => setTagBrowserOpen(false)}
+        {wordCloudOpen && (
+          <WordCloudOverlay
+            tags={wordCloudTags}
+            selectedTags={selectedTags}
+            onToggle={toggleTagFilter}
+            onClose={() => setWordCloudOpen(false)}
           />
         )}
       </AnimatePresence>

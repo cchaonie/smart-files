@@ -119,6 +119,7 @@ export const en: I18nStrings = {
   searchTags: 'Search tags...', filteringBy: 'Filter:',
   noMatchingPhotos: 'No matching photos', clearFilter: 'Clear filter',
   moreTags: 'More tags',
+  addTagPlaceholder: 'Add tag...', tagAdded: 'Tag added', tagRemoved: 'Tag removed', tagExists: 'Tag already exists',
   /* Photo timeline (mobile) */
   mobilePhotos: 'Photos',
   mobileNoPhotos: 'No photos',

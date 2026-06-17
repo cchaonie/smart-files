@@ -33,7 +33,7 @@ export interface UploadQueueItem {
   /** Device model for photo sync folder organization */
   deviceModel?: string;
   /** Current status */
-  status: 'pending' | 'uploading' | 'done' | 'error';
+  status: 'pending' | 'uploading' | 'paused' | 'done' | 'error';
   /** Progress percentage 0–100 */
   progress: number;
   /** Error message if status === 'error' */
@@ -111,6 +111,7 @@ export async function clearCompleted(): Promise<void> {
 export async function getStatusCounts(): Promise<{
   pending: number;
   uploading: number;
+  paused: number;
   done: number;
   error: number;
   total: number;
@@ -119,21 +120,24 @@ export async function getStatusCounts(): Promise<{
   const queue = await getQueue();
   let pending = 0,
     uploading = 0,
+    paused = 0,
     done = 0,
     error = 0;
   for (const i of queue) {
     if (i.status === 'pending') pending++;
     else if (i.status === 'uploading') uploading++;
+    else if (i.status === 'paused') paused++;
     else if (i.status === 'done') done++;
     else if (i.status === 'error') error++;
   }
   return {
     pending,
     uploading,
+    paused,
     done,
     error,
     total: queue.length,
-    active: pending + uploading + error,
+    active: pending + uploading + paused + error,
   };
 }
 

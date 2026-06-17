@@ -119,6 +119,7 @@ export const zhCN: I18nStrings = {
   searchTags: '搜索标签...', filteringBy: '筛选：',
   noMatchingPhotos: '没有匹配的照片', clearFilter: '清除筛选',
   moreTags: '更多标签',
+  addTagPlaceholder: '添加标签...', tagAdded: '标签已添加', tagRemoved: '标签已移除', tagExists: '标签已存在',
   /* Photo timeline (mobile) */
   mobilePhotos: '照片',
   mobileNoPhotos: '暂无照片',

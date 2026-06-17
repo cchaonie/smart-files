@@ -71,6 +71,7 @@ export interface I18nStrings {
   jumpToMonth: string; endOfList: string;
   searchTags: string; filteringBy: string;
   noMatchingPhotos: string; clearFilter: string; moreTags: string;
+  addTagPlaceholder: string; tagAdded: string; tagRemoved: string; tagExists: string;
   /* Photo timeline (mobile) */
   mobilePhotos: string;
   mobileNoPhotos: string;

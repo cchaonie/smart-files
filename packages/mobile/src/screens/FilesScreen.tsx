@@ -15,7 +15,7 @@ import {
 import * as DocumentPicker from 'expo-document-picker';
 import { filesApi, foldersApi } from '../api/files';
 import { useAuth } from '../context/AuthContext';
-import { useI18n } from '@smart-files/shared/src/i18n';
+import { useI18n, tFormat } from '@smart-files/shared/src/i18n';
 import { theme } from '../theme';
 import {
   FolderIcon, FolderOpenIcon, PlusIcon, TrashIcon,
@@ -224,15 +224,15 @@ export function FilesScreen() {
     try {
       await filesApi.restoreFile(id);
       await loadTrash();
-    } catch { Alert.alert('错误', '恢复失败'); }
+    } catch { Alert.alert('Error', t.restoreFailed); }
   }
 
   async function handlePurge(id: string) {
-    Alert.alert('永久删除', '确认永久删除该文件？', [
-      { text: '取消', style: 'cancel' },
-      { text: '删除', style: 'destructive', onPress: async () => {
+    Alert.alert(t.confirmDeleteTitle, '', [
+      { text: t.cancel, style: 'cancel' },
+      { text: t.delete, style: 'destructive', onPress: async () => {
         try { await filesApi.purgeFile(id); await loadTrash(); }
-        catch { Alert.alert('错误', '删除失败'); }
+        catch { Alert.alert('Error', t.deleteFailed); }
       }},
     ]);
   }
@@ -242,29 +242,29 @@ export function FilesScreen() {
       await filesApi.batchRestore(Array.from(selectedTrashIds));
       setSelectedTrashIds(new Set());
       await loadTrash();
-    } catch { Alert.alert('错误', '批量恢复失败'); }
+    } catch { Alert.alert('Error', t.batchRestoreFailed); }
   }
 
   async function handleBatchPurgeTrash() {
-    Alert.alert('永久删除', `确认永久删除选中的 ${selectedTrashIds.size} 个文件？`, [
-      { text: '取消', style: 'cancel' },
-      { text: '删除', style: 'destructive', onPress: async () => {
+    Alert.alert(tFormat(t.deleteSelectedConfirm, { n: selectedTrashIds.size }), '', [
+      { text: t.cancel, style: 'cancel' },
+      { text: t.deletePermanently, style: 'destructive', onPress: async () => {
         try {
           await filesApi.batchPurge(Array.from(selectedTrashIds));
           setSelectedTrashIds(new Set());
           await loadTrash();
-        } catch { Alert.alert('错误', '批量永久删除失败'); }
+        } catch { Alert.alert('Error', t.batchDeleteFailed); }
       }},
     ]);
   }
 
   async function handleEmptyTrash() {
     if (!trashFiles) return;
-    Alert.alert('清空回收站', `确认永久删除所有 ${trashFiles.length} 个文件？此操作不可恢复。`, [
-      { text: '取消', style: 'cancel' },
-      { text: '清空', style: 'destructive', onPress: async () => {
+    Alert.alert(tFormat(t.deleteSelectedConfirm, { n: trashFiles.length }), '', [
+      { text: t.cancel, style: 'cancel' },
+      { text: t.deletePermanently, style: 'destructive', onPress: async () => {
         try { await filesApi.emptyTrash(); await loadTrash(); }
-        catch { Alert.alert('错误', '清空回收站失败'); }
+        catch { Alert.alert('Error', t.batchPurgeFailed); }
       }},
     ]);
   }
@@ -307,9 +307,8 @@ export function FilesScreen() {
   function showFolderActions(folder: Folder) {
     setActionSheetTitle(folder.name);
     setActionSheetActions([
-      { key: 'open', label: '打开', icon: '📂', onPress: () => setPath(p => [...p, { id: folder.id, name: folder.name }]) },
-      { key: 'rename', label: '重命名', icon: '✏️', onPress: () => setRenameTarget(folder) },
-      { key: 'delete', label: '删除', icon: '🗑️', danger: true, onPress: () => handleDeleteFolder(folder) },
+      { key: 'rename', label: t.rename, icon: '✏️', onPress: () => setRenameTarget(folder) },
+      { key: 'delete', label: t.delete, icon: '🗑️', danger: true, onPress: () => handleDeleteFolder(folder) },
     ]);
     setActionSheetVisible(true);
   }
@@ -486,10 +485,12 @@ export function FilesScreen() {
               }
             }}>
               <Text style={styles.actionBtnText}>
-                {[...folders, ...files].every(i => selectedIds.has(i.id)) ? '取消全选' : '全选'}
+                {[...folders, ...files].every(i => selectedIds.has(i.id)) ? t.deselectAll : t.selectAll}
               </Text>
             </TouchableOpacity>
-            <Text style={styles.selectCount}>已选 {selectedIds.size} 项</Text>
+            <Text style={styles.selectCount}>
+              {tFormat(t.selectedCount, { n: selectedIds.size })}
+            </Text>
           </>
         ) : viewingTrash ? (
           <>
@@ -503,7 +504,7 @@ export function FilesScreen() {
               }
             }}>
               <Text style={styles.actionBtnText}>
-                {trashFiles && trashFiles.every(f => selectedTrashIds.has(f.id)) ? '取消全选' : '全选'}
+                {trashFiles && trashFiles.every(f => selectedTrashIds.has(f.id)) ? t.deselectAll : t.selectAll}
               </Text>
             </TouchableOpacity>
             <Text style={styles.selectCount}>{t.trashTitle}</Text>
@@ -591,9 +592,9 @@ export function FilesScreen() {
                 onPress={() => toggleTrashSelect(item.id)}
                 onLongPress={() => {
                   Alert.alert(item.name, undefined, [
-                    { text: '恢复', onPress: () => handleRestore(item.id) },
-                    { text: '永久删除', style: 'destructive', onPress: () => handlePurge(item.id) },
-                    { text: '取消', style: 'cancel' },
+                    { text: t.restore, onPress: () => handleRestore(item.id) },
+                    { text: t.deletePermanently, style: 'destructive', onPress: () => handlePurge(item.id) },
+                    { text: t.cancel, style: 'cancel' },
                   ]);
                 }}
               >
@@ -609,7 +610,7 @@ export function FilesScreen() {
                   <View style={styles.fileDetails}>
                     <Text style={styles.fileName} numberOfLines={1}>{item.name}</Text>
                     <Text style={styles.fileSize}>
-                      {(item.folderName || t.root)} · {new Date(item.deletedAt).toLocaleDateString()}
+                      {formatBytes(BigInt(item.size))} · {(item.folderName || t.root)} · {new Date(item.deletedAt).toLocaleDateString()}
                     </Text>
                   </View>
                 </View>
@@ -705,13 +706,13 @@ export function FilesScreen() {
       {/* Batch action bar for trash */}
       {selectedTrashIds.size > 0 && viewingTrash && (
         <View style={styles.batchBar}>
-          <Text style={styles.batchBarCount}>已选择 {selectedTrashIds.size} 项</Text>
+          <Text style={styles.batchBarCount}>{tFormat(t.selectedCount, { n: selectedTrashIds.size })}</Text>
           <View style={styles.batchBarActions}>
             <TouchableOpacity style={styles.batchBarBtn} onPress={handleBatchRestoreTrash}>
-              <Text style={styles.batchBarBtnText}>↩ 恢复</Text>
+              <Text style={styles.batchBarBtnText}>{t.restore}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.batchBarBtn, styles.batchBarBtnDanger]} onPress={handleBatchPurgeTrash}>
-              <Text style={styles.batchBarBtnText}>永久删除</Text>
+              <Text style={styles.batchBarBtnText}>{t.deletePermanently}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.batchBarBtn} onPress={() => setSelectedTrashIds(new Set())}>
               <XMarkIcon size={18} color="#fff" />
