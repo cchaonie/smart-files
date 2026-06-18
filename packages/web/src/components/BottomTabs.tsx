@@ -45,7 +45,7 @@ export function BottomTabs() {
               )}
               <Icon className={`w-6 h-6 transition-colors ${isActive ? 'text-blue-500' : 'text-zinc-400 dark:text-zinc-500'}`} />
               <span className={`text-[11px] font-medium transition-colors ${isActive ? 'text-blue-500' : 'text-zinc-400 dark:text-zinc-500'}`}>
-                {t[tab.labelKey as keyof typeof t] as string}
+                {tab.labelKey === 'admin' ? t.admin.title : (t[tab.labelKey as keyof typeof t] as string)}
               </span>
             </Link>
           );
