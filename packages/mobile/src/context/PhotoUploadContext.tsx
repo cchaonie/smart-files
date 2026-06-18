@@ -36,7 +36,7 @@ import {
 import { photosApi } from '../api/photos';
 import { uploadApi, CHUNK_SIZE } from '../api/upload';
 import type { NewPhotoAsset } from '../hooks/usePhotoDetection';
-import * as FileSystem from 'expo-file-system/legacy';
+import { File } from 'expo-file-system';
 
 export type UploadStatus = 'pending' | 'uploading' | 'paused' | 'done' | 'error';
 
@@ -296,12 +296,9 @@ export function PhotoUploadProvider({
     await updateQueueItem(item.id, { status: 'uploading', progress: 0 });
 
     try {
-      // Create upload session
-      const fileInfo = await FileSystem.getInfoAsync(
-        item.uri,
-      );
-      if (!fileInfo.exists) throw new Error('File does not exist');
-      const totalSize = fileInfo.size || item.size || 0;
+      const file = new File(item.uri);
+      const totalSize = file.size;
+      if (totalSize <= 0) throw new Error('File does not exist');
 
       const session = await uploadApi.createSession(
         item.filename,
@@ -309,41 +306,28 @@ export function PhotoUploadProvider({
         item.folderId || undefined,
       );
 
-      // Upload chunks
       const totalChunks = Math.ceil(totalSize / CHUNK_SIZE);
-      for (let i = 0; i < totalChunks; i++) {
-        if (abortRef.current) throw new Error('已取消');
+      const handle = file.open();
 
-        // Check if paused — busy-wait until resumed or cancelled
-        while (pausedRef.current.has(item.id) && !abortRef.current) {
-          await new Promise((r) => setTimeout(r, 200));
+      try {
+        for (let i = 0; i < totalChunks; i++) {
+          if (abortRef.current) throw new Error('已取消');
+
+          while (pausedRef.current.has(item.id) && !abortRef.current) {
+            await new Promise((r) => setTimeout(r, 200));
+          }
+          if (abortRef.current) throw new Error('已取消');
+
+          const toRead = Math.min(CHUNK_SIZE, totalSize - handle.offset!);
+          const bytes = handle.readBytes(toRead);
+          await uploadApi.uploadChunk(session.uploadId, i, bytes.buffer);
+          const progress = Math.round(((i + 1) / totalChunks) * 100);
+          await updateQueueItem(item.id, { progress });
         }
-        if (abortRef.current) throw new Error('已取消');
-
-        const start = i * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, totalSize);
-        const chunkSize = end - start;
-
-        const chunkBase64 = await FileSystem.readAsStringAsync(
-          item.uri,
-          {
-            encoding: FileSystem.EncodingType.Base64,
-            position: start,
-            length: chunkSize,
-          },
-        );
-
-        const binaryString = atob(chunkBase64);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let j = 0; j < binaryString.length; j++)
-          bytes[j] = binaryString.charCodeAt(j);
-
-        await uploadApi.uploadChunk(session.uploadId, i, bytes.buffer);
-        const progress = Math.round(((i + 1) / totalChunks) * 100);
-        await updateQueueItem(item.id, { progress });
+      } finally {
+        handle.close();
       }
 
-      // Complete upload
       await uploadApi.completeUpload(session.uploadId, item.mimeType);
       await uploadApi.waitForCompletion(session.uploadId);
       await updateQueueItem(item.id, { status: 'done', progress: 100 });

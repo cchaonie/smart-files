@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiClient from './client';
 import { UploadSession } from '../types';
-import * as FileSystem from 'expo-file-system/legacy';
+import { File } from 'expo-file-system';
 
 const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB — 5MB was too chatty for large files
 
@@ -91,45 +91,27 @@ export const uploadApi = {
     folderId: string | null,
     onProgress: (progress: number) => void
   ): Promise<void> => {
-    // Get file info
-    const fileInfo = await FileSystem.getInfoAsync(uri);
-    if (!fileInfo.exists) {
-      throw new Error('File does not exist');
+    const file = new File(uri);
+    const totalSize = file.size;
+    if (totalSize <= 0) {
+      throw new Error('File does not exist or cannot be read');
     }
-    const totalSize = fileInfo.size;
 
-    // Create upload session
     const session = await uploadApi.createSession(fileName, totalSize, folderId || undefined);
-
-    // Read and upload chunks
     const totalChunks = Math.ceil(totalSize / CHUNK_SIZE);
+    const handle = file.open();
 
-    for (let i = 0; i < totalChunks; i++) {
-      const start = i * CHUNK_SIZE;
-      const end = Math.min(start + CHUNK_SIZE, totalSize);
-      const chunkSize = end - start;
-
-      // Read chunk
-      const chunkBase64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
-        position: start,
-        length: chunkSize,
-      });
-
-      // Convert base64 to ArrayBuffer
-      const binaryString = atob(chunkBase64);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let j = 0; j < binaryString.length; j++) {
-        bytes[j] = binaryString.charCodeAt(j);
+    try {
+      for (let i = 0; i < totalChunks; i++) {
+        const toRead = Math.min(CHUNK_SIZE, totalSize - handle.offset!);
+        const bytes = handle.readBytes(toRead);
+        await uploadApi.uploadChunk(session.uploadId, i, bytes.buffer);
+        onProgress(Math.round(((i + 1) / totalChunks) * 100));
       }
-
-      // Upload chunk
-      await uploadApi.uploadChunk(session.uploadId, i, bytes.buffer);
-      onProgress(Math.round(((i + 1) / totalChunks) * 100));
+      await uploadApi.completeUpload(session.uploadId, mimeType);
+    } finally {
+      handle.close();
     }
-
-    // Complete upload
-    await uploadApi.completeUpload(session.uploadId, mimeType);
   },
 };
 
