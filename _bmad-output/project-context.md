@@ -322,6 +322,7 @@ packages/shared/types/         Shared TypeScript interfaces
 - **Do NOT use ES module syntax in backend** — backend uses CommonJS (`module: commonjs`).
 - **Do NOT modify another user's photos or albums** — always filter by `userId` in Prisma queries.
 - **Do NOT use TypeScript `strict: true` in backend** — `strictNullChecks: false` is intentional.
+- **Do NOT make UI changes to only one platform** — any UI-related change must be applied to **both web and mobile** projects simultaneously, unless explicitly instructed to target only one platform.
 
 #### Edge Cases Agents Must Handle
 

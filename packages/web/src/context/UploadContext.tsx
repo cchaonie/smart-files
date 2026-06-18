@@ -8,6 +8,7 @@ const MAX_PARALLEL_KEY = 'sf_max_parallel';
 interface UploadContextType {
   uploads: UploadQueueItem[];
   history: UploadHistoryItem[];
+  badgeCount: number;
   startUpload: (files: File[], folderId?: string, folderName?: string) => void;
   pauseUpload: (id: number) => void;
   resumeUpload: (id: number) => void;
@@ -326,11 +327,16 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     setMaxParallelState(Math.max(1, Math.min(10, n)));
   }, []);
 
+  const badgeCount = uploads.filter(
+    (u) => u.status === 'pending' || u.status === 'uploading' || u.status === 'paused' || u.status === 'error',
+  ).length;
+
   return (
     <UploadContext.Provider
       value={{
         uploads,
         history,
+        badgeCount,
         startUpload,
         pauseUpload,
         resumeUpload,
