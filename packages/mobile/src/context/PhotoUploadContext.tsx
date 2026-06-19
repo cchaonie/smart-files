@@ -682,19 +682,38 @@ export function PhotoUploadProvider({
       uploadedPhotosRef.current = [];
       setUploadedPhotos([]);
       await AsyncStorage.removeItem('uploaded_photos_tracking');
+      // Auto-clear done items from queue after successful cleanup
+      await clearQueueCompleted();
+      const updated = await getQueue();
+      setItems(
+        updated.map((q) => ({
+          id: q.id,
+          filename: q.filename,
+          type: q.type,
+          status: q.status,
+          progress: q.progress,
+          error: q.error,
+          uri: q.uri,
+          mimeType: q.mimeType,
+        })),
+      );
     }
 
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: '本地清理完成',
-        body:
-          failed > 0
-            ? `${success} 张已删除，${failed} 张删除失败`
-            : `已释放 ${success} 张照片的本地存储空间`,
-        data: { type: 'cleanup_complete' },
-      },
-      trigger: null,
-    });
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '本地清理完成',
+          body:
+            failed > 0
+              ? `${success} 张已删除，${failed} 张删除失败`
+              : `已释放 ${success} 张照片的本地存储空间`,
+          data: { type: 'cleanup_complete' },
+        },
+        trigger: null,
+      });
+    } catch {
+      // Notification permission may not be granted — silently ignore
+    }
   }, []);
 
   const dismissCleanupResult = useCallback(() => {

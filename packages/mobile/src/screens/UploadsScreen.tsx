@@ -111,7 +111,7 @@ export function UploadsScreen() {
   const totalPaused = items.filter(i => i.status === 'paused').length;
   const hasItems = items.length > 0;
   const allComplete = hasItems && items.every(i => i.status === 'done' || i.status === 'error');
-  const canCleanup = allComplete && totalDone > 0;
+  const canCleanup = allComplete && totalDone > 0 && uploadedPhotos.length > 0;
   const hasActive = items.some(i => i.status === 'pending' || i.status === 'uploading');
   const hasPaused = items.some(i => i.status === 'paused');
 
