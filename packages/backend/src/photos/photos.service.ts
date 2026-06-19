@@ -79,8 +79,40 @@ export class PhotosService {
     // Dedup: check if a Photo with this hash already exists for this user
     const existing = await this.prisma.photo.findFirst({
       where: { userId, hash },
+      include: { file: true },
     });
     if (existing) {
+      // If the associated File record is missing (e.g., was purged from trash),
+      // re-create it to keep Photo ↔ File in sync
+      if (!existing.file) {
+        let deviceFolderId: string | null = null;
+        if (deviceModel) {
+          const existingFolder = await this.prisma.folder.findFirst({
+            where: { userId, name: deviceModel, parentId: null },
+          });
+          if (existingFolder) {
+            deviceFolderId = existingFolder.id;
+          } else {
+            const newFolder = await this.prisma.folder.create({
+              data: { userId, name: deviceModel, parentId: null },
+            });
+            deviceFolderId = newFolder.id;
+          }
+        }
+
+        await this.prisma.file.create({
+          data: {
+            userId,
+            name: existing.originalName,
+            storageKey: existing.storageKey,
+            size: BigInt(existing.size),
+            mimeType: existing.mimeType,
+            photoId: existing.id,
+            folderId: deviceFolderId,
+            deletedAt: null,
+          },
+        });
+      }
       return { id: existing.id, status: existing.status };
     }
 

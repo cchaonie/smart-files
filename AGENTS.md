@@ -100,6 +100,38 @@ data/storage/
 - `EXPO_PUBLIC_API_URL` for server URL config. Physical devices need LAN IP (not localhost).
 - **Expo SDK 54** — 所有新增的 `expo-*` 依赖必须兼容 SDK 54（如 `expo-device` 用 `~8.x`，非 `56.x`）。使用 `npm view <pkg> versions` 确认版本后再安装。iOS simulator 使用 `localhost`，Android emulator 自动使用 `10.0.2.2`。
 
+### Android APK Build (Mobile PR Validation)
+
+**Prerequisites** (installed locally):
+- Java 17 JDK (`/usr/lib/jvm/java-17-openjdk-amd64`)
+- Android SDK (`~/Android/Sdk` — platform 34, build-tools 34.0.0)
+- `ANDROID_HOME=~/Android/Sdk`, `JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64`
+
+**When to build**: Always build debug APK after making changes to `packages/mobile/`.
+
+```bash
+source ~/.nvm/nvm.sh
+export ANDROID_HOME=~/Android/Sdk
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+
+cd packages/mobile
+
+# 1. Generate native Android project (if not yet or after plugin/config changes)
+npx expo prebuild --platform android --clean
+
+# 2. Build debug APK
+cd android
+echo "sdk.dir=$ANDROID_HOME" > local.properties
+./gradlew assembleDebug --no-daemon
+
+# 3. Verify APK was produced
+ls -lh app/build/outputs/apk/debug/app-debug.apk
+```
+
+**Verification**: The APK at `packages/mobile/android/app/build/outputs/apk/debug/app-debug.apk` should exist and be > 1MB. First build downloads Gradle (8.14.3) + Maven deps and may take 15-30 minutes depending on network speed.
+
+### Test Data
+
 ## Database
 
 - **Schema**: `packages/shared/prisma/schema.prisma`. Models: User, Folder, File, Share, UploadSession, Photo, PhotoTag, Album, AlbumPhotoMember, SharedAlbum.

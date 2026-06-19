@@ -120,9 +120,7 @@ export class FilesService {
       throw new NotFoundException('File not found');
     }
 
-    const filePath = file.photoId
-      ? path.join(this.photoRoot, file.storageKey)
-      : path.join(this.uploadRoot, 'files', userId, file.storageKey);
+    const filePath = this.resolveFilePath(file, userId);
 
     try {
       await stat(filePath);
@@ -180,9 +178,7 @@ export class FilesService {
       throw new NotFoundException('File not found');
     }
 
-    const filePath = file.photoId
-      ? path.join(this.photoRoot, file.storageKey)
-      : path.join(this.uploadRoot, 'files', userId, file.storageKey);
+    const filePath = this.resolveFilePath(file, userId);
 
     try {
       await stat(filePath);
@@ -246,6 +242,16 @@ export class FilesService {
     return { success: true };
   }
 
+  /**
+   * Resolve the absolute file path on disk for a given File record.
+   * Photo-linked files live under PHOTO_ROOT; regular files under UPLOAD_ROOT.
+   */
+  private resolveFilePath(file: { photoId: string | null; storageKey: string }, userId: string): string {
+    return file.photoId
+      ? path.join(this.photoRoot, file.storageKey)
+      : path.join(this.uploadRoot, 'files', userId, file.storageKey);
+  }
+
   async purgeFile(userId: string, fileId: string) {
     const file = await this.prisma.file.findFirst({
       where: { id: fileId, userId, deletedAt: { not: null } },
@@ -257,11 +263,9 @@ export class FilesService {
 
     await this.prisma.file.delete({ where: { id: fileId } });
 
-    // Delete physical file only if it's not a photo-linked file
-    if (!file.photoId) {
-      const filePath = path.join(this.uploadRoot, 'files', userId, file.storageKey);
-      import('fs/promises').then(fs => fs.unlink(filePath).catch(() => {}));
-    }
+    // Delete physical file from disk regardless of type
+    const { unlink } = await import('fs/promises');
+    await unlink(this.resolveFilePath(file, userId)).catch(() => {});
 
     return { success: true };
   }
@@ -271,11 +275,10 @@ export class FilesService {
       where: { userId, deletedAt: { not: null } },
     });
 
+    // Delete physical files first, then DB records
+    const { unlink } = await import('fs/promises');
     for (const file of files) {
-      if (!file.photoId) {
-        const filePath = path.join(this.uploadRoot, 'files', userId, file.storageKey);
-        import('fs/promises').then(fs => fs.unlink(filePath).catch(() => {}));
-      }
+      await unlink(this.resolveFilePath(file, userId)).catch(() => {});
     }
 
     await this.prisma.file.deleteMany({
@@ -376,11 +379,9 @@ export class FilesService {
       where: { id: { in: ids }, userId, deletedAt: { not: null } },
     });
 
+    const { unlink } = await import('fs/promises');
     for (const file of files) {
-      if (!file.photoId) {
-        const filePath = path.join(this.uploadRoot, 'files', userId, file.storageKey);
-        import('fs/promises').then(fs => fs.unlink(filePath).catch(() => {}));
-      }
+      await unlink(this.resolveFilePath(file, userId)).catch(() => {});
     }
 
     const count = await this.prisma.file.deleteMany({
