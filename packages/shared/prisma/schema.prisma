@@ -8,9 +8,16 @@ datasource db {
 }
 
 enum PhotoStatus {
+  UPLOADED
   PROCESSING
+  THUMBNAILING
+  THUMBNAIL_FAILED
+  THUMBNAIL_PERMANENTLY_FAILED
+  TAGGING
   READY
+  COMPLETED
   FAILED
+  ORPHANED
 }
 
 model User {
@@ -104,13 +111,16 @@ model Photo {
   originalName String
   mimeType     String
   size         Int
-  hash         String        @unique
+  hash         String
   storageKey   String
   thumbnailPath String?
   previewPath  String?
   width        Int?
   height       Int?
-  status       PhotoStatus   @default(PROCESSING)
+  status       PhotoStatus   @default(UPLOADED)
+  retryCount   Int           @default(0)
+  orphanedAt   DateTime?
+  orphanReason String?
   capturedAt   DateTime?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -118,9 +128,11 @@ model Photo {
   albumMemberships AlbumPhotoMember[]
   file         File?
 
+  @@unique([userId, hash])
   @@index([userId])
   @@index([capturedAt])
   @@index([status])
+  @@index([status, updatedAt])
 }
 
 model PhotoTag {

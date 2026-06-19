@@ -18,7 +18,7 @@ import {
   UploadQueueItem,
 } from './UploadQueue';
 import { getPlatformDefaultApiUrl } from '../config/api';
-import * as FileSystem from 'expo-file-system/legacy';
+import { File } from 'expo-file-system';
 
 /** Name of the background upload task (used across app + background) */
 export const BACKGROUND_UPLOAD_TASK = 'BACKGROUND_UPLOAD';
@@ -185,19 +185,15 @@ async function processFileUpload(
   token: string,
   baseUrl: string,
 ): Promise<void> {
-  // For progress reporting
   const report = (pct: number) => updateItem(item.id, { progress: pct });
 
-  // Read the file
-  const fileInfo = await FileSystem.getInfoAsync(item.uri);
-  if (!fileInfo.exists) throw new Error('File does not exist');
-  const totalSize = fileInfo.size || item.size || 0;
+  const file = new File(item.uri);
+  const totalSize = file.size;
+  if (totalSize <= 0) throw new Error('File does not exist');
 
-  // Use the shared upload.ts API via direct fetch
   const CHUNK_SIZE = 10 * 1024 * 1024;
 
   if (!item.uploadId) {
-    // Create session
     const res = await fetch(`${baseUrl}/upload/session`, {
       method: 'POST',
       headers: {
@@ -218,7 +214,6 @@ async function processFileUpload(
     await updateItem(item.id, { uploadId: session.uploadId, totalChunks: session.totalChunks });
   }
 
-  // Get session status to find missing chunks
   const sessionRes = await fetch(
     `${baseUrl}/upload/session/${item.uploadId}`,
     { headers: { Authorization: `Bearer ${token}` } },
@@ -233,31 +228,23 @@ async function processFileUpload(
     if (!received.has(i)) missing.push(i);
   }
   if (missing.length === 0) {
-    // All chunks uploaded — complete the session
     await completeFileUpload(item, token, baseUrl);
     return;
   }
 
-  let doneCount = received.size;
-  for (const index of missing) {
-    const start = index * chunkSize;
-    const chunkSizeActual = Math.min(start + chunkSize, totalSize) - start;
-    const chunkBase64 = await FileSystem.readAsStringAsync(
-      item.uri,
-      {
-        encoding: FileSystem.EncodingType.Base64,
-        position: start,
-        length: chunkSizeActual,
-      },
-    );
-    const binaryString = atob(chunkBase64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let j = 0; j < binaryString.length; j++)
-      bytes[j] = binaryString.charCodeAt(j);
-
-    await uploadFileChunk(item.uploadId!, index, bytes.buffer, token, baseUrl);
-    doneCount += 1;
-    report(Math.round((doneCount / totalChunks) * 100));
+  const handle = file.open();
+  try {
+    let doneCount = received.size;
+    for (const index of missing) {
+      handle.offset = index * chunkSize;
+      const toRead = Math.min(chunkSize, totalSize - handle.offset!);
+      const bytes = handle.readBytes(toRead);
+      await uploadFileChunk(item.uploadId!, index, bytes.buffer, token, baseUrl);
+      doneCount += 1;
+      report(Math.round((doneCount / totalChunks) * 100));
+    }
+  } finally {
+    handle.close();
   }
 
   await completeFileUpload(item, token, baseUrl);

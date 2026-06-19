@@ -157,3 +157,4 @@ podman-compose up -d
 - Backend tsconfig: `strictNullChecks: false`, `noImplicitAny: false`.
 - Web tsconfig: `strict: true`, `noUnusedLocals: true`, `noUnusedParameters: true`.
 - File naming: `kebab-case.ts` for modules, `PascalCase.tsx` for components.
+- **UI parity**: Any UI-related change must be applied to **both web and mobile** projects simultaneously, unless explicitly told to target only one platform.

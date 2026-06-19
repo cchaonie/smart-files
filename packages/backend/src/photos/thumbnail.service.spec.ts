@@ -4,10 +4,12 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { ThumbnailService } from './thumbnail.service';
 
+jest.mock('node:fs/promises');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const fsMock = require('node:fs/promises');
+
 describe('ThumbnailService', () => {
   let service: ThumbnailService;
-  let prisma: jest.Mocked<PrismaService>;
-  let aiTaggingQueue: { add: jest.Mock };
 
   const mockPrisma = {
     photo: {
@@ -22,6 +24,8 @@ describe('ThumbnailService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    fsMock.mkdir.mockResolvedValue(undefined);
+    fsMock.unlink.mockResolvedValue(undefined);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -36,8 +40,6 @@ describe('ThumbnailService', () => {
     }).compile();
 
     service = module.get<ThumbnailService>(ThumbnailService);
-    prisma = module.get(PrismaService);
-    aiTaggingQueue = module.get(getQueueToken('ai-tagging'));
   });
 
   describe('generate', () => {
@@ -71,7 +73,7 @@ describe('ThumbnailService', () => {
         previewPath: 'chris/2026/06/test_preview.jpg',
         width: 1920,
         height: 1080,
-        status: 'READY',
+        status: 'TAGGING',
       });
 
       // Call generate — sharp operations will throw in test environment

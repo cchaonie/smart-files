@@ -86,7 +86,7 @@ export class ThumbnailService {
           previewPath: relativePreviewPath,
           width,
           height,
-          status: 'READY',
+          status: 'TAGGING',
         },
       });
 

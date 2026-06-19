@@ -4,6 +4,7 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiTaggingService } from './ai-tagging.service';
+import { PhotoSagaService } from '../photos/photo-saga.service';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 
@@ -18,6 +19,7 @@ export class AiTaggingWorker extends WorkerHost {
     private aiTaggingService: AiTaggingService,
     private prisma: PrismaService,
     private configService: ConfigService,
+    private sagaService: PhotoSagaService,
   ) {
     super();
     this.photoRoot =
@@ -26,49 +28,65 @@ export class AiTaggingWorker extends WorkerHost {
 
   async process(job: Job<{ photoId: string }>): Promise<void> {
     const { photoId } = job.data;
-    this.logger.log(`Processing AI tagging for photo: ${photoId}`);
 
-    // 1. Find the photo record
-    const photo = await this.prisma.photo.findUnique({
-      where: { id: photoId },
-    });
-
-    if (!photo) {
-      throw new Error(`Photo not found: ${photoId}`);
+    const lockValue = await this.sagaService.acquireLock(photoId);
+    if (!lockValue) {
+      throw new Error(`Could not acquire distributed lock for photo ${photoId}`);
     }
 
-    // 2. Verify thumbnail exists (ai-tagging runs after thumbnail is generated)
-    if (!photo.thumbnailPath) {
-      throw new Error(`Photo ${photoId} has no thumbnail — processing blocked`);
-    }
+    const refreshTimer = this.sagaService.startLockRefresh(photoId, lockValue);
 
-    // 3. Resolve the full path to the thumbnail
-    const thumbnailPath = path.join(this.photoRoot, photo.thumbnailPath);
-
-    // Verify file exists
     try {
-      await fs.access(thumbnailPath);
-    } catch {
-      throw new Error(`Thumbnail file not found on disk: ${thumbnailPath}`);
-    }
+      this.logger.log(`Processing AI tagging for photo: ${photoId}`);
 
-    // 4. Run classification
-    const tags = await this.aiTaggingService.classify(thumbnailPath);
+      const photo = await this.prisma.photo.findUnique({
+        where: { id: photoId },
+      });
 
-    // 5. Save tags (idempotent — skipDuplicates handles re-processing)
-    if (tags.length > 0) {
-      await this.aiTaggingService.saveTags(photoId, tags);
-      this.logger.log(
-        `Photo ${photoId}: classified with tags [${tags.map(t => `${t.tag}(${t.confidence})`).join(', ')}]`,
+      if (!photo) {
+        throw new Error(`Photo not found: ${photoId}`);
+      }
+
+      if (!photo.thumbnailPath) {
+        throw new Error(`Photo ${photoId} has no thumbnail — processing blocked`);
+      }
+
+      const thumbnailPath = path.join(this.photoRoot, photo.thumbnailPath);
+
+      try {
+        await fs.access(thumbnailPath);
+      } catch {
+        throw new Error(`Thumbnail file not found on disk: ${thumbnailPath}`);
+      }
+
+      const tags = await this.aiTaggingService.classify(thumbnailPath);
+
+      if (tags.length > 0) {
+        await this.aiTaggingService.saveTags(photoId, tags);
+        this.logger.log(
+          `Photo ${photoId}: classified with tags [${tags.map(t => `${t.tag}(${t.confidence})`).join(', ')}]`,
+        );
+      } else {
+        this.logger.log(`Photo ${photoId}: no tags above threshold (0.3)`);
+      }
+
+      await this.sagaService.transition(
+        photoId,
+        ['TAGGING'],
+        'COMPLETED',
+        this.prisma,
       );
-    } else {
-      this.logger.log(`Photo ${photoId}: no tags above threshold (0.3)`);
+    } finally {
+      this.sagaService.stopLockRefresh(refreshTimer);
+      await this.sagaService.releaseLock(photoId, lockValue).catch(() => {});
     }
   }
 
   /**
-   * On failure, log the error. Photo status remains READY (set by thumbnail
-   * worker) — tagging failures are non-blocking.
+   * On failure after all retries, compensate:
+   * - Delete any partial PhotoTag records in a transaction
+   * - Keep thumbnails (independently useful)
+   * - Mark photo as COMPLETED (tagging is a nice-to-have)
    */
   @OnWorkerEvent('failed')
   async onFailed(job: Job<{ photoId: string }>, error: Error): Promise<void> {
@@ -76,5 +94,41 @@ export class AiTaggingWorker extends WorkerHost {
     this.logger.error(
       `AI tagging failed for photo ${photoId} after retries: ${error.message}`,
     );
+
+    try {
+      const lockValue = await this.sagaService.acquireLock(photoId);
+      if (!lockValue) return;
+
+      try {
+        const photo = await this.prisma.photo.findUnique({
+          where: { id: photoId },
+          select: { id: true, status: true },
+        });
+
+        if (!photo) return;
+
+        if (photo.status === 'TAGGING') {
+          await this.prisma.$transaction(async (tx) => {
+            await tx.photoTag.deleteMany({ where: { photoId } });
+            await this.sagaService.transition(
+              photoId,
+              ['TAGGING'],
+              'COMPLETED',
+              tx,
+            );
+          });
+
+          this.logger.log(
+            `Photo ${photoId} tagging failed — deleted partial tags, marked as COMPLETED`,
+          );
+        }
+      } finally {
+        await this.sagaService.releaseLock(photoId, lockValue).catch(() => {});
+      }
+    } catch (err) {
+      this.logger.error(
+        `Error during tagging failure compensation for photo ${photoId}: ${err.message}`,
+      );
+    }
   }
 }

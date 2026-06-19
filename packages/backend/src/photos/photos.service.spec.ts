@@ -4,16 +4,27 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { PhotosService } from './photos.service';
 
+jest.mock('node:fs/promises');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const fsMock = require('node:fs/promises');
+
 describe('PhotosService', () => {
   let service: PhotosService;
-  let prisma: jest.Mocked<PrismaService>;
 
   const mockPrisma = {
     photo: {
       findFirst: jest.fn(),
       create: jest.fn(),
+      delete: jest.fn().mockResolvedValue(undefined),
       findUnique: jest.fn(),
       update: jest.fn(),
+    },
+    file: {
+      create: jest.fn(),
+    },
+    folder: {
+      findFirst: jest.fn(),
+      create: jest.fn(),
     },
   };
 
@@ -38,7 +49,6 @@ describe('PhotosService', () => {
     }).compile();
 
     service = module.get<PhotosService>(PhotosService);
-    prisma = module.get(PrismaService);
   });
 
   describe('computeHash', () => {
@@ -87,10 +97,17 @@ describe('PhotosService', () => {
   });
 
   describe('upload', () => {
-    it('should return existing photo on hash match (dedup)', async () => {
+    beforeEach(() => {
+      fsMock.writeFile.mockResolvedValue(undefined);
+      fsMock.unlink.mockResolvedValue(undefined);
+      fsMock.mkdir.mockResolvedValue(undefined);
+    });
+
+    it('should return existing photo on P2002 unique constraint violation (dedup)', async () => {
+      mockPrisma.photo.create.mockRejectedValue({ code: 'P2002' });
       mockPrisma.photo.findFirst.mockResolvedValue({
         id: 'existing-id',
-        status: 'READY',
+        status: 'COMPLETED',
       });
 
       const result = await service.upload(
@@ -101,16 +118,18 @@ describe('PhotosService', () => {
         Buffer.from('duplicate content'),
       );
 
-      expect(result).toEqual({ id: 'existing-id', status: 'READY' });
-      expect(mockPrisma.photo.create).not.toHaveBeenCalled();
+      expect(result).toEqual({ id: 'existing-id', status: 'COMPLETED' });
+      expect(mockPrisma.photo.create).toHaveBeenCalledTimes(1);
     });
 
-    it('should create a new photo and enqueue jobs', async () => {
-      mockPrisma.photo.findFirst.mockResolvedValue(null);
+    it('should create a new photo, write file, and enqueue thumbnail job', async () => {
       mockPrisma.photo.create.mockResolvedValue({
         id: 'new-id',
-        status: 'PROCESSING',
+        userId: 'user-1',
+        status: 'UPLOADED',
       });
+      mockPrisma.file.create.mockResolvedValue({});
+      mockQueue.add.mockResolvedValue(undefined);
 
       const result = await service.upload(
         'user-1',
@@ -120,12 +139,55 @@ describe('PhotosService', () => {
         Buffer.from('new content'),
       );
 
-      expect(result).toEqual({ id: 'new-id', status: 'PROCESSING' });
+      expect(result).toEqual({ id: 'new-id', status: 'UPLOADED' });
       expect(mockPrisma.photo.create).toHaveBeenCalledTimes(1);
-      expect(mockQueue.add).toHaveBeenCalledTimes(2);
+      expect(mockPrisma.file.create).toHaveBeenCalledTimes(1);
+      expect(mockQueue.add).toHaveBeenCalledTimes(1);
       expect(mockQueue.add).toHaveBeenCalledWith('process', {
         photoId: 'new-id',
       });
+    });
+
+    it('should rollback DB record and clean up files on write failure', async () => {
+      mockPrisma.photo.create.mockResolvedValue({
+        id: 'new-id',
+        status: 'UPLOADED',
+      });
+
+      fsMock.writeFile.mockRejectedValue(new Error('Disk full'));
+
+      await expect(
+        service.upload(
+          'user-1',
+          'chris',
+          'photo.jpg',
+          'image/jpeg',
+          Buffer.from('failing content'),
+        ),
+      ).rejects.toThrow('Disk full');
+
+      expect(mockPrisma.photo.delete).toHaveBeenCalledWith({
+        where: { id: 'new-id' },
+      });
+    });
+
+    it('should not create File record or enqueue jobs when dedup returns existing', async () => {
+      mockPrisma.photo.create.mockRejectedValue({ code: 'P2002' });
+      mockPrisma.photo.findFirst.mockResolvedValue({
+        id: 'existing-id',
+        status: 'COMPLETED',
+      });
+
+      await service.upload(
+        'user-1',
+        'chris',
+        'photo.jpg',
+        'image/jpeg',
+        Buffer.from('duplicate'),
+      );
+
+      expect(mockPrisma.file.create).not.toHaveBeenCalled();
+      expect(mockQueue.add).not.toHaveBeenCalled();
     });
   });
 
@@ -138,7 +200,7 @@ describe('PhotosService', () => {
       );
     });
 
-    it('should throw ConflictException if photo is not FAILED', async () => {
+    it('should throw ConflictException if photo is not in a retryable failed state', async () => {
       mockPrisma.photo.findUnique.mockResolvedValue({
         id: 'photo-1',
         userId: 'user-1',
@@ -146,7 +208,7 @@ describe('PhotosService', () => {
       });
 
       await expect(service.retry('photo-1', 'user-1')).rejects.toThrow(
-        'Photo is not in FAILED status',
+        'Photo is not in a retryable failed status',
       );
     });
 
@@ -162,7 +224,7 @@ describe('PhotosService', () => {
       );
     });
 
-    it('should reset status and re-enqueue thumbnail job for FAILED photo', async () => {
+    it('should reset status to UPLOADED and re-enqueue thumbnail job for FAILED photo', async () => {
       mockPrisma.photo.findUnique.mockResolvedValue({
         id: 'photo-1',
         userId: 'user-1',
@@ -170,16 +232,16 @@ describe('PhotosService', () => {
       });
       mockPrisma.photo.update.mockResolvedValue({
         id: 'photo-1',
-        status: 'PROCESSING',
+        status: 'UPLOADED',
       });
       mockQueue.add.mockResolvedValue(undefined);
 
       const result = await service.retry('photo-1', 'user-1');
 
-      expect(result).toEqual({ id: 'photo-1', status: 'PROCESSING' });
+      expect(result).toEqual({ id: 'photo-1', status: 'UPLOADED' });
       expect(mockPrisma.photo.update).toHaveBeenCalledWith({
         where: { id: 'photo-1' },
-        data: { status: 'PROCESSING' },
+        data: { status: 'UPLOADED' },
       });
       expect(mockQueue.add).toHaveBeenCalledWith('process', {
         photoId: 'photo-1',

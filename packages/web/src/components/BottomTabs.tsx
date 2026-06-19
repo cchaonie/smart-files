@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useI18n } from '@smart-files/shared/src/i18n';
 import { useAuth } from '../context/AuthContext';
+import { useUpload } from '../context/UploadContext';
 import { FolderIcon, FolderOpenIcon, CloudArrowUpIcon, GearIcon, ImageIcon, AlbumsIcon, ShieldIcon } from './icons';
 
 const tabs: { path: string; icon: typeof FolderIcon; activeIcon: typeof FolderIcon; labelKey: string }[] = [
@@ -16,6 +17,7 @@ export function BottomTabs() {
   const location = useLocation();
   const { t } = useI18n();
   const { user } = useAuth();
+  const { badgeCount } = useUpload();
 
   const displayTabs = user?.role === 'admin'
     ? [...tabs, { path: '/admin', labelKey: 'admin' as const, icon: ShieldIcon, activeIcon: ShieldIcon }]
@@ -43,9 +45,16 @@ export function BottomTabs() {
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}
-              <Icon className={`w-6 h-6 transition-colors ${isActive ? 'text-blue-500' : 'text-zinc-400 dark:text-zinc-500'}`} />
+              <div className="relative">
+                <Icon className={`w-6 h-6 transition-colors ${isActive ? 'text-blue-500' : 'text-zinc-400 dark:text-zinc-500'}`} />
+                {tab.path === '/uploads' && badgeCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2.5 bg-red-500 text-white text-[10px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-1">
+                    {badgeCount > 99 ? '99+' : badgeCount}
+                  </span>
+                )}
+              </div>
               <span className={`text-[11px] font-medium transition-colors ${isActive ? 'text-blue-500' : 'text-zinc-400 dark:text-zinc-500'}`}>
-                {t[tab.labelKey as keyof typeof t] as string}
+                {tab.labelKey === 'admin' ? t.admin.title : (t[tab.labelKey as keyof typeof t] as string)}
               </span>
             </Link>
           );
