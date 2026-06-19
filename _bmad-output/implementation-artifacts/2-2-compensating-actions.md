@@ -27,6 +27,11 @@ baseline_commit: NO_VCS
 - Key principle: never delete original photo files. Keep what's useful.
 - Tag cleanup: use `prisma.$transaction` for atomicity
 
+## Review Findings
+
+- [x] [Review][Patch] onFailed handlers don't acquire lock before transitioning [photo-thumbnail.worker.ts:54, ai-tagging.worker.ts:77]
+- [x] [Review][Patch] THUMBNAIL_PERMANENTLY_FAILED and ORPHANED missing from VALID_TRANSITIONS [photo-saga.service.ts:5-14]
+
 ## Status
 
-ready-for-dev
+done

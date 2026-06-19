@@ -4,10 +4,12 @@ import { Job, Queue } from 'bullmq';
 import { Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { StorageMetricsService } from './storage-metrics.service';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import { constants } from 'node:fs';
+import { PhotoStatus } from '@prisma/client';
 
 const BATCH_SIZE = 500;
 const WARM_PERIOD_MS = 5 * 60 * 1000;
@@ -20,12 +22,12 @@ const LARGE_FILE_BYTES = 1_073_741_824;
 export class OrphanReconcilerService extends WorkerHost implements OnModuleInit {
   private readonly logger = new Logger(OrphanReconcilerService.name);
   private readonly photoRoot: string;
-  private lastCycleTooLong = false;
 
   constructor(
     private configService: ConfigService,
     private prisma: PrismaService,
     @InjectQueue('orphan-reconciler') private queue: Queue,
+    private redisService: RedisService,
     private metrics: StorageMetricsService,
   ) {
     super();
@@ -43,11 +45,15 @@ export class OrphanReconcilerService extends WorkerHost implements OnModuleInit 
   }
 
   async process(_job: Job): Promise<void> {
-    if (this.lastCycleTooLong) {
+    const redis = this.redisService.getClient();
+    const skipKey = 'orphan:reconciler:skip_next';
+
+    const shouldSkip = await redis.get(skipKey);
+    if (shouldSkip === '1') {
       this.logger.warn(
         'Previous cycle exceeded 60 min — skipping this cycle',
       );
-      this.lastCycleTooLong = false;
+      await redis.del(skipKey);
       return;
     }
 
@@ -93,7 +99,7 @@ export class OrphanReconcilerService extends WorkerHost implements OnModuleInit 
     });
 
     if (elapsed > CYCLE_INTERVAL_MS) {
-      this.lastCycleTooLong = true;
+      await redis.set(skipKey, '1', 'PX', CYCLE_INTERVAL_MS);
       this.logger.warn(
         `Cycle took ${elapsed}ms — next cycle will be skipped`,
       );
@@ -101,13 +107,13 @@ export class OrphanReconcilerService extends WorkerHost implements OnModuleInit 
   }
 
   async reconcileDbRecordsWithoutFiles(): Promise<{ scanned: number; orphans: number }> {
-    const statusesToCheck: any = [
+    const statusesToCheck: PhotoStatus[] = [
       'UPLOADED', 'PROCESSING', 'THUMBNAILING',
       'THUMBNAIL_FAILED', 'TAGGING', 'READY',
     ];
 
     const warmPeriodCutoff = new Date(Date.now() - WARM_PERIOD_MS);
-    let cursor: string | undefined;
+    let cursor: { id: string; createdAt: Date } | undefined;
     let scanned = 0;
     let orphans = 0;
 
@@ -117,11 +123,16 @@ export class OrphanReconcilerService extends WorkerHost implements OnModuleInit 
         where: {
           status: { in: statusesToCheck },
           updatedAt: { lt: warmPeriodCutoff },
-          ...(cursor ? { id: { lt: cursor } } : {}),
+          ...(cursor ? {
+            OR: [
+              { createdAt: { lt: cursor.createdAt } },
+              { createdAt: cursor.createdAt, id: { lt: cursor.id } },
+            ],
+          } : {}),
         },
-        orderBy: { id: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: BATCH_SIZE,
-        select: { id: true, storageKey: true, status: true },
+        select: { id: true, storageKey: true, status: true, createdAt: true },
       });
 
       if (photos.length === 0) break;
@@ -131,24 +142,30 @@ export class OrphanReconcilerService extends WorkerHost implements OnModuleInit 
         const absolutePath = path.join(this.photoRoot, photo.storageKey);
         try {
           await fs.access(absolutePath, constants.F_OK);
-        } catch {
-          await this.prisma.photo.update({
-            where: { id: photo.id },
-            data: {
-              status: 'ORPHANED',
-              orphanedAt: new Date(),
-              orphanReason: 'file_not_found_on_disk',
-            },
-          });
-          this.metrics.incrementCounter('storage.orphans.total');
-          this.logger.warn(
-            `storage.orphans.detected reason=file_not_found_on_disk photoId=${photo.id} path=${photo.storageKey}`,
-          );
-          orphans++;
+        } catch (err: any) {
+          if (err.code === 'ENOENT') {
+            await this.prisma.photo.update({
+              where: { id: photo.id },
+              data: {
+                status: 'ORPHANED',
+                orphanedAt: new Date(),
+                orphanReason: 'file_not_found_on_disk',
+              },
+            });
+            this.metrics.incrementCounter('storage.orphans.total');
+            this.logger.warn(
+              `storage.orphans.detected reason=file_not_found_on_disk photoId=${photo.id} path=${photo.storageKey}`,
+            );
+            orphans++;
+          } else {
+            this.logger.warn(
+              `Cannot check file for photo ${photo.id}: ${err.message}`,
+            );
+          }
         }
       }
 
-      cursor = photos[photos.length - 1].id;
+      cursor = { id: photos[photos.length - 1].id, createdAt: photos[photos.length - 1].createdAt };
     }
 
     if (orphans > 0) {
@@ -162,7 +179,7 @@ export class OrphanReconcilerService extends WorkerHost implements OnModuleInit 
 
   async reconcileStaleProcessingMarkers(): Promise<{ scanned: number; orphans: number }> {
     const warmPeriodCutoff = new Date(Date.now() - WARM_PERIOD_MS);
-    let cursor: string | undefined;
+    let cursor: { id: string; createdAt: Date } | undefined;
     let scanned = 0;
     let orphans = 0;
 
@@ -172,11 +189,16 @@ export class OrphanReconcilerService extends WorkerHost implements OnModuleInit 
         where: {
           status: { in: ['UPLOADED', 'PROCESSING'] },
           updatedAt: { lt: warmPeriodCutoff },
-          ...(cursor ? { id: { lt: cursor } } : {}),
+          ...(cursor ? {
+            OR: [
+              { createdAt: { lt: cursor.createdAt } },
+              { createdAt: cursor.createdAt, id: { lt: cursor.id } },
+            ],
+          } : {}),
         },
-        orderBy: { id: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: BATCH_SIZE,
-        select: { id: true, storageKey: true },
+        select: { id: true, storageKey: true, createdAt: true },
       });
 
       if (photos.length === 0) break;
@@ -205,12 +227,16 @@ export class OrphanReconcilerService extends WorkerHost implements OnModuleInit 
             );
             orphans++;
           }
-        } catch {
-          // Marker file doesn't exist — not a crash orphan
+        } catch (err: any) {
+          if (err.code !== 'ENOENT') {
+            this.logger.warn(
+              `Cannot stat marker for photo ${photo.id}: ${err.message}`,
+            );
+          }
         }
       }
 
-      cursor = photos[photos.length - 1].id;
+      cursor = { id: photos[photos.length - 1].id, createdAt: photos[photos.length - 1].createdAt };
     }
 
     if (orphans > 0) {
@@ -224,16 +250,21 @@ export class OrphanReconcilerService extends WorkerHost implements OnModuleInit 
 
   async reconcileOrphanFiles(): Promise<{ scanned: number; orphans: number; quarantined: number }> {
     const knownKeys = new Set<string>();
-    let cursor: string | undefined;
+    let cursor: { id: string; createdAt: Date } | undefined;
     let scanned = 0;
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
       const photos = await this.prisma.photo.findMany({
-        where: cursor ? { id: { lt: cursor } } : {},
-        orderBy: { id: 'desc' },
+        where: cursor ? {
+          OR: [
+            { createdAt: { lt: cursor.createdAt } },
+            { createdAt: cursor.createdAt, id: { lt: cursor.id } },
+          ],
+        } : {},
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: BATCH_SIZE,
-        select: { id: true, storageKey: true },
+        select: { id: true, storageKey: true, createdAt: true },
       });
 
       if (photos.length === 0) break;
@@ -241,7 +272,7 @@ export class OrphanReconcilerService extends WorkerHost implements OnModuleInit 
       for (const p of photos) {
         knownKeys.add(p.storageKey);
       }
-      cursor = photos[photos.length - 1].id;
+      cursor = { id: photos[photos.length - 1].id, createdAt: photos[photos.length - 1].createdAt };
     }
 
     const orphanFiles: Array<{
@@ -259,16 +290,14 @@ export class OrphanReconcilerService extends WorkerHost implements OnModuleInit 
 
     for (const entry of topEntries) {
       if (entry.name.startsWith('.')) continue;
-      if (entry.isDirectory()) {
-        const dirPath = path.join(this.photoRoot, entry.name);
-        await this.walkForOrphans(
-          entry.name,
-          dirPath,
-          knownKeys,
-          orphanFiles,
-          largeSkipped,
-        );
-      }
+      const dirPath = path.join(this.photoRoot, entry.name);
+      await this.walkForOrphansIterative(
+        entry.name,
+        dirPath,
+        knownKeys,
+        orphanFiles,
+        largeSkipped,
+      );
     }
 
     for (const file of largeSkipped) {
@@ -287,8 +316,8 @@ export class OrphanReconcilerService extends WorkerHost implements OnModuleInit 
     let quarantined = 0;
     for (const file of orphanFiles) {
       try {
-        const stat = await fs.stat(file.absolutePath);
-        const age = Date.now() - stat.mtimeMs;
+        const fstat = await fs.stat(file.absolutePath);
+        const age = Date.now() - fstat.mtimeMs;
         if (age < ORPHAN_FILE_AGE_MS) continue;
       } catch {
         continue;
@@ -301,7 +330,20 @@ export class OrphanReconcilerService extends WorkerHost implements OnModuleInit 
       );
       const quarantineDir = path.dirname(quarantinePath);
       await fs.mkdir(quarantineDir, { recursive: true });
-      await fs.rename(file.absolutePath, quarantinePath);
+      try {
+        await fs.rename(file.absolutePath, quarantinePath);
+      } catch (renameErr: any) {
+        if (renameErr.code === 'EXDEV') {
+          const data = await fs.readFile(file.absolutePath);
+          await fs.writeFile(quarantinePath, data);
+          await fs.unlink(file.absolutePath);
+        } else {
+          this.logger.error(
+            `Failed to quarantine ${file.relativePath}: ${renameErr.message}`,
+          );
+          continue;
+        }
+      }
       this.metrics.incrementCounter('storage.orphans.total');
       this.logger.warn(
         `storage.orphans.detected reason=orphan_file_on_disk path=${file.relativePath}`,
@@ -316,55 +358,56 @@ export class OrphanReconcilerService extends WorkerHost implements OnModuleInit 
     return { scanned, orphans: quarantined, quarantined };
   }
 
-  private async walkForOrphans(
-    relativeDir: string,
-    absoluteDir: string,
+  private async walkForOrphansIterative(
+    topRelativeDir: string,
+    topAbsoluteDir: string,
     knownKeys: Set<string>,
     orphanFiles: Array<{ absolutePath: string; relativePath: string }>,
     largeSkipped: Array<{ absolutePath: string; size: number }>,
   ): Promise<void> {
-    let entries;
-    try {
-      entries = await fs.readdir(absoluteDir, { withFileTypes: true });
-    } catch {
-      return;
-    }
+    const stack: Array<{ relativeDir: string; absoluteDir: string }> = [
+      { relativeDir: topRelativeDir, absoluteDir: topAbsoluteDir },
+    ];
 
-    for (const entry of entries) {
-      if (entry.name.startsWith('.')) continue;
+    while (stack.length > 0) {
+      const { relativeDir, absoluteDir } = stack.pop()!;
 
-      const fullPath = path.join(absoluteDir, entry.name);
-      const relativePath = path.posix.join(relativeDir, entry.name);
+      let entries;
+      try {
+        entries = await fs.readdir(absoluteDir, { withFileTypes: true });
+      } catch {
+        continue;
+      }
 
-      if (entry.isDirectory()) {
-        await this.walkForOrphans(
-          relativePath,
-          fullPath,
-          knownKeys,
-          orphanFiles,
-          largeSkipped,
-        );
-      } else if (entry.isFile()) {
-        if (entry.name.endsWith('.processing')) continue;
+      for (const entry of entries) {
+        if (entry.name.startsWith('.')) continue;
 
-        const posixPath = relativePath.replace(/\\/g, '/');
-        if (knownKeys.has(posixPath)) continue;
+        const fullPath = path.join(absoluteDir, entry.name);
+        const relativePath = path.posix.join(relativeDir, entry.name);
 
-        try {
-          const stat = await fs.stat(fullPath);
-          if (stat.size > LARGE_FILE_BYTES) {
-            largeSkipped.push({
+        if (entry.isDirectory()) {
+          stack.push({ relativeDir: relativePath, absoluteDir: fullPath });
+        } else if (entry.isFile() || entry.isSymbolicLink()) {
+          if (entry.name.endsWith('.processing')) continue;
+
+          if (knownKeys.has(relativePath)) continue;
+
+          try {
+            const fstat = await fs.stat(fullPath);
+            if (fstat.size > LARGE_FILE_BYTES) {
+              largeSkipped.push({
+                absolutePath: fullPath,
+                size: fstat.size,
+              });
+              continue;
+            }
+            orphanFiles.push({
               absolutePath: fullPath,
-              size: stat.size,
+              relativePath,
             });
-            continue;
+          } catch {
+            // Skip files we can't stat
           }
-          orphanFiles.push({
-            absolutePath: fullPath,
-            relativePath: posixPath,
-          });
-        } catch {
-          // Skip files we can't stat
         }
       }
     }
@@ -404,21 +447,33 @@ export class OrphanReconcilerService extends WorkerHost implements OnModuleInit 
       );
     }
 
-    const emptyTags = await this.prisma.photoTag.findMany({
-      where: {
-        tag: '',
-        photo: { status: 'COMPLETED' },
-      },
-      take: BATCH_SIZE,
-    });
+    let emptyCursor: string | undefined;
 
-    if (emptyTags.length > 0) {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const emptyTags = await this.prisma.photoTag.findMany({
+        where: {
+          tag: '',
+          photo: { status: 'COMPLETED' },
+          ...(emptyCursor ? { id: { lt: emptyCursor } } : {}),
+        },
+        orderBy: { id: 'desc' },
+        take: BATCH_SIZE,
+      });
+
+      if (emptyTags.length === 0) break;
+
       const ids = emptyTags.map((t) => t.id);
       const result = await this.prisma.photoTag.deleteMany({
         where: { id: { in: ids } },
       });
+      deletedTags += result.count;
+      emptyCursor = emptyTags[emptyTags.length - 1].id;
+    }
+
+    if (deletedTags > 0) {
       this.logger.log(
-        `Deleted ${result.count} empty PhotoTag rows referencing COMPLETED photos`,
+        `Deleted ${deletedTags} empty PhotoTag rows referencing COMPLETED photos`,
       );
     }
   }

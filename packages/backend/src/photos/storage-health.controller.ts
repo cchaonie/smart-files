@@ -1,6 +1,8 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../common/guards/jwt.guard';
 import { StorageMetricsService } from './storage-metrics.service';
 
+@UseGuards(JwtAuthGuard)
 @Controller('health')
 export class StorageHealthController {
   constructor(private readonly metrics: StorageMetricsService) {}

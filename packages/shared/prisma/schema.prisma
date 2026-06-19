@@ -117,7 +117,7 @@ model Photo {
   previewPath  String?
   width        Int?
   height       Int?
-  status       PhotoStatus   @default(PROCESSING)
+  status       PhotoStatus   @default(UPLOADED)
   retryCount   Int           @default(0)
   orphanedAt   DateTime?
   orphanReason String?

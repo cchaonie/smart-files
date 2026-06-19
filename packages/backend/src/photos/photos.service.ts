@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -12,6 +12,7 @@ import * as exifr from 'exifr';
 
 @Injectable()
 export class PhotosService {
+  private readonly logger = new Logger(PhotosService.name);
   private readonly photoRoot: string;
 
   constructor(
@@ -149,6 +150,7 @@ export class PhotosService {
         if (existing) {
           return { id: existing.id, status: existing.status };
         }
+        throw new ConflictException('Duplicate photo detected but record not found');
       }
       throw err;
     }
@@ -161,29 +163,42 @@ export class PhotosService {
       await fs.writeFile(absolutePath, buffer);
       await fs.unlink(processingMarker);
     } catch (writeErr) {
-      // File write failed → rollback DB record + cleanup any partial artifacts
-      await this.prisma.photo.delete({ where: { id: photo.id } }).catch(() => {});
-      await fs.unlink(processingMarker).catch(() => {});
-      await fs.unlink(absolutePath).catch(() => {});
+      // File write failed → cleanup physical artifacts first, then rollback DB
+      await fs.unlink(processingMarker).catch((e) =>
+        this.logger.error(`Failed to clean up processing marker: ${e.message}`),
+      );
+      await fs.unlink(absolutePath).catch((e) =>
+        this.logger.error(`Failed to clean up partial file: ${e.message}`),
+      );
+      await this.prisma.photo.delete({ where: { id: photo.id } }).catch((e) =>
+        this.logger.error(`Failed to rollback photo record: ${e.message}`),
+      );
       throw writeErr;
     }
 
     // Step 3: Create File record so photos appear in the Files tab
-    await this.prisma.file.create({
-      data: {
-        userId,
-        name: originalName,
-        storageKey: relativePath,
-        size: BigInt(size),
-        mimeType,
-        photoId: photo.id,
-        folderId: deviceFolderId,
-        deletedAt: null,
-      },
-    });
+    try {
+      await this.prisma.file.create({
+        data: {
+          userId,
+          name: originalName,
+          storageKey: relativePath,
+          size: BigInt(size),
+          mimeType,
+          photoId: photo.id,
+          folderId: deviceFolderId,
+          deletedAt: null,
+        },
+      });
 
-    // Step 4: Enqueue thumbnail generation
-    await this.thumbnailQueue.add('process', { photoId: photo.id });
+      // Step 4: Enqueue thumbnail generation
+      await this.thumbnailQueue.add('process', { photoId: photo.id });
+    } catch (postWriteErr) {
+      // File record or enqueue failed → rollback photo + cleanup on-disk file
+      await fs.unlink(absolutePath).catch(() => {});
+      await this.prisma.photo.delete({ where: { id: photo.id } }).catch(() => {});
+      throw postWriteErr;
+    }
 
     return { id: photo.id, status: photo.status };
   }
@@ -208,8 +223,8 @@ export class PhotosService {
       throw new NotFoundException('Photo not found');
     }
 
-    if (photo.status !== 'FAILED') {
-      throw new ConflictException('Photo is not in FAILED status');
+    if (!['FAILED', 'THUMBNAIL_FAILED', 'THUMBNAIL_PERMANENTLY_FAILED'].includes(photo.status)) {
+      throw new ConflictException('Photo is not in a retryable failed status');
     }
 
     await this.prisma.photo.update({

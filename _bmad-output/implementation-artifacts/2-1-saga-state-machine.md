@@ -33,6 +33,21 @@ baseline_commit: NO_VCS
 - Startup recovery: use `@nestjs/bullmq` `QueueEvents` or `OnApplicationBootstrap`
 - The per-photo lock prevents concurrent saga instances from processing the same photo (e.g., retry cron + upload both trying to thumbnail)
 
+## Review Findings
+
+- [x] [Review][Defer] Saga transition() logs warnings for intended multi-status calls — deferred, pre-existing code smell, not a bug
+- [x] [Review][Defer] Thumbnail service bypasses saga transition (direct `status: 'TAGGING'` update) — deferred, planned refactoring
+- [x] [Review][Patch] AI tagging worker success path doesn't transition `TAGGING → COMPLETED` [ai-tagging.worker.ts:29-69]
+- [x] [Review][Patch] AI tagging worker lacks distributed lock [ai-tagging.worker.ts:29-69]
+- [x] [Review][Patch] onFailed handlers don't acquire lock before transitioning [photo-thumbnail.worker.ts:54, ai-tagging.worker.ts:77]
+- [x] [Review][Patch] SagaRecoveryService: crash mid-enqueue leaves photos stranded in UPLOADED [saga-recovery.service.ts:46-55]
+- [x] [Review][Patch] Thumbnail worker retry: status mismatch (TAGGING not in fromStatuses) prevents recovery [photo-thumbnail.worker.ts:33-38]
+- [x] [Review][Patch] Legacy READY photos not migrated by SagaRecoveryService [saga-recovery.service.ts:6-7]
+- [x] [Review][Patch] THUMBNAIL_PERMANENTLY_FAILED and ORPHANED missing from VALID_TRANSITIONS [photo-saga.service.ts:5-14]
+- [x] [Review][Patch] Crash recovery re-enqueues thumbnail jobs for TAGGING photos unnecessarily (wastes compute) [saga-recovery.service.ts:46-55]
+- [x] [Review][Patch] Startup race: SagaRecoveryService vs BullMQ worker initialization [saga-recovery.service.ts]
+- [x] [Review][Decision] retry() API should also handle THUMBNAIL_FAILED and THUMBNAIL_PERMANENTLY_FAILED [photos.service.ts:226] — resolved: Yes, add all failed states
+
 ## Status
 
-ready-for-dev
+done

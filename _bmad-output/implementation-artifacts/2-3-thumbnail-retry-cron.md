@@ -32,6 +32,12 @@ baseline_commit: NO_VCS
 - Use existing `photo-thumbnail` queue (same queue, different job name or same)
 - Per-photo Redis lock ensures the retry cron doesn't fight with a concurrent upload of the same photo
 
+## Review Findings
+
+- [x] [Review][Patch] PhotoRetryService: stale snapshot from findMany, no status guard on final failure, retry count out of sync with actual jobs [photo-retry.service.ts:45-74]
+- [x] [Review][Patch] No stale .processing marker cleanup on crash recovery [photos.service.ts:159-164]
+- [x] [Review][Decision] retry() API should also handle THUMBNAIL_FAILED and THUMBNAIL_PERMANENTLY_FAILED [photos.service.ts:226] — resolved: add all failed states
+
 ## Status
 
-ready-for-dev
+done

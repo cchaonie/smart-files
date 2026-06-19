@@ -32,7 +32,7 @@ export class PhotoThumbnailWorker extends WorkerHost {
     try {
       await this.sagaService.transition(
         photoId,
-        ['UPLOADED', 'PROCESSING', 'THUMBNAIL_FAILED'],
+        ['UPLOADED', 'PROCESSING', 'THUMBNAIL_FAILED', 'TAGGING'],
         'THUMBNAILING',
         this.prisma,
       );
@@ -58,24 +58,31 @@ export class PhotoThumbnailWorker extends WorkerHost {
     );
 
     try {
-      const photo = await this.prisma.photo.findUnique({
-        where: { id: photoId },
-        select: { id: true, status: true },
-      });
+      const lockValue = await this.sagaService.acquireLock(photoId);
+      if (!lockValue) return;
 
-      if (!photo) return;
+      try {
+        const photo = await this.prisma.photo.findUnique({
+          where: { id: photoId },
+          select: { id: true, status: true },
+        });
 
-      if (photo.status === 'THUMBNAILING') {
-        await this.sagaService.transition(
-          photoId,
-          ['THUMBNAILING'],
-          'THUMBNAIL_FAILED',
-          this.prisma,
-        );
+        if (!photo) return;
 
-        this.logger.log(
-          `Photo ${photoId} marked as THUMBNAIL_FAILED — original file kept intact`,
-        );
+        if (photo.status === 'THUMBNAILING') {
+          await this.sagaService.transition(
+            photoId,
+            ['THUMBNAILING'],
+            'THUMBNAIL_FAILED',
+            this.prisma,
+          );
+
+          this.logger.log(
+            `Photo ${photoId} marked as THUMBNAIL_FAILED — original file kept intact`,
+          );
+        }
+      } finally {
+        await this.sagaService.releaseLock(photoId, lockValue).catch(() => {});
       }
     } catch (err) {
       this.logger.error(

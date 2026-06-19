@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { createReadStream } from 'fs';
@@ -7,6 +7,7 @@ import * as path from 'path';
 
 @Injectable()
 export class FilesService {
+  private readonly logger = new Logger(FilesService.name);
   private uploadRoot: string;
   private photoRoot: string;
 
@@ -261,11 +262,16 @@ export class FilesService {
       throw new NotFoundException('File not found in trash');
     }
 
-    await this.prisma.file.delete({ where: { id: fileId } });
+    if (file.photoId) {
+      throw new NotFoundException('Cannot purge a photo-linked file');
+    }
 
-    // Delete physical file from disk regardless of type
+    // Delete physical file first, then DB record
     const { unlink } = await import('fs/promises');
-    await unlink(this.resolveFilePath(file, userId)).catch(() => {});
+    await unlink(this.resolveFilePath(file, userId)).catch((e) => {
+      this.logger.error(`Failed to delete file from disk: ${e.message}`);
+    });
+    await this.prisma.file.delete({ where: { id: fileId } });
 
     return { success: true };
   }
@@ -275,17 +281,21 @@ export class FilesService {
       where: { userId, deletedAt: { not: null } },
     });
 
+    const nonPhotoFiles = files.filter((f) => !f.photoId);
+
     // Delete physical files first, then DB records
     const { unlink } = await import('fs/promises');
-    for (const file of files) {
-      await unlink(this.resolveFilePath(file, userId)).catch(() => {});
+    for (const file of nonPhotoFiles) {
+      await unlink(this.resolveFilePath(file, userId)).catch((e) => {
+        this.logger.error(`Failed to delete file from disk: ${e.message}`);
+      });
     }
 
     await this.prisma.file.deleteMany({
-      where: { userId, deletedAt: { not: null } },
+      where: { id: { in: nonPhotoFiles.map((f) => f.id) }, userId, deletedAt: { not: null } },
     });
 
-    return { deleted: files.length };
+    return { deleted: nonPhotoFiles.length };
   }
 
   async renameFile(userId: string, fileId: string, name: string) {
@@ -379,13 +389,17 @@ export class FilesService {
       where: { id: { in: ids }, userId, deletedAt: { not: null } },
     });
 
+    const nonPhotoFiles = files.filter((f) => !f.photoId);
+
     const { unlink } = await import('fs/promises');
-    for (const file of files) {
-      await unlink(this.resolveFilePath(file, userId)).catch(() => {});
+    for (const file of nonPhotoFiles) {
+      await unlink(this.resolveFilePath(file, userId)).catch((e) => {
+        this.logger.error(`Failed to delete file from disk: ${e.message}`);
+      });
     }
 
     const count = await this.prisma.file.deleteMany({
-      where: { id: { in: ids }, userId, deletedAt: { not: null } },
+      where: { id: { in: nonPhotoFiles.map((f) => f.id) }, userId, deletedAt: { not: null } },
     });
     return { purged: count.count };
   }

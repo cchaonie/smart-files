@@ -56,22 +56,32 @@ export class PhotoRetryService extends WorkerHost implements OnModuleInit {
       }
 
       try {
-        if (photo.retryCount >= MAX_RETRIES) {
+        // Re-check current state after acquiring lock — snapshot may be stale
+        const current = await this.prisma.photo.findUnique({
+          where: { id: photo.id },
+          select: { id: true, status: true, retryCount: true },
+        });
+
+        if (!current || current.status !== 'THUMBNAIL_FAILED') {
+          continue;
+        }
+
+        if (current.retryCount >= MAX_RETRIES) {
           await this.prisma.photo.update({
-            where: { id: photo.id },
+            where: { id: photo.id, status: 'THUMBNAIL_FAILED' },
             data: { status: 'THUMBNAIL_PERMANENTLY_FAILED' },
           });
           this.logger.warn(
             `Photo ${photo.id} exceeded max retries (${MAX_RETRIES}) — marked as THUMBNAIL_PERMANENTLY_FAILED`,
           );
         } else {
+          await this.thumbnailQueue.add('thumbnail', { photoId: photo.id });
           await this.prisma.photo.update({
             where: { id: photo.id },
             data: { retryCount: { increment: 1 } },
           });
-          await this.thumbnailQueue.add('thumbnail', { photoId: photo.id });
           this.logger.log(
-            `Re-queued photo ${photo.id} for thumbnail generation (retry ${photo.retryCount + 1}/${MAX_RETRIES})`,
+            `Re-queued photo ${photo.id} for thumbnail generation (retry ${current.retryCount + 1}/${MAX_RETRIES})`,
           );
         }
       } finally {

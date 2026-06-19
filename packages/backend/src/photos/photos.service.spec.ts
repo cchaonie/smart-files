@@ -200,7 +200,7 @@ describe('PhotosService', () => {
       );
     });
 
-    it('should throw ConflictException if photo is not FAILED', async () => {
+    it('should throw ConflictException if photo is not in a retryable failed state', async () => {
       mockPrisma.photo.findUnique.mockResolvedValue({
         id: 'photo-1',
         userId: 'user-1',
@@ -208,7 +208,7 @@ describe('PhotosService', () => {
       });
 
       await expect(service.retry('photo-1', 'user-1')).rejects.toThrow(
-        'Photo is not in FAILED status',
+        'Photo is not in a retryable failed status',
       );
     });
 
