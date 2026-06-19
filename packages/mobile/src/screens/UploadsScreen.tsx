@@ -1,16 +1,27 @@
 import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
 import { theme } from '../theme';
 import { CloudArrowUpIcon, TrashIcon } from '../components/icons';
 import { useUploadContext, type UploadItem } from '../context/UploadContext';
 
 function statusConfig(status: string) {
   switch (status) {
-    case 'pending': return { label: '排队中', color: '#71717a', bg: '#f4f4f5' };
-    case 'uploading': return { label: '上传中', color: '#2563eb', bg: '#eff6ff' };
-    case 'done': return { label: '完成', color: '#16a34a', bg: '#f0fdf4' };
-    case 'error': return { label: '失败', color: '#dc2626', bg: '#fef2f2' };
-    default: return { label: '?', color: '#71717a', bg: '#f4f4f5' };
+    case 'pending':
+      return { label: '排队中', color: '#71717a', bg: '#f4f4f5' };
+    case 'uploading':
+      return { label: '上传中', color: '#2563eb', bg: '#eff6ff' };
+    case 'done':
+      return { label: '完成', color: '#16a34a', bg: '#f0fdf4' };
+    case 'error':
+      return { label: '失败', color: '#dc2626', bg: '#fef2f2' };
+    default:
+      return { label: '?', color: '#71717a', bg: '#f4f4f5' };
   }
 }
 
@@ -46,13 +57,19 @@ function UploadItemCard({
           <CloudArrowUpIcon size={20} color={theme.colors.textTertiary} />
         </View>
         <View style={styles.cardInfo}>
-          <Text style={styles.cardName} numberOfLines={1}>{item.filename}</Text>
+          <Text style={styles.cardName} numberOfLines={1}>
+            {item.filename}
+          </Text>
           {item.error && (
-            <Text style={styles.cardError} numberOfLines={1}>{item.error}</Text>
+            <Text style={styles.cardError} numberOfLines={1}>
+              {item.error}
+            </Text>
           )}
         </View>
         <View style={[styles.badge, { backgroundColor: cfg.bg }]}>
-          <Text style={[styles.badgeText, { color: cfg.color }]}>{cfg.label}</Text>
+          <Text style={[styles.badgeText, { color: cfg.color }]}>
+            {cfg.label}
+          </Text>
         </View>
       </View>
 
@@ -60,7 +77,9 @@ function UploadItemCard({
       {item.status === 'uploading' && (
         <View style={styles.progressSection}>
           <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: `${item.progress}%` }]} />
+            <View
+              style={[styles.progressBarFill, { width: `${item.progress}%` }]}
+            />
           </View>
           <Text style={styles.progressText}>{item.progress}%</Text>
         </View>
@@ -79,8 +98,13 @@ function UploadItemCard({
               <Text style={styles.actionBtnText}>↻</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={[styles.actionBtn, styles.cancelBtn]} onPress={onCancel}>
-            <Text style={[styles.actionBtnText, { color: theme.colors.danger }]}>✕</Text>
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.cancelBtn]}
+            onPress={onCancel}
+          >
+            <Text style={[styles.actionBtnText, { color: theme.colors.danger }]}>
+              ✕
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -93,16 +117,27 @@ export function UploadsScreen() {
     items,
     isUploading,
     clearCompleted,
-    pauseUpload, resumeUpload, cancelUpload, retryUpload,
-    pauseAll, resumeAll, cancelAll, retryFailed,
+    pauseUpload,
+    resumeUpload,
+    cancelUpload,
+    retryUpload,
+    pauseAll,
+    resumeAll,
+    cancelAll,
+    retryFailed,
   } = useUploadContext();
 
   const totalDone = items.filter(i => i.status === 'done').length;
   const totalFailed = items.filter(i => i.status === 'error').length;
-  const totalActive = items.filter(i => i.status === 'pending' || i.status === 'uploading').length;
+  const totalActive = items.filter(
+    i => i.status === 'pending' || i.status === 'uploading',
+  ).length;
   const hasItems = items.length > 0;
-  const allComplete = hasItems && items.every(i => i.status === 'done' || i.status === 'error');
-  const hasActive = items.some(i => i.status === 'pending' || i.status === 'uploading');
+  const allComplete =
+    hasItems && items.every(i => i.status === 'done' || i.status === 'error');
+  const hasActive = items.some(
+    i => i.status === 'pending' || i.status === 'uploading',
+  );
 
   const renderItem = ({ item }: { item: UploadItem }) => (
     <UploadItemCard
@@ -135,8 +170,15 @@ export function UploadsScreen() {
               <Text style={styles.actionBarBtnText}>⏸ 全部暂停</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={[styles.actionBarBtn, styles.actionBarCancelBtn]} onPress={cancelAll}>
-            <Text style={[styles.actionBarBtnText, { color: theme.colors.danger }]}>✕ 全部取消</Text>
+          <TouchableOpacity
+            style={[styles.actionBarBtn, styles.actionBarCancelBtn]}
+            onPress={cancelAll}
+          >
+            <Text
+              style={[styles.actionBarBtnText, { color: theme.colors.danger }]}
+            >
+              ✕ 全部取消
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -164,11 +206,17 @@ export function UploadsScreen() {
             {allComplete ? (
               <View style={styles.bottomRow}>
                 {totalFailed > 0 && (
-                  <TouchableOpacity style={styles.retryAllBtn} onPress={retryFailed}>
+                  <TouchableOpacity
+                    style={styles.retryAllBtn}
+                    onPress={retryFailed}
+                  >
                     <Text style={styles.retryAllBtnText}>↻ 重试失败</Text>
                   </TouchableOpacity>
                 )}
-                <TouchableOpacity style={styles.clearBtn} onPress={clearCompleted}>
+                <TouchableOpacity
+                  style={styles.clearBtn}
+                  onPress={clearCompleted}
+                >
                   <Text style={styles.clearBtnText}>清除完成项</Text>
                 </TouchableOpacity>
               </View>
@@ -179,9 +227,7 @@ export function UploadsScreen() {
         <View style={styles.empty}>
           <CloudArrowUpIcon size={48} color={theme.colors.textTertiary} />
           <Text style={styles.emptyTitle}>暂无上传任务</Text>
-          <Text style={styles.emptySubtitle}>
-            在"文件"页选择文件后上传
-          </Text>
+          <Text style={styles.emptySubtitle}>在"文件"页选择文件后上传</Text>
         </View>
       )}
     </View>
@@ -192,97 +238,172 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
 
   header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
   },
   headerTitle: { fontSize: 22, fontWeight: '600', color: theme.colors.text },
   headerBadge: {
     backgroundColor: theme.colors.accentGlow,
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: theme.radii.full,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: theme.radii.full,
   },
-  headerBadgeText: { fontSize: 12, fontWeight: '500', color: theme.colors.accent },
+  headerBadgeText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: theme.colors.accent,
+  },
 
   // Action bar
   actionBar: {
-    flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 8, gap: 6,
-    borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight,
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
     backgroundColor: theme.colors.zinc50,
   },
   actionBarBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: theme.radii.sm,
-    backgroundColor: '#fff', borderWidth: 1, borderColor: theme.colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: theme.radii.sm,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   actionBarCancelBtn: { borderColor: '#fecaca' },
-  actionBarBtnText: { fontSize: 12, fontWeight: '500', color: theme.colors.textSecondary },
+  actionBarBtnText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+  },
 
   summary: {
-    paddingHorizontal: 16, paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     backgroundColor: theme.colors.zinc50,
-    borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
   },
   summaryText: { fontSize: 13, color: theme.colors.textSecondary },
 
   list: { paddingVertical: 4 },
 
   card: {
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
   },
   cardRow: { flexDirection: 'row', alignItems: 'center' },
   cardIcon: {
-    width: 40, height: 40, borderRadius: theme.radii.md,
+    width: 40,
+    height: 40,
+    borderRadius: theme.radii.md,
     backgroundColor: theme.colors.zinc100,
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 10,
   },
   cardInfo: { flex: 1 },
   cardName: { fontSize: 14, fontWeight: '500', color: theme.colors.text },
   cardError: { fontSize: 11, color: theme.colors.danger, marginTop: 2 },
-  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: theme.radii.full },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: theme.radii.full,
+  },
   badgeText: { fontSize: 10, fontWeight: '600' },
 
   progressSection: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
   },
   progressBarBg: {
-    flex: 1, height: 4, backgroundColor: theme.colors.border,
-    borderRadius: 2, overflow: 'hidden',
+    flex: 1,
+    height: 4,
+    backgroundColor: theme.colors.border,
+    borderRadius: 2,
+    overflow: 'hidden',
   },
-  progressBarFill: { height: '100%', backgroundColor: theme.colors.accent, borderRadius: 2 },
-  progressText: { fontSize: 11, color: theme.colors.textTertiary, minWidth: 32, textAlign: 'right' },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: theme.colors.accent,
+    borderRadius: 2,
+  },
+  progressText: {
+    fontSize: 11,
+    color: theme.colors.textTertiary,
+    minWidth: 32,
+    textAlign: 'right',
+  },
 
   cardActions: { flexDirection: 'row', gap: 6, marginTop: 8 },
   actionBtn: {
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: theme.radii.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: theme.radii.sm,
     backgroundColor: theme.colors.zinc100,
   },
   cancelBtn: { backgroundColor: '#fef2f2' },
   actionBtnText: { fontSize: 13, color: theme.colors.textSecondary },
 
   empty: {
-    flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    padding: 24,
   },
   emptyTitle: { fontSize: 16, fontWeight: '600', color: theme.colors.text },
-  emptySubtitle: { fontSize: 13, color: theme.colors.textTertiary, textAlign: 'center' },
+  emptySubtitle: {
+    fontSize: 13,
+    color: theme.colors.textTertiary,
+    textAlign: 'center',
+  },
 
   bottomBar: {
-    paddingHorizontal: 16, paddingVertical: 12, gap: 8,
-    borderTopWidth: 1, borderTopColor: theme.colors.borderLight,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.borderLight,
     backgroundColor: theme.colors.zinc50,
   },
   bottomRow: { flexDirection: 'row', gap: 8, justifyContent: 'center' },
   retryAllBtn: {
-    paddingVertical: 10, paddingHorizontal: 20, borderRadius: theme.radii.md,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: theme.radii.md,
     backgroundColor: theme.colors.zinc100,
   },
-  retryAllBtnText: { fontSize: 13, color: theme.colors.textSecondary, fontWeight: '500' },
+  retryAllBtnText: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
+  },
   clearBtn: {
-    paddingVertical: 10, paddingHorizontal: 20, borderRadius: theme.radii.md,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: theme.radii.md,
     backgroundColor: theme.colors.zinc100,
   },
-  clearBtnText: { fontSize: 13, color: theme.colors.textSecondary, fontWeight: '500' },
+  clearBtnText: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
+  },
 });
 
 export default UploadsScreen;
