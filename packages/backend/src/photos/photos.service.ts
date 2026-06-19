@@ -18,7 +18,6 @@ export class PhotosService {
     private configService: ConfigService,
     private prisma: PrismaService,
     @InjectQueue('photo-thumbnail') private thumbnailQueue: Queue,
-    @InjectQueue('ai-tagging') private aiTaggingQueue: Queue,
   ) {
     this.photoRoot =
       this.configService.get<string>('PHOTO_ROOT') || '/mnt/pool';
@@ -62,7 +61,13 @@ export class PhotosService {
 
   /**
    * Upload a photo file.
-   * Returns the Photo record — either existing (dedup) or newly created.
+   *
+   * Dedup-first atomic flow:
+   *   1. Compute hash from buffer (no file write yet)
+   *   2. Insert DB record with @@unique([userId, hash]) constraint
+   *   3. On P2002 → return existing record (no file write)
+   *   4. On success → write file with .processing sidecar marker
+   *   5. On write success → delete marker; on failure → rollback DB + cleanup
    */
   async upload(
     userId: string,
@@ -75,46 +80,6 @@ export class PhotosService {
   ): Promise<{ id: string; status: string }> {
     const hash = this.computeHash(buffer);
     const size = buffer.length;
-
-    // Dedup: check if a Photo with this hash already exists for this user
-    const existing = await this.prisma.photo.findFirst({
-      where: { userId, hash },
-      include: { file: true },
-    });
-    if (existing) {
-      // If the associated File record is missing (e.g., was purged from trash),
-      // re-create it to keep Photo ↔ File in sync
-      if (!existing.file) {
-        let deviceFolderId: string | null = null;
-        if (deviceModel) {
-          const existingFolder = await this.prisma.folder.findFirst({
-            where: { userId, name: deviceModel, parentId: null },
-          });
-          if (existingFolder) {
-            deviceFolderId = existingFolder.id;
-          } else {
-            const newFolder = await this.prisma.folder.create({
-              data: { userId, name: deviceModel, parentId: null },
-            });
-            deviceFolderId = newFolder.id;
-          }
-        }
-
-        await this.prisma.file.create({
-          data: {
-            userId,
-            name: existing.originalName,
-            storageKey: existing.storageKey,
-            size: BigInt(existing.size),
-            mimeType: existing.mimeType,
-            photoId: existing.id,
-            folderId: deviceFolderId,
-            deletedAt: null,
-          },
-        });
-      }
-      return { id: existing.id, status: existing.status };
-    }
 
     // Determine capturedAt: client-provided > EXIF > server time
     let capturedAt: Date;
@@ -134,7 +99,7 @@ export class PhotosService {
     }
 
     // Determine storage path
-    const ext = path.extname(originalName).replace(/^\\./, '') || 'bin';
+    const ext = path.extname(originalName).replace(/^\./, '') || 'bin';
     const { relativePath, absolutePath, dir } = this.buildStoragePath(
       username,
       capturedAt,
@@ -158,25 +123,52 @@ export class PhotosService {
       }
     }
 
-    // Write file
-    await this.ensureDir(dir);
-    await fs.writeFile(absolutePath, buffer);
+    // Step 1: Insert DB record FIRST (before any file write)
+    // The @@unique([userId, hash]) constraint handles dedup atomically
+    let photo: { id: string; status: string };
+    try {
+      photo = await this.prisma.photo.create({
+        data: {
+          userId,
+          originalName,
+          mimeType,
+          size,
+          hash,
+          storageKey: relativePath,
+          capturedAt,
+          status: 'UPLOADED',
+        },
+      });
+    } catch (err: any) {
+      // P2002 = unique constraint violation → this user already has this photo
+      if (err?.code === 'P2002') {
+        const existing = await this.prisma.photo.findFirst({
+          where: { userId, hash },
+          select: { id: true, status: true },
+        });
+        if (existing) {
+          return { id: existing.id, status: existing.status };
+        }
+      }
+      throw err;
+    }
 
-    // Create Photo record
-    const photo = await this.prisma.photo.create({
-      data: {
-        userId,
-        originalName,
-        mimeType,
-        size,
-        hash,
-        storageKey: relativePath,
-        capturedAt,
-        status: 'PROCESSING',
-      },
-    });
+    // Step 2: Create .processing marker, write file, then remove marker
+    const processingMarker = `${absolutePath}.processing`;
+    try {
+      await this.ensureDir(dir);
+      await fs.writeFile(processingMarker, '');
+      await fs.writeFile(absolutePath, buffer);
+      await fs.unlink(processingMarker);
+    } catch (writeErr) {
+      // File write failed → rollback DB record + cleanup any partial artifacts
+      await this.prisma.photo.delete({ where: { id: photo.id } }).catch(() => {});
+      await fs.unlink(processingMarker).catch(() => {});
+      await fs.unlink(absolutePath).catch(() => {});
+      throw writeErr;
+    }
 
-    // Also create a File record so photos appear in the Files tab
+    // Step 3: Create File record so photos appear in the Files tab
     await this.prisma.file.create({
       data: {
         userId,
@@ -190,9 +182,8 @@ export class PhotosService {
       },
     });
 
-    // Enqueue async jobs
+    // Step 4: Enqueue thumbnail generation
     await this.thumbnailQueue.add('process', { photoId: photo.id });
-    await this.aiTaggingQueue.add('process', { photoId: photo.id });
 
     return { id: photo.id, status: photo.status };
   }
@@ -223,12 +214,12 @@ export class PhotosService {
 
     await this.prisma.photo.update({
       where: { id: photoId },
-      data: { status: 'PROCESSING' },
+      data: { status: 'UPLOADED' },
     });
 
     await this.thumbnailQueue.add('process', { photoId });
 
-    return { id: photoId, status: 'PROCESSING' };
+    return { id: photoId, status: 'UPLOADED' };
   }
 
   /**

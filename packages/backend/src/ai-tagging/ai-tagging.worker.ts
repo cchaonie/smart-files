@@ -4,6 +4,7 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiTaggingService } from './ai-tagging.service';
+import { PhotoSagaService } from '../photos/photo-saga.service';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 
@@ -18,6 +19,7 @@ export class AiTaggingWorker extends WorkerHost {
     private aiTaggingService: AiTaggingService,
     private prisma: PrismaService,
     private configService: ConfigService,
+    private sagaService: PhotoSagaService,
   ) {
     super();
     this.photoRoot =
@@ -67,8 +69,10 @@ export class AiTaggingWorker extends WorkerHost {
   }
 
   /**
-   * On failure, log the error. Photo status remains READY (set by thumbnail
-   * worker) — tagging failures are non-blocking.
+   * On failure after all retries, compensate:
+   * - Delete any partial PhotoTag records in a transaction
+   * - Keep thumbnails (independently useful)
+   * - Mark photo as COMPLETED (tagging is a nice-to-have)
    */
   @OnWorkerEvent('failed')
   async onFailed(job: Job<{ photoId: string }>, error: Error): Promise<void> {
@@ -76,5 +80,34 @@ export class AiTaggingWorker extends WorkerHost {
     this.logger.error(
       `AI tagging failed for photo ${photoId} after retries: ${error.message}`,
     );
+
+    try {
+      const photo = await this.prisma.photo.findUnique({
+        where: { id: photoId },
+        select: { id: true, status: true },
+      });
+
+      if (!photo) return;
+
+      if (photo.status === 'TAGGING') {
+        await this.prisma.$transaction(async (tx) => {
+          await tx.photoTag.deleteMany({ where: { photoId } });
+          await this.sagaService.transition(
+            photoId,
+            ['TAGGING'],
+            'COMPLETED',
+            tx,
+          );
+        });
+
+        this.logger.log(
+          `Photo ${photoId} tagging failed — deleted partial tags, marked as COMPLETED`,
+        );
+      }
+    } catch (err) {
+      this.logger.error(
+        `Error during tagging failure compensation for photo ${photoId}: ${err.message}`,
+      );
+    }
   }
 }
