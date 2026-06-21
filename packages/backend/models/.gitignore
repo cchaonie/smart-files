@@ -1,5 +1,0 @@
-# ONNX model files — pre-downloaded assets, not source code
-*.onnx
-*.data
-*.zip
-!mobilenet_v3_small.onnx

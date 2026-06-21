@@ -1,14 +1,13 @@
 import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { theme } from '../theme';
-import { CloudArrowUpIcon, TrashIcon, CheckCircleIcon } from '../components/icons';
-import { usePhotoUploadContext, type UploadItem } from '../context/PhotoUploadContext';
+import { CloudArrowUpIcon, TrashIcon } from '../components/icons';
+import { useUploadContext, type UploadItem } from '../context/UploadContext';
 
 function statusConfig(status: string) {
   switch (status) {
     case 'pending': return { label: '排队中', color: '#71717a', bg: '#f4f4f5' };
     case 'uploading': return { label: '上传中', color: '#2563eb', bg: '#eff6ff' };
-    case 'paused': return { label: '已暂停', color: '#d97706', bg: '#fffbeb' };
     case 'done': return { label: '完成', color: '#16a34a', bg: '#f0fdf4' };
     case 'error': return { label: '失败', color: '#dc2626', bg: '#fef2f2' };
     default: return { label: '?', color: '#71717a', bg: '#f4f4f5' };
@@ -57,8 +56,8 @@ function UploadItemCard({
         </View>
       </View>
 
-      {/* Progress bar for uploading and paused */}
-      {(item.status === 'uploading' || item.status === 'paused') && (
+      {/* Progress bar for uploading */}
+      {item.status === 'uploading' && (
         <View style={styles.progressSection}>
           <View style={styles.progressBarBg}>
             <View style={[styles.progressBarFill, { width: `${item.progress}%` }]} />
@@ -73,11 +72,6 @@ function UploadItemCard({
           {item.status === 'uploading' && (
             <TouchableOpacity style={styles.actionBtn} onPress={onPause}>
               <Text style={styles.actionBtnText}>⏸</Text>
-            </TouchableOpacity>
-          )}
-          {item.status === 'paused' && (
-            <TouchableOpacity style={styles.actionBtn} onPress={onResume}>
-              <Text style={styles.actionBtnText}>▶</Text>
             </TouchableOpacity>
           )}
           {item.status === 'error' && (
@@ -98,22 +92,17 @@ export function UploadsScreen() {
   const {
     items,
     isUploading,
-    uploadedPhotos,
-    isCleaningUp, cleanupResult, clearCompleted,
-    cleanupCompletedPhotos, dismissCleanupResult,
+    clearCompleted,
     pauseUpload, resumeUpload, cancelUpload, retryUpload,
     pauseAll, resumeAll, cancelAll, retryFailed,
-  } = usePhotoUploadContext();
+  } = useUploadContext();
 
   const totalDone = items.filter(i => i.status === 'done').length;
   const totalFailed = items.filter(i => i.status === 'error').length;
   const totalActive = items.filter(i => i.status === 'pending' || i.status === 'uploading').length;
-  const totalPaused = items.filter(i => i.status === 'paused').length;
   const hasItems = items.length > 0;
   const allComplete = hasItems && items.every(i => i.status === 'done' || i.status === 'error');
-  const canCleanup = allComplete && totalDone > 0 && uploadedPhotos.length > 0;
   const hasActive = items.some(i => i.status === 'pending' || i.status === 'uploading');
-  const hasPaused = items.some(i => i.status === 'paused');
 
   const renderItem = ({ item }: { item: UploadItem }) => (
     <UploadItemCard
@@ -124,42 +113,6 @@ export function UploadsScreen() {
       onRetry={() => retryUpload(item.id)}
     />
   );
-
-  // Cleanup result view
-  if (cleanupResult) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>上传</Text>
-        </View>
-        <View style={styles.cleanupResult}>
-          {cleanupResult.failed === 0 ? (
-            <>
-              <CheckCircleIcon size={48} color={theme.colors.success} />
-              <Text style={styles.cleanupTitle}>清理完成</Text>
-              <Text style={styles.cleanupDesc}>
-                已删除 {cleanupResult.success} 张本地照片，释放了手机存储空间
-              </Text>
-            </>
-          ) : (
-            <>
-              <Text style={styles.cleanupIcon}>⚠️</Text>
-              <Text style={styles.cleanupTitle}>部分删除失败</Text>
-              <Text style={styles.cleanupDesc}>
-                成功 {cleanupResult.success} 张，失败 {cleanupResult.failed} 张
-              </Text>
-              {cleanupResult.errors.map((err, i) => (
-                <Text key={i} style={styles.cleanupError} numberOfLines={1}>{err}</Text>
-              ))}
-            </>
-          )}
-          <TouchableOpacity style={styles.cleanupDoneBtn} onPress={dismissCleanupResult}>
-            <Text style={styles.cleanupDoneText}>确定</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>
@@ -182,11 +135,6 @@ export function UploadsScreen() {
               <Text style={styles.actionBarBtnText}>⏸ 全部暂停</Text>
             </TouchableOpacity>
           )}
-          {hasPaused && (
-            <TouchableOpacity style={styles.actionBarBtn} onPress={resumeAll}>
-              <Text style={styles.actionBarBtnText}>▶ 全部继续</Text>
-            </TouchableOpacity>
-          )}
           <TouchableOpacity style={[styles.actionBarBtn, styles.actionBarCancelBtn]} onPress={cancelAll}>
             <Text style={[styles.actionBarBtnText, { color: theme.colors.danger }]}>✕ 全部取消</Text>
           </TouchableOpacity>
@@ -198,8 +146,8 @@ export function UploadsScreen() {
           {/* Summary */}
           <View style={styles.summary}>
             <Text style={styles.summaryText}>
-              {isUploading || hasPaused
-                ? `上传中 ${totalActive} · 暂停 ${totalPaused} · 完成 ${totalDone}${totalFailed > 0 ? ` · 失败 ${totalFailed}` : ''}`
+              {isUploading
+                ? `上传中 ${totalActive} · 完成 ${totalDone}${totalFailed > 0 ? ` · 失败 ${totalFailed}` : ''}`
                 : `总计 ${items.length} · 完成 ${totalDone}${totalFailed > 0 ? ` · 失败 ${totalFailed}` : ''}`}
             </Text>
           </View>
@@ -213,27 +161,7 @@ export function UploadsScreen() {
 
           {/* Bottom bar */}
           <View style={styles.bottomBar}>
-            {isCleaningUp ? (
-              <View style={styles.cleaningUpRow}>
-                <ActivityIndicator size="small" color={theme.colors.accent} />
-                <Text style={styles.cleaningUpText}>正在删除本地照片...</Text>
-              </View>
-            ) : canCleanup ? (
-              <>
-                <TouchableOpacity
-                  style={[styles.bottomBtn, styles.cleanupBtn]}
-                  onPress={cleanupCompletedPhotos}
-                >
-                  <TrashIcon size={16} color="#fff" />
-                  <Text style={styles.cleanupBtnText}>
-                    删除本地副本 ({totalDone} 张)
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.skipBtn} onPress={clearCompleted}>
-                  <Text style={styles.skipBtnText}>跳过</Text>
-                </TouchableOpacity>
-              </>
-            ) : allComplete ? (
+            {allComplete ? (
               <View style={styles.bottomRow}>
                 {totalFailed > 0 && (
                   <TouchableOpacity style={styles.retryAllBtn} onPress={retryFailed}>
@@ -252,7 +180,7 @@ export function UploadsScreen() {
           <CloudArrowUpIcon size={48} color={theme.colors.textTertiary} />
           <Text style={styles.emptyTitle}>暂无上传任务</Text>
           <Text style={styles.emptySubtitle}>
-            在"文件"页选择照片或文件后上传
+            在"文件"页选择文件后上传
           </Text>
         </View>
       )}
@@ -286,9 +214,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: theme.radii.sm,
     backgroundColor: '#fff', borderWidth: 1, borderColor: theme.colors.border,
   },
-  actionBarCancelBtn: {
-    borderColor: '#fecaca',
-  },
+  actionBarCancelBtn: { borderColor: '#fecaca' },
   actionBarBtnText: { fontSize: 12, fontWeight: '500', color: theme.colors.textSecondary },
 
   summary: {
@@ -300,7 +226,6 @@ const styles = StyleSheet.create({
 
   list: { paddingVertical: 4 },
 
-  // Card
   card: {
     paddingHorizontal: 16, paddingVertical: 12,
     borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight,
@@ -315,16 +240,11 @@ const styles = StyleSheet.create({
   cardInfo: { flex: 1 },
   cardName: { fontSize: 14, fontWeight: '500', color: theme.colors.text },
   cardError: { fontSize: 11, color: theme.colors.danger, marginTop: 2 },
-  badge: {
-    paddingHorizontal: 8, paddingVertical: 3,
-    borderRadius: theme.radii.full,
-  },
+  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: theme.radii.full },
   badgeText: { fontSize: 10, fontWeight: '600' },
 
-  // Progress
   progressSection: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    marginTop: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8,
   },
   progressBarBg: {
     flex: 1, height: 4, backgroundColor: theme.colors.border,
@@ -333,17 +253,12 @@ const styles = StyleSheet.create({
   progressBarFill: { height: '100%', backgroundColor: theme.colors.accent, borderRadius: 2 },
   progressText: { fontSize: 11, color: theme.colors.textTertiary, minWidth: 32, textAlign: 'right' },
 
-  // Card actions
-  cardActions: {
-    flexDirection: 'row', gap: 6, marginTop: 8,
-  },
+  cardActions: { flexDirection: 'row', gap: 6, marginTop: 8 },
   actionBtn: {
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: theme.radii.sm,
     backgroundColor: theme.colors.zinc100,
   },
-  cancelBtn: {
-    backgroundColor: '#fef2f2',
-  },
+  cancelBtn: { backgroundColor: '#fef2f2' },
   actionBtnText: { fontSize: 13, color: theme.colors.textSecondary },
 
   empty: {
@@ -357,14 +272,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: theme.colors.borderLight,
     backgroundColor: theme.colors.zinc50,
   },
-  bottomBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    paddingVertical: 14, borderRadius: theme.radii.lg,
-  },
-  cleanupBtn: { backgroundColor: theme.colors.accent },
-  cleanupBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  skipBtn: { alignItems: 'center', paddingVertical: 8 },
-  skipBtnText: { fontSize: 13, color: theme.colors.textTertiary },
   bottomRow: { flexDirection: 'row', gap: 8, justifyContent: 'center' },
   retryAllBtn: {
     paddingVertical: 10, paddingHorizontal: 20, borderRadius: theme.radii.md,
@@ -376,26 +283,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.zinc100,
   },
   clearBtnText: { fontSize: 13, color: theme.colors.textSecondary, fontWeight: '500' },
-
-  // Cleanup result
-  cleanupResult: {
-    flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24,
-  },
-  cleanupTitle: { fontSize: 20, fontWeight: '600', color: theme.colors.text },
-  cleanupDesc: { fontSize: 14, color: theme.colors.textSecondary, textAlign: 'center' },
-  cleanupIcon: { fontSize: 48 },
-  cleanupError: { fontSize: 12, color: theme.colors.danger, maxWidth: '80%' },
-  cleanupDoneBtn: {
-    marginTop: 16, paddingVertical: 12, paddingHorizontal: 32,
-    borderRadius: theme.radii.lg, backgroundColor: theme.colors.accent,
-  },
-  cleanupDoneText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-
-  cleaningUpRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    paddingVertical: 12,
-  },
-  cleaningUpText: { fontSize: 14, color: theme.colors.accent },
 });
 
 export default UploadsScreen;
