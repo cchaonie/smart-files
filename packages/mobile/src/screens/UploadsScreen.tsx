@@ -49,6 +49,7 @@ function UploadItemCard({
   onRetry: () => void;
 }) {
   const cfg = statusConfig(item.status);
+  const clampedProgress = Math.max(0, Math.min(100, item.progress ?? 0));
 
   return (
     <View style={styles.card}>
@@ -58,7 +59,7 @@ function UploadItemCard({
         </View>
         <View style={styles.cardInfo}>
           <Text style={styles.cardName} numberOfLines={1}>
-            {item.filename}
+            {item.filename || '未命名文件'}
           </Text>
           {item.error && (
             <Text style={styles.cardError} numberOfLines={1}>
@@ -78,10 +79,10 @@ function UploadItemCard({
         <View style={styles.progressSection}>
           <View style={styles.progressBarBg}>
             <View
-              style={[styles.progressBarFill, { width: `${item.progress}%` }]}
+              style={[styles.progressBarFill, { width: `${clampedProgress}%` }]}
             />
           </View>
-          <Text style={styles.progressText}>{item.progress}%</Text>
+          <Text style={styles.progressText}>{clampedProgress}%</Text>
         </View>
       )}
 
