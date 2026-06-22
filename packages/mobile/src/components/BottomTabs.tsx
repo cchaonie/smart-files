@@ -8,9 +8,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../theme';
-import { FolderIcon, CloudArrowUpIcon, GearIcon, PhotosIcon, AlbumsIcon, ShieldCheckIcon } from './icons';
+import { FolderIcon, CloudArrowUpIcon, GearIcon, ShieldCheckIcon } from './icons';
 
-export type TabKey = 'files' | 'photos' | 'albums' | 'admin' | 'uploads' | 'settings';
+export type TabKey = 'files' | 'admin' | 'uploads' | 'settings';
 
 interface BottomTabsProps {
   activeTab: TabKey;
@@ -24,8 +24,6 @@ export function BottomTabs({ activeTab, onTabChange, badgeCount, isAdmin }: Bott
 
   const tabs: { key: TabKey; label: string; icon: React.ComponentType<{ size?: number; color?: string }> }[] = [
     { key: 'files', label: '文件', icon: FolderIcon },
-    { key: 'photos', label: '照片', icon: PhotosIcon },
-    { key: 'albums', label: '相册', icon: AlbumsIcon },
     ...(isAdmin ? [{ key: 'admin' as TabKey, label: '管理', icon: ShieldCheckIcon }] : []),
     { key: 'uploads', label: '上传', icon: CloudArrowUpIcon },
     { key: 'settings', label: '设置', icon: GearIcon },

@@ -126,7 +126,9 @@ export class FoldersService {
     const folder = await this.prisma.folder.findFirst({
       where: { id, userId },
       include: {
-        files: true,
+        files: {
+          where: { deletedAt: null },
+        },
         children: true,
       },
     });
