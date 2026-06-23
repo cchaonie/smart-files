@@ -119,6 +119,29 @@ export interface I18nStrings {
   updateCheckFailed: string;
   downloadFailed: string;
   currentVersion: string;
+  /* Poker */
+  poker: string;
+  pokerTitle: string;
+  pokerPlayers: string;
+  pokerYourHand: string;
+  pokerCommunity: string;
+  pokerCalculate: string;
+  pokerWinRate: string;
+  pokerTieRate: string;
+  pokerLoseRate: string;
+  pokerSimulations: string;
+  pokerPreFlop: string;
+  pokerFlop: string;
+  pokerTurn: string;
+  pokerRiver: string;
+  pokerShowdown: string;
+  pokerNewGame: string;
+  pokerSelectHand: string;
+  pokerSelectFlop: string;
+  pokerSelectTurn: string;
+  pokerSelectRiver: string;
+  pokerWaiting: string;
+  pokerResetHand: string;
 }
 
 export interface I18nContextType {

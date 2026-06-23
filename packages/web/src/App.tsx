@@ -13,6 +13,7 @@ import { AlbumsPage } from './pages/AlbumsPage'
 import { AlbumDetailPage } from './pages/AlbumDetailPage'
 import { FamilyTimelinePage } from './pages/FamilyTimelinePage'
 import { AdminPage } from './pages/AdminPage'
+import { PokerPage } from './pages/PokerPage'
 import { AppLayout } from './components/AppLayout'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -81,6 +82,7 @@ function App() {
         <Route path="/albums/:id" element={<AlbumDetailPage />} />
         <Route path="/family-timeline" element={<FamilyTimelinePage />} />
         <Route path="/uploads" element={<UploadsPage />} />
+        <Route path="/poker" element={<PokerPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/admin" element={<AdminPage />} />
       </Route>
