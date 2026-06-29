@@ -9,6 +9,7 @@ import { SettingsPage } from './pages/SettingsPage'
 import { HomePage } from './pages/HomePage'
 import { SharePage } from './pages/SharePage'
 import { AdminPage } from './pages/AdminPage'
+import { PokerPage } from './pages/PokerPage'
 import { AppLayout } from './components/AppLayout'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -73,6 +74,7 @@ function App() {
       <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
         <Route path="/files" element={<FilesPage />} />
         <Route path="/uploads" element={<UploadsPage />} />
+        <Route path="/poker" element={<PokerPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/admin" element={<AdminPage />} />
       </Route>

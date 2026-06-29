@@ -3,11 +3,12 @@ import { motion } from 'motion/react';
 import { useI18n } from '@smart-files/shared/src/i18n';
 import { useAuth } from '../context/AuthContext';
 import { useUpload } from '../context/UploadContext';
-import { FolderIcon, FolderOpenIcon, CloudArrowUpIcon, GearIcon, ShieldIcon } from './icons';
+import { FolderIcon, FolderOpenIcon, CloudArrowUpIcon, GearIcon, ShieldIcon, PokerIcon } from './icons';
 
 const tabs: { path: string; icon: typeof FolderIcon; activeIcon: typeof FolderIcon; labelKey: string }[] = [
   { path: '/files', labelKey: 'files', icon: FolderIcon, activeIcon: FolderOpenIcon },
   { path: '/uploads', labelKey: 'uploads', icon: CloudArrowUpIcon, activeIcon: CloudArrowUpIcon },
+  { path: '/poker', labelKey: 'poker', icon: PokerIcon, activeIcon: PokerIcon },
   { path: '/settings', labelKey: 'settings', icon: GearIcon, activeIcon: GearIcon },
 ];
 
