@@ -23,12 +23,27 @@ interface Odds {
   win: number
   tie: number
   lose: number
+  topHands: { name: string; pct: number }[]
+  topOpponentHands: { name: string; pct: number }[]
 }
 
 const ALL_RANKS: Rank[] = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2']
 const ALL_SUITS: Suit[] = ['s', 'h', 'd', 'c']
 const SUIT_SYMBOLS: Record<Suit, string> = { s: '♠', h: '♥', d: '♦', c: '♣' }
 const SUIT_COLORS: Record<Suit, string> = { s: 'text-zinc-900', h: 'text-red-500', d: 'text-red-500', c: 'text-zinc-900' }
+
+const HAND_NAMES_CN: Record<string, string> = {
+  'Royal Flush': '皇家同花顺',
+  'Straight Flush': '同花顺',
+  'Four of a Kind': '四条',
+  'Full House': '葫芦',
+  'Flush': '同花',
+  'Straight': '顺子',
+  'Three of a Kind': '三条',
+  'Two Pair': '两对',
+  'Pair': '一对',
+  'High Card': '高牌',
+}
 
 const QUICK_HANDS: { label: string; cards: [string, string] }[] = [
   { label: 'AA', cards: ['As', 'Ac'] },
@@ -68,12 +83,14 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-function runSimulation(
+const CHUNK_SIZE = 500
+
+async function runSimulation(
   holeCards: Card[],
   communityCards: Card[],
   numPlayers: number,
   iterations: number,
-): Odds {
+): Promise<Odds> {
   const deck = new Set(createDeck())
   for (const c of holeCards) deck.delete(cardToString(c))
   for (const c of communityCards) deck.delete(cardToString(c))
@@ -82,41 +99,76 @@ function runSimulation(
 
   let wins = 0
   let ties = 0
+  const handCounts: Record<string, number> = {}
+  const opponentCounts: Record<string, number> = {}
+  let processed = 0
 
-  for (let i = 0; i < iterations; i++) {
-    const shuffled = shuffle(remainingDeck)
+  while (processed < iterations) {
+    const end = Math.min(processed + CHUNK_SIZE, iterations)
+    for (let i = processed; i < end; i++) {
+      const shuffled = shuffle(remainingDeck)
 
-    const fullCommunity = [
-      ...communityCards.map(cardToString),
-      ...shuffled.slice(0, needed),
-    ]
+      const fullCommunity = [
+        ...communityCards.map(cardToString),
+        ...shuffled.slice(0, needed),
+      ]
 
-    const myHandStr = [...holeCards.map(cardToString), ...fullCommunity]
+      const myHandStr = [...holeCards.map(cardToString), ...fullCommunity]
 
-    const opponentStrs: string[][] = []
-    let idx = needed
-    for (let j = 0; j < numPlayers - 1; j++) {
-      const oppCards = shuffled.slice(idx, idx + 2)
-      opponentStrs.push([...oppCards, ...fullCommunity])
-      idx += 2
-      if (idx + 5 > shuffled.length) break // safety
+      const opponentStrs: string[][] = []
+      let idx = needed
+      for (let j = 0; j < numPlayers - 1; j++) {
+        const oppCards = shuffled.slice(idx, idx + 2)
+        const oppFull = [...oppCards, ...fullCommunity]
+        opponentStrs.push(oppFull)
+
+        const oppHand = Hand.solve(oppFull)
+        opponentCounts[oppHand.name] = (opponentCounts[oppHand.name] || 0) + 1
+
+        idx += 2
+        if (idx + 5 > shuffled.length) break
+      }
+
+      const myHand = Hand.solve(myHandStr)
+      const allHands = [myHand, ...opponentStrs.map((h) => Hand.solve(h))]
+      const winners = Hand.winners(allHands)
+
+      if (winners.some((w: any) => w === myHand)) {
+        handCounts[myHand.name] = (handCounts[myHand.name] || 0) + 1
+        if (winners.length > 1) ties++
+        else wins++
+      }
     }
-
-    const myHand = Hand.solve(myHandStr)
-    const allHands = [myHand, ...opponentStrs.map((h) => Hand.solve(h))]
-    const winners = Hand.winners(allHands)
-
-    if (winners.some((w: any) => w === myHand)) {
-      if (winners.length > 1) ties++
-      else wins++
+    processed = end
+    if (processed < iterations) {
+      await new Promise((r) => setTimeout(r, 0))
     }
   }
 
   const losses = iterations - wins - ties
+  const totalWinTie = wins + ties
+  const topHands = Object.entries(handCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([name, count]) => ({
+      name,
+      pct: Math.round((count / totalWinTie) * 1000) / 10,
+    }))
+
+  const topOpponentHands = Object.entries(opponentCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([name, count]) => ({
+      name,
+      pct: Math.round((count / ((numPlayers - 1) * iterations)) * 1000) / 10,
+    }))
+
   return {
     win: Math.round((wins / iterations) * 1000) / 10,
     tie: Math.round((ties / iterations) * 1000) / 10,
     lose: Math.round((losses / iterations) * 1000) / 10,
+    topHands,
+    topOpponentHands,
   }
 }
 
@@ -162,7 +214,7 @@ export function PokerPage() {
 
   const handleCardClick = useCallback(
     (code: string) => {
-      if (simulating || phase === 0 || phase === 5) return
+      if (simulating || phase === 0) return
 
       if (phase === 1) {
         // 选手牌
@@ -177,12 +229,12 @@ export function PokerPage() {
         setHoleCards(newCards)
         if (newCards.length === 2) {
           setSimulating(true)
-          setTimeout(() => {
-            const result = runSimulation(newCards, communityCards, numPlayers, iterations)
+          ;(async () => {
+            const result = await runSimulation(newCards, communityCards, numPlayers, iterations)
             setOdds(result)
             setSimulating(false)
             setPhase(2)
-          }, 50)
+          })()
         }
       } else if (phase === 2) {
         const idx = communityCards.findIndex((c) => cardToString(c) === code)
@@ -196,12 +248,12 @@ export function PokerPage() {
         setCommunityCards(newCards)
         if (newCards.length === 3) {
           setSimulating(true)
-          setTimeout(() => {
-            const result = runSimulation(holeCards, newCards, numPlayers, iterations)
+          ;(async () => {
+            const result = await runSimulation(holeCards, newCards, numPlayers, iterations)
             setOdds(result)
             setSimulating(false)
             setPhase(3)
-          }, 50)
+          })()
         }
       } else if (phase === 3) {
         const idx = communityCards.findIndex((c) => cardToString(c) === code)
@@ -215,12 +267,12 @@ export function PokerPage() {
         setCommunityCards(newCards)
         if (newCards.length === 4) {
           setSimulating(true)
-          setTimeout(() => {
-            const result = runSimulation(holeCards, newCards, numPlayers, iterations)
+          ;(async () => {
+            const result = await runSimulation(holeCards, newCards, numPlayers, iterations)
             setOdds(result)
             setSimulating(false)
             setPhase(4)
-          }, 50)
+          })()
         }
       } else if (phase === 4) {
         const idx = communityCards.findIndex((c) => cardToString(c) === code)
@@ -234,12 +286,32 @@ export function PokerPage() {
         setCommunityCards(newCards)
         if (newCards.length === 5) {
           setSimulating(true)
-          setTimeout(() => {
-            const result = runSimulation(holeCards, newCards, numPlayers, iterations)
+          ;(async () => {
+            const result = await runSimulation(holeCards, newCards, numPlayers, iterations)
             setOdds(result)
             setSimulating(false)
             setPhase(5)
-          }, 50)
+          })()
+        }
+      } else if (phase === 5) {
+        // 摊牌后点击任意已选牌可删除，退回对应阶段重新选
+        const holeIdx = holeCards.findIndex((c) => cardToString(c) === code)
+        if (holeIdx >= 0) {
+          setHoleCards((prev) => prev.filter((_, i) => i !== holeIdx))
+          setOdds(null)
+          setPhase(1)
+          return
+        }
+        const commIdx = communityCards.findIndex((c) => cardToString(c) === code)
+        if (commIdx >= 0) {
+          const newCommunityCards = communityCards.filter((_, i) => i !== commIdx)
+          setCommunityCards(newCommunityCards)
+          setOdds(null)
+          // 根据剩余公共牌数量退回对应阶段
+          if (newCommunityCards.length < 3) setPhase(2)
+          else if (newCommunityCards.length === 3) setPhase(3)
+          else if (newCommunityCards.length === 4) setPhase(4)
+          return
         }
       }
     },
@@ -252,12 +324,12 @@ export function PokerPage() {
       const cards = codes.map(parseCardCode)
       setHoleCards(cards)
       setSimulating(true)
-      setTimeout(() => {
-        const result = runSimulation(cards, communityCards, numPlayers, iterations)
+      ;(async () => {
+        const result = await runSimulation(cards, communityCards, numPlayers, iterations)
         setOdds(result)
         setSimulating(false)
         setPhase(2)
-      }, 50)
+      })()
     },
     [phase, communityCards, numPlayers, iterations, simulating],
   )
@@ -274,43 +346,11 @@ export function PokerPage() {
     setPhase(1)
   }, [])
 
-  const handleResetHand = useCallback(() => {
-    if (simulating || phase < 2) return
-    setHoleCards([])
-    setOdds(null)
-    setPhase(1)
-  }, [simulating, phase])
-
-  const handleBackSelection = useCallback(() => {
-    if (simulating) return
-    if (phase === 2 && holeCards.length === 2) {
-      // Go back to re-select hand
-      setHoleCards([])
-      setOdds(null)
-      setPhase(1)
-    } else if (phase === 3 && communityCards.length >= 3) {
-      // Go back to flop - remove turn
-      setCommunityCards((prev) => prev.slice(0, 3))
-      setOdds(null)
-      setPhase(2)
-    } else if (phase === 4 && communityCards.length >= 4) {
-      // Go back to turn - remove river
-      setCommunityCards((prev) => prev.slice(0, 4))
-      setOdds(null)
-      setPhase(3)
-    } else if (phase === 5) {
-      // Go back to river
-      setCommunityCards((prev) => prev.slice(0, 4))
-      setOdds(null)
-      setPhase(4)
-    }
-  }, [simulating, phase, holeCards.length, communityCards])
-
   const isCardSelected = (code: string) => selectedCodes.has(code)
 
   const canSelectCard = (code: string) => {
-    if (phase === 0 || phase === 5 || simulating) return false
-    if (isCardSelected(code)) return true // can deselect
+    if (phase === 0 || simulating) return false
+    if (isCardSelected(code)) return true // can deselect (any phase except 0)
     if (phase === 1) return holeCards.length < 2
     if (phase === 2) return communityCards.length < 3
     if (phase === 3) return communityCards.length < 4
@@ -327,18 +367,29 @@ export function PokerPage() {
     </div>
   )
 
-  const renderCard = (code: string, size: 'sm' | 'md' | 'lg' = 'md') => {
+  const renderCard = (code: string, size: 'sm' | 'md' | 'lg' = 'lg', onClick?: () => void) => {
     const card = parseCardCode(code)
     const color = SUIT_COLORS[card.suit]
     const symbol = SUIT_SYMBOLS[card.suit]
-    const sizeClasses = size === 'sm' ? 'w-8 h-12 text-xs' : size === 'lg' ? 'w-20 h-28 text-lg' : 'w-14 h-20 text-sm'
+    const sizeClasses = size === 'sm' ? 'w-8 h-12 text-xs' : size === 'md' ? 'w-14 h-20 text-sm' : 'w-[60px] h-[86px] text-base'
+    const classes = `${sizeClasses} rounded-xl border-2 border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 flex flex-col items-center justify-center shadow-sm ${color} font-bold select-none`
+
+    if (onClick) {
+      return (
+        <button
+          onClick={onClick}
+          className={`${classes} hover:ring-2 hover:ring-red-400 hover:border-red-300 dark:hover:border-red-500 cursor-pointer active:scale-95 transition-all`}
+        >
+          <span className={size === 'lg' ? 'text-lg' : size === 'md' ? 'text-base' : 'text-xs'}>{card.rank}</span>
+          <span className={`${size === 'lg' ? 'text-xl' : 'text-lg'} leading-none mt-0.5`}>{symbol}</span>
+        </button>
+      )
+    }
 
     return (
-      <div
-        className={`${sizeClasses} rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 flex flex-col items-center justify-center shadow-sm ${color} font-bold select-none`}
-      >
-        <span>{card.rank}</span>
-        <span className="text-lg">{symbol}</span>
+      <div className={classes}>
+        <span className={size === 'lg' ? 'text-lg' : size === 'md' ? 'text-base' : 'text-xs'}>{card.rank}</span>
+        <span className={`${size === 'lg' ? 'text-xl' : 'text-lg'} leading-none mt-0.5`}>{symbol}</span>
       </div>
     )
   }
@@ -378,20 +429,146 @@ export function PokerPage() {
         </p>
       </div>
 
+      {/* Card Selector - Horizontal Scroll */}
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-3">
+          <span className="text-sm font-medium text-zinc-400 dark:text-zinc-500">Card Selector — scroll horizontally</span>
+        </div>
+        <div className="space-y-2">
+          {ALL_SUITS.map((suit) => {
+            const suitSymbol = SUIT_SYMBOLS[suit]
+            const suitColor = SUIT_COLORS[suit]
+            return (
+              <div key={suit} className="flex items-center gap-1">
+                <span className={`text-lg font-bold ${suitColor} w-5 text-center shrink-0`}>
+                  {suitSymbol}
+                </span>
+                <div className="overflow-x-auto pb-1 scrollbar-thin flex-1">
+                  <div className="flex gap-1.5 min-w-max">
+                    {ALL_RANKS.map((rank) => {
+                      const code = rank + suit
+                      const selected = isCardSelected(code)
+                      const canSelect = canSelectCard(code)
+                      const color = SUIT_COLORS[suit]
+                      const symbol = SUIT_SYMBOLS[suit]
+
+                      return (
+                        <button
+                          key={code}
+                          onClick={() => canSelect && handleCardClick(code)}
+                          disabled={!canSelect}
+                          className={`shrink-0 w-[52px] h-[74px] rounded-xl border-2 text-xs font-bold flex flex-col items-center justify-center leading-tight transition-all ${
+                            selected
+                              ? 'border-blue-500 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 scale-105 shadow-md'
+                              : canSelect
+                                ? 'border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 hover:border-blue-400 hover:shadow-md hover:-translate-y-1 cursor-pointer active:scale-95'
+                                : 'border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 text-zinc-300 dark:text-zinc-700 cursor-not-allowed opacity-35'
+                          } ${color}`}
+                        >
+                          <span className="text-sm leading-none">{rank}</span>
+                          <span className="text-lg leading-none mt-0.5">{symbol}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Your Hand */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">{t.pokerYourHand}</h2>
+        </div>
+        <div className="flex items-start gap-4">
+          <div className="flex gap-3 min-h-[5.5rem] items-center flex-1">
+            {holeCards.length === 0 ? (
+              <div className="flex gap-3">
+                <div className="w-[60px] h-[86px] rounded-xl border-2 border-dashed border-zinc-300 dark:border-zinc-600 flex items-center justify-center text-zinc-300 dark:text-zinc-600 text-lg">?</div>
+                <div className="w-[60px] h-[86px] rounded-xl border-2 border-dashed border-zinc-300 dark:border-zinc-600 flex items-center justify-center text-zinc-300 dark:text-zinc-600 text-lg">?</div>
+              </div>
+            ) : (
+              holeCards.map((c, i) => (
+                <div key={i}>{renderCard(cardToString(c), 'md', (phase === 1 || phase === 5) ? () => handleCardClick(cardToString(c)) : undefined)}</div>
+              ))
+            )}
+
+            {/* Quick hand shortcuts */}
+            {phase === 1 && holeCards.length === 0 && (
+              <div className="ml-4 flex flex-wrap gap-1.5">
+                {QUICK_HANDS.map((qh) => (
+                  <button
+                    key={qh.label}
+                    onClick={() => handleQuickHand(qh.cards)}
+                    className="px-2 py-1 text-xs font-mono font-bold rounded-md bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  >
+                    {qh.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center shrink-0 pt-1">
+            {phase === 0 && (
+              <button
+                onClick={handleStartGame}
+                className="px-5 py-3 rounded-xl bg-blue-500 text-white font-semibold shadow-lg hover:bg-blue-600 active:scale-95 transition-all whitespace-nowrap"
+              >
+                {t.pokerYourHand}
+              </button>
+            )}
+            {phase === 5 && (
+              <button
+                onClick={handleNewGame}
+                className="px-5 py-3 rounded-xl bg-red-500 text-white font-semibold shadow-lg hover:bg-red-600 active:scale-95 transition-all whitespace-nowrap"
+              >
+                {t.pokerEndGame}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Community Cards */}
+      <div className="mb-6">
+        <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2">{t.pokerCommunity}</h2>
+        <div className="flex gap-3 min-h-[5.5rem] items-center">
+          {[0, 1, 2, 3, 4].map((idx) => {
+            if (idx < communityCards.length) {
+              const canClick = phase >= 2 && phase <= 5
+              return (
+                <div key={idx}>
+                  {renderCard(cardToString(communityCards[idx]), 'md', canClick ? () => handleCardClick(cardToString(communityCards[idx])) : undefined)}
+                </div>
+              )
+            }
+            const showActive = (phase === 2 && idx < 3) || (phase === 3 && idx === 3) || (phase === 4 && idx === 4)
+            return (
+              <div
+                key={idx}
+                className={`w-[60px] h-[86px] rounded-xl border-2 flex items-center justify-center text-lg font-bold transition-colors ${
+                  showActive
+                    ? 'border-blue-400 dark:border-blue-500 text-blue-400 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20'
+                    : 'border-dashed border-zinc-300 dark:border-zinc-600 text-zinc-300 dark:text-zinc-600'
+                }`}
+              >
+                {idx + 1}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
       {/* Current Stage / Odds Panel */}
       <div className="mb-6 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
             {phase === 0 ? '▶ ' : ''}{getPhaseLabel(phase, t)}
           </span>
-          {phase > 1 && phase < 5 && (
-            <button
-              onClick={handleBackSelection}
-              className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 underline"
-            >
-              ← {t.pokerResetHand}
-            </button>
-          )}
         </div>
 
         {phase === 0 && (
@@ -424,152 +601,45 @@ export function PokerPage() {
             </div>
           </div>
         )}
+
+        {odds && !simulating && odds.topHands.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700">
+            <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">赢牌时最可能牌型：</div>
+            <div className="flex gap-2">
+              {odds.topHands.map((h) => (
+                <div
+                  key={h.name}
+                  className="flex-1 px-2 py-1.5 rounded-lg bg-white/60 dark:bg-zinc-800/60 text-center"
+                >
+                  <div className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">{HAND_NAMES_CN[h.name] || h.name}</div>
+                  <div className="text-[11px] text-zinc-400 dark:text-zinc-500">{h.pct}%</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {odds && !simulating && odds.topOpponentHands.length > 0 && (
+          <div className="mt-2 pt-2 border-t border-blue-200 dark:border-blue-700">
+            <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">对手最可能牌型：</div>
+            <div className="flex gap-2">
+              {odds.topOpponentHands.map((h) => (
+                <div
+                  key={h.name}
+                  className="flex-1 px-2 py-1.5 rounded-lg bg-white/60 dark:bg-zinc-800/60 text-center"
+                >
+                  <div className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">{HAND_NAMES_CN[h.name] || h.name}</div>
+                  <div className="text-[11px] text-zinc-400 dark:text-zinc-500">{h.pct}%</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {!odds && !simulating && phase > 0 && (
           <p className="text-sm text-zinc-400 dark:text-zinc-500">{getSelectionPrompt(phase, t)}</p>
         )}
       </div>
 
-      {/* Your Hand */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">{t.pokerYourHand}</h2>
-          {phase >= 2 && holeCards.length === 2 && (
-            <button
-              onClick={handleResetHand}
-              className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400"
-            >
-              {t.pokerResetHand}
-            </button>
-          )}
-        </div>
-        <div className="flex gap-3 min-h-[5.5rem] items-center">
-          {holeCards.length === 0 ? (
-            <div className="flex gap-3">
-              <div className="w-14 h-20 rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-600 flex items-center justify-center text-zinc-300 dark:text-zinc-600 text-sm">?</div>
-              <div className="w-14 h-20 rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-600 flex items-center justify-center text-zinc-300 dark:text-zinc-600 text-sm">?</div>
-            </div>
-          ) : (
-            holeCards.map((c, i) => (
-              <div key={i}>{renderCard(cardToString(c), 'md')}</div>
-            ))
-          )}
-
-          {/* Quick hand shortcuts */}
-          {phase === 1 && holeCards.length === 0 && (
-            <div className="ml-4 flex flex-wrap gap-1.5">
-              {QUICK_HANDS.map((qh) => (
-                <button
-                  key={qh.label}
-                  onClick={() => handleQuickHand(qh.cards)}
-                  className="px-2 py-1 text-xs font-mono font-bold rounded-md bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                >
-                  {qh.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Community Cards */}
-      <div className="mb-6">
-        <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2">{t.pokerCommunity}</h2>
-        <div className="flex gap-3 min-h-[5.5rem] items-center">
-          {[0, 1, 2, 3, 4].map((idx) => {
-            if (idx < communityCards.length) {
-              return <div key={idx}>{renderCard(cardToString(communityCards[idx]), 'md')}</div>
-            }
-            const showActive = (phase === 2 && idx < 3) || (phase === 3 && idx === 3) || (phase === 4 && idx === 4)
-            return (
-              <div
-                key={idx}
-                className={`w-14 h-20 rounded-lg border-2 flex items-center justify-center text-lg font-bold transition-colors ${
-                  showActive
-                    ? 'border-blue-400 dark:border-blue-500 text-blue-400 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20'
-                    : 'border-dashed border-zinc-300 dark:border-zinc-600 text-zinc-300 dark:text-zinc-600'
-                }`}
-              >
-                {idx + 1}
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Card Selector Grid */}
-      <div className="mb-6">
-        <div className="flex justify-between mb-2">
-          <span className="text-xs font-medium text-zinc-400 dark:text-zinc-500">Card Selector</span>
-          {phase > 1 && phase < 5 && (
-            <button
-              onClick={handleBackSelection}
-              className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400"
-            >
-              ← Back
-            </button>
-          )}
-        </div>
-        <div
-          className="gap-1.5"
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(13, minmax(0, 1fr))' }}
-        >
-          {ALL_RANKS.map((rank) => (
-            <div key={rank} className="col-span-1 text-center text-[10px] font-bold text-zinc-400 dark:text-zinc-500 py-0.5">
-              {rank}
-            </div>
-          ))}
-          {ALL_SUITS.map((suit) => (
-            <>
-              {ALL_RANKS.map((rank) => {
-                const code = rank + suit
-                const selected = isCardSelected(code)
-                const canSelect = canSelectCard(code)
-                const color = SUIT_COLORS[suit]
-                const symbol = SUIT_SYMBOLS[suit]
-
-                return (
-                  <button
-                    key={code}
-                    onClick={() => canSelect && handleCardClick(code)}
-                    disabled={!canSelect}
-                    className={`col-span-1 aspect-[2/3] rounded-md border text-[11px] font-bold flex flex-col items-center justify-center leading-tight transition-all ${
-                      selected
-                        ? 'border-blue-400 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 scale-105 shadow-sm'
-                        : canSelect
-                          ? 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-zinc-700 cursor-pointer'
-                          : 'border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 text-zinc-300 dark:text-zinc-700 cursor-not-allowed opacity-40'
-                    } ${color}`}
-                  >
-                    <span>{rank}</span>
-                    <span className="text-sm leading-none mt-0.5">{symbol}</span>
-                  </button>
-                )
-              })}
-            </>
-          ))}
-        </div>
-      </div>
-
-      {/* Start / New Game Button */}
-      <div className="flex justify-center">
-        {phase === 0 && (
-          <button
-            onClick={handleStartGame}
-            className="px-8 py-3 rounded-xl bg-blue-500 text-white font-semibold shadow-lg hover:bg-blue-600 active:scale-95 transition-all"
-          >
-            {t.pokerYourHand}
-          </button>
-        )}
-        {phase === 5 && (
-          <button
-            onClick={handleNewGame}
-            className="px-8 py-3 rounded-xl bg-blue-500 text-white font-semibold shadow-lg hover:bg-blue-600 active:scale-95 transition-all flex items-center gap-2"
-          >
-            <ArrowPathIcon className="w-5 h-5" />
-            {t.pokerNewGame}
-          </button>
-        )}
-      </div>
     </div>
   )
 }

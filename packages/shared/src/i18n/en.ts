@@ -183,6 +183,7 @@ export const en: I18nStrings = {
   pokerRiver: 'River',
   pokerShowdown: 'Showdown!',
   pokerNewGame: 'New Game',
+  pokerEndGame: 'End Game',
   pokerSelectHand: 'Select your 2 hole cards',
   pokerSelectFlop: 'Select 3 flop cards',
   pokerSelectTurn: 'Select 1 turn card',

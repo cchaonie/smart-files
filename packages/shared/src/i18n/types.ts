@@ -136,6 +136,7 @@ export interface I18nStrings {
   pokerRiver: string;
   pokerShowdown: string;
   pokerNewGame: string;
+  pokerEndGame: string;
   pokerSelectHand: string;
   pokerSelectFlop: string;
   pokerSelectTurn: string;

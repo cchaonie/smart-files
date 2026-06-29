@@ -183,6 +183,7 @@ export const zhCN: I18nStrings = {
   pokerRiver: '河牌',
   pokerShowdown: '摊牌！',
   pokerNewGame: '开始新一局',
+  pokerEndGame: '结束游戏',
   pokerSelectHand: '请选择你的2张手牌',
   pokerSelectFlop: '请选择3张翻牌',
   pokerSelectTurn: '请选择1张转牌',
