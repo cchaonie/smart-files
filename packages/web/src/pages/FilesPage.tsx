@@ -309,8 +309,8 @@ export function FilesPage() {
     try {
       await foldersApi.deleteFolder(folder.id);
       await loadBrowse();
-    } catch {
-      alert(t.deleteFailed);
+    } catch (err) {
+      alert(err instanceof Error ? (err as any).response?.data?.message || err.message : t.deleteFailed);
     }
   }
 
