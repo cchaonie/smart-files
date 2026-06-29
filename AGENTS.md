@@ -48,8 +48,7 @@ Uses root `.env` (not backend `.env`). `dotenv-cli` is a devDependency of shared
 - **Swagger UI** at `http://localhost:4000/docs` (code logs `/api/docs` but setup ignores global prefix).
 - **Body parser**: Custom (via `body-parser` lib), **50mb limit** on all parsers — required for chunked uploads. Not the NestJS built-in.
 - **Auth**: `passport-jwt` + `@nestjs/jwt`. Guard at `common/guards/jwt.guard.ts` (`JwtAuthGuard`). `@CurrentUser` decorator at `common/decorators/current-user.decorator.ts`.
-- **BullMQ**: Job queues for thumbnail generation and AI tagging. Requires **Redis** (`REDIS_URL=redis://localhost:6379`). Not started by default — no npm script for it.
-- **Backend modules**: `auth`, `files`, `folders`, `upload`, `share`, `photos`, `albums`, `users`, `ai-tagging`, `redis`, `prisma`. No `static/` module. Guard is `JwtAuthGuard` (singular file).
+- **Backend modules**: `auth`, `files`, `folders`, `upload`, `share`, `users`, `admin`, `prisma`.
 - **Config**: `ConfigModule.forRoot({ isGlobal: true })` — loads `packages/backend/.env`. No ConfigService typing.
 
 ## Backend env (packages/backend/.env)
@@ -61,8 +60,6 @@ UPLOAD_ROOT=../../../data/storage      # relative from packages/backend CWD
 MAX_FILE_SIZE_BYTES=10737418240         # 10 GiB
 CORS_ORIGIN=http://localhost:3000,http://localhost:19006
 PORT=4000
-PHOTO_ROOT=/mnt/pool                    # mergerfs photo pool
-REDIS_URL=redis://localhost:6379
 ```
 
 Root `.env` holds `POSTGRES_PASSWORD` + `JWT_SECRET` (used by deployment), not by the backend directly.
@@ -72,7 +69,7 @@ Root `.env` holds `POSTGRES_PASSWORD` + `JWT_SECRET` (used by deployment), not b
 - **Build pipeline**: `tsc && vite build` — typecheck runs before Vite bundle.
 - **`@/*`** alias maps to `src/*`.
 - **React Router 7** with `PrivateRoute`/`PublicRoute` wrappers in `App.tsx`.
-- **Existing pages**: Home, Login, Register, Files, Photos, PhotoDetail, Albums, AlbumDetail, FamilyTimeline, Uploads, Settings, Share.
+- **Existing pages**: Home, Login, Register, Files, Uploads, Settings, Share, Admin.
 - **`AuthContext`** for JWT state, **`UploadContext`** for upload state.
 
 ## Shared package
@@ -130,11 +127,10 @@ ls -lh app/build/outputs/apk/debug/app-debug.apk
 
 **Verification**: The APK at `packages/mobile/android/app/build/outputs/apk/debug/app-debug.apk` should exist and be > 1MB. First build downloads Gradle (8.14.3) + Maven deps and may take 15-30 minutes depending on network speed.
 
-### Test Data
-
 ## Database
 
-- **Schema**: `packages/shared/prisma/schema.prisma`. Models: User, Folder, File, Share, UploadSession, Photo, PhotoTag, Album, AlbumPhotoMember, SharedAlbum.
+- **Schema**: `packages/shared/prisma/schema.prisma`. Models: User, Folder, File, Share, UploadSession.
+  - Legacy models still in schema but no longer used by application code: Photo, PhotoTag, Album, AlbumPhotoMember, SharedAlbum.
 - **Soft delete**: File model uses `deletedAt` (nullable DateTime).
 - **Migrations**: `packages/shared/prisma/migrations/`.
 

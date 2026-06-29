@@ -22,11 +22,8 @@ import {
   MagnifyingGlassIcon, ArrowPathIcon, EllipsisVerticalIcon,
   ChevronRightIcon, XMarkIcon,
 } from '../components/icons';
-import { PhotoDetailScreen } from './PhotoDetailScreen';
-import type { FileItem, Folder, Photo } from '../types';
-import { usePhotoUploadContext } from '../context/PhotoUploadContext';
-import { photosApi } from '../api/photos';
-import UploadProgressRow from '../components/UploadProgressRow';
+import type { FileItem, Folder } from '../types';
+import { useUploadContext } from '../context/UploadContext';
 import FilePreviewModal from '../components/FilePreviewModal';
 import ActionSheet, { type ActionItem } from '../components/ActionSheet';
 import RenameFileModal from '../components/RenameFileModal';
@@ -58,7 +55,7 @@ function isPreviewableImage(mimeType: string | null, name: string): boolean {
 export function FilesScreen() {
   const { user, logout } = useAuth();
   const { t } = useI18n();
-  const { startFileUpload, items: uploadItems, retryFailed, clearCompleted } = usePhotoUploadContext();
+  const { startFileUpload } = useUploadContext();
 
   const [folders, setFolders] = useState<Folder[]>([]);
   const [files, setFiles] = useState<FileItem[]>([]);
@@ -76,14 +73,12 @@ export function FilesScreen() {
   const [actionSheetActions, setActionSheetActions] = useState<ActionItem[]>([]);
   const [renameFileTarget, setRenameFileTarget] = useState<FileItem | null>(null);
   const [shareTarget, setShareTarget] = useState<FileItem | null>(null);
-  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<FileItem[] | null>(null);
 
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [batchMoveTargets, setBatchMoveTargets] = useState<FileItem[] | null>(null);
-  const [uploadExpanded, setUploadExpanded] = useState(false);
 
   // Trash state
   const [viewingTrash, setViewingTrash] = useState(false);
@@ -331,7 +326,6 @@ export function FilesScreen() {
 
   // --- Render ---
   const empty = !isLoading && folders.length === 0 && files.length === 0;
-  const hasUploads = uploadItems.length > 0;
 
   const renderItem = ({ item }: { item: Folder | FileItem }) => {
     if ('mimeType' in item) {
@@ -343,11 +337,6 @@ export function FilesScreen() {
           onPress={() => {
             if (isSelecting) {
               toggleSelect(file.id);
-            } else if (file.photoId) {
-              setPreviewFile(null);
-              photosApi.getById(file.photoId).then(setSelectedPhoto).catch(() => {
-                setPreviewFile(file);
-              });
             } else {
               setPreviewFile(file);
             }
@@ -364,7 +353,7 @@ export function FilesScreen() {
           <View style={styles.fileInfo}>
             <View style={[styles.thumbBox, previewable ? undefined : styles.thumbPlaceholder]}>
               {previewable ? (
-                <Image source={{ uri: file.photoId ? photosApi.thumbnailUrl({ id: file.photoId }) : filesApi.previewUrl(file.id) }} style={styles.thumbImage} />
+                <Image source={{ uri: filesApi.previewUrl(file.id) }} style={styles.thumbImage} />
               ) : (
                 <Text style={styles.thumbText}>{file.name.split('.').pop()?.toUpperCase().slice(0, 3) || '?'}</Text>
               )}
@@ -536,46 +525,6 @@ export function FilesScreen() {
         )}
       </View>
 
-      {/* Upload section — compact collapsible */}
-      {!viewingTrash && hasUploads ? (
-        <View style={styles.uploadSection}>
-          <TouchableOpacity style={styles.uploadBar} onPress={() => setUploadExpanded(v => !v)} activeOpacity={0.7}>
-            <View style={styles.uploadBarLeft}>
-              <Text style={styles.uploadBarIcon}>⬆</Text>
-              <Text style={styles.uploadBarText}>
-                {uploadItems.filter(i => i.status === 'uploading').length} 项上传中
-              </Text>
-            </View>
-            <Text style={styles.uploadBarArrow}>{uploadExpanded ? '▾' : '▸'}</Text>
-          </TouchableOpacity>
-          {uploadExpanded && (
-            <View style={styles.uploadExpanded}>
-              {uploadItems.slice(0, 5).map(item => (
-                <UploadProgressRow
-                  key={item.id}
-                  item={{
-                    id: parseInt(item.id, 36) || 0,
-                    name: item.filename,
-                    progress: item.progress,
-                    status: item.status as 'pending' | 'uploading' | 'done' | 'error',
-                    error: item.error,
-                  }}
-                  onRetry={(id) => retryFailed()}
-                />
-              ))}
-              {uploadItems.length > 5 && (
-                <Text style={styles.uploadMoreText}>还有 {uploadItems.length - 5} 项…</Text>
-              )}
-              <View style={styles.uploadActionsRow}>
-                <TouchableOpacity style={styles.uploadActionBtn} onPress={() => clearCompleted()}>
-                  <Text style={styles.uploadActionBtnText}>清除已完成</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        </View>
-      ) : null}
-
       {/* File list wrapper — takes remaining flex space */}
       <View style={styles.listWrapper}>
 
@@ -719,11 +668,6 @@ export function FilesScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      )}
-
-      {/* Photo detail overlay for photo-linked files */}
-      {selectedPhoto && (
-        <PhotoDetailScreen photo={selectedPhoto} onClose={() => setSelectedPhoto(null)} />
       )}
 
       {/* Modals */}
