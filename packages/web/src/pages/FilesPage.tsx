@@ -9,6 +9,7 @@ import ShareModal from '../components/ShareModal'
 import MediaPreview from '../components/MediaPreview'
 import { FileCard } from '../components/FileCard'
 import { UploadFAB } from '../components/UploadFAB'
+import { useUpload } from '../context/UploadContext'
 import { BatchActionsBar } from '../components/BatchActionsBar'
 import { BottomSheet } from '../components/BottomSheet'
 import { EmptyState } from '../components/EmptyState'
@@ -35,6 +36,11 @@ function storePath(path: { id: string; name: string }[]) {
 
 export function FilesPage() {
   const { t } = useI18n();
+  const { uploads } = useUpload();
+  const hasActiveUploads = uploads.some(u =>
+    u.status === 'uploading' || u.status === 'pending'
+  );
+  const [showExitDialog, setShowExitDialog] = useState(false);
 
   // Read folder from URL on mount
   const getFolderIdFromURL = () => {
@@ -206,13 +212,23 @@ export function FilesPage() {
           .catch(() => {
             setPath([]);
           });
+      } else if (hasActiveUploads && path.length === 0) {
+        // At root with active upload — restore and ask
+        window.history.pushState({ guard: true }, '', '/files');
+        setShowExitDialog(true);
       } else {
         setPath([]);
       }
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
-  }, []);
+  }, [hasActiveUploads, path.length]);
+
+  const confirmLeave = () => {
+    setShowExitDialog(false);
+    // User confirmed — go back past the guard state we pushed
+    window.history.back();
+  };
 
   const loadBrowse = useCallback(async () => {
     setListError(null);
@@ -772,6 +788,38 @@ export function FilesPage() {
           onClose={() => { setMoveTargets([]); setSelectedFileIds(new Set()); }}
           onMoved={() => { void loadBrowse(); clearAllSelections(); setIsSelecting(false); }}
         />
+      )}
+
+      {/* Exit guard dialog */}
+      {showExitDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowExitDialog(false)} />
+          <div className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-2xl shadow-xl p-6">
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 text-center">
+              {t.upload}
+            </h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center mt-2">
+              {uploads.some(u => u.status === 'uploading')
+                ? 'Files are still being uploaded. Leaving now may cause them to fail.'
+                : 'There are pending uploads. Leaving now may cause them to fail.'
+              }
+            </p>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowExitDialog(false)}
+                className="flex-1 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm font-medium"
+              >
+                {t.cancel}
+              </button>
+              <button
+                onClick={confirmLeave}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-medium"
+              >
+                Leave Anyway
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
