@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useI18n } from '@smart-files/shared/src/i18n';
 import type { I18nStrings } from '@smart-files/shared/src/i18n/types';
 import { systemApi, type DiskDetail, type DiskDuResult } from '../api/system';
@@ -11,6 +11,12 @@ function formatSize(bytes: number): string {
   if (bytes >= 1e6) return (bytes / 1e6).toFixed(1) + ' MB';
   if (bytes >= 1e3) return (bytes / 1e3).toFixed(0) + ' KB';
   return bytes + ' B';
+}
+
+// Get dir param from current URL
+function getDirFromURL(): string | null {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('dir') || null;
 }
 
 function Breadcrumb({ path, onNavigate }: { path: string; onNavigate: (p: string) => void }) {
@@ -242,10 +248,10 @@ function DirectoryBrowserView({
 // ── Main Page ──
 export function DiskDetailPage() {
   const { t } = useI18n();
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const dirParam = searchParams.get('dir');
+  const location = useLocation();
 
+  // Read dir from URL (on mount and on popstate via location changes)
+  const dirParam = getDirFromURL();
   const isDirView = dirParam !== null && dirParam !== '';
   const currentPath = isDirView ? dirParam : '/';
 
@@ -271,53 +277,72 @@ export function DiskDetailPage() {
   // Fetch directory sizes
   const fetchDu = useCallback(async (path: string) => {
     setLoading(true);
+    setDuData(null);
     try {
       const d = await systemApi.getDirectorySizes(path);
       setDuData(d);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load directory');
+      setDuData(null);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Load data based on URL param
+  // Load data when URL param changes (includes mount, navigation, and popstate)
   useEffect(() => {
-    if (!isDirView) {
+    const dir = getDirFromURL();
+    if (!dir) {
       void fetchMounts();
     } else {
-      void fetchDu(currentPath);
+      void fetchDu(dir);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dirParam]);
+  }, [location.search]);
 
-  // Auto-refresh mount list every 10s
+  // Auto-refresh mount list
   useEffect(() => {
     if (isDirView) return;
     const interval = setInterval(() => void fetchMounts(), 10000);
     return () => clearInterval(interval);
   }, [isDirView, fetchMounts]);
 
-  // Enter a directory — push new URL (creates browser history entry)
+  // Enter a directory — use History API pushState to keep React Router layer clean
   const enterDir = useCallback((path: string) => {
-    navigate(`/settings/monitor/disk?dir=${encodeURIComponent(path)}`);
-  }, [navigate]);
+    const base = '/settings/monitor/disk';
+    const newURL = `${base}?dir=${encodeURIComponent(path)}`;
+    window.history.pushState({ dir: path }, '', newURL);
+
+    // Manually dispatch to same URL pattern as location change
+    // (useLocation won't fire for pushState, so we fetch directly)
+    void fetchDu(path);
+  }, [fetchDu]);
 
   // Navigate breadcrumb
   const navigateTo = useCallback((path: string) => {
     if (path === '/') {
-      // Remove dir param → go back to mount list
-      navigate('/settings/monitor/disk');
+      // Go back to mount list — replaceState to keep clean history
+      const base = '/settings/monitor/disk';
+      window.history.pushState({ dir: null }, '', base);
+      void fetchMounts();
     } else {
-      navigate(`/settings/monitor/disk?dir=${encodeURIComponent(path)}`);
+      enterDir(path);
     }
-  }, [navigate]);
+  }, [enterDir, fetchMounts]);
 
-  // Back button
+  // Back button on the page header
   const goBack = useCallback(() => {
-    navigate(-1);
-  }, [navigate]);
+    window.history.back();
+  }, []);
+
+  // Sync loading state when mount data is already cached
+  const [initialLoad, setInitialLoad] = useState(true);
+  useEffect(() => {
+    if (mountData || duData || error) {
+      setInitialLoad(false);
+    }
+  }, [mountData, duData, error]);
 
   return (
     <div className="px-4 py-6">
@@ -342,7 +367,7 @@ export function DiskDetailPage() {
       )}
 
       {/* Loading */}
-      {loading && (
+      {loading && initialLoad && (
         <div className="rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8">
           <p className="text-sm text-zinc-400 text-center">{t.systemLoading}</p>
         </div>
@@ -356,12 +381,12 @@ export function DiskDetailPage() {
       )}
 
       {/* Mount List */}
-      {!loading && !isDirView && mountData && (
+      {!initialLoad && !isDirView && mountData && (
         <MountListView data={mountData} t={t} onEnterDir={enterDir} />
       )}
 
       {/* Directory Browser */}
-      {!loading && isDirView && duData && (
+      {!initialLoad && isDirView && duData && (
         <DirectoryBrowserView duData={duData} onNavigate={enterDir} />
       )}
     </div>
