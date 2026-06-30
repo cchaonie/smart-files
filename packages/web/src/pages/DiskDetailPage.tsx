@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useI18n } from '@smart-files/shared/src/i18n';
 import type { I18nStrings } from '@smart-files/shared/src/i18n/types';
 import { systemApi, type DiskDetail, type DiskDuResult } from '../api/system';
@@ -243,19 +243,17 @@ function DirectoryBrowserView({
 export function DiskDetailPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const dirParam = searchParams.get('dir');
 
-  // View mode: 'mounts' or 'dir'
-  const [view, setView] = useState<'mounts' | 'dir'>('mounts');
+  const isDirView = dirParam !== null && dirParam !== '';
+  const currentPath = isDirView ? dirParam : '/';
 
   // Data
   const [mountData, setMountData] = useState<DiskDetail | null>(null);
   const [duData, setDuData] = useState<DiskDuResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Current directory being browsed
-  const [currentPath, setCurrentPath] = useState<string>('');
-  const [pathStack, setPathStack] = useState<string[]>([]);
 
   // Fetch mount data
   const fetchMounts = useCallback(async () => {
@@ -284,86 +282,60 @@ export function DiskDetailPage() {
     }
   }, []);
 
-  // Initial mount list load
+  // Load data based on URL param
   useEffect(() => {
-    if (view === 'mounts') {
+    if (!isDirView) {
       void fetchMounts();
+    } else {
+      void fetchDu(currentPath);
     }
-  }, [view, fetchMounts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirParam]);
 
-  // Auto-refresh only when on mounts view
+  // Auto-refresh mount list every 10s
   useEffect(() => {
-    if (view !== 'mounts') return;
+    if (isDirView) return;
     const interval = setInterval(() => void fetchMounts(), 10000);
     return () => clearInterval(interval);
-  }, [view, fetchMounts]);
+  }, [isDirView, fetchMounts]);
 
-  // Enter a directory
+  // Enter a directory — push new URL (creates browser history entry)
   const enterDir = useCallback((path: string) => {
-    if (view === 'mounts') {
-      setPathStack([]);
-    } else {
-      setPathStack(prev => [...prev, currentPath]);
-    }
-    setCurrentPath(path);
-    setView('dir');
-    void fetchDu(path);
-  }, [view, currentPath, fetchDu]);
+    navigate(`/settings/monitor/disk?dir=${encodeURIComponent(path)}`);
+  }, [navigate]);
 
   // Navigate breadcrumb
   const navigateTo = useCallback((path: string) => {
-    setCurrentPath(path);
-    void fetchDu(path);
-    // Rebuild stack - trim to where we clicked
-    if (view === 'dir') {
-      const idx = pathStack.findIndex(p => p === path);
-      if (idx >= 0) {
-        setPathStack(prev => prev.slice(0, idx));
-      } else if (path === '/') {
-        // Going back to root via breadcrumb means going back to mounts
-        setView('mounts');
-        return;
-      }
-    }
-  }, [view, pathStack, fetchDu]);
-
-  // Go back
-  const goBack = useCallback(() => {
-    if (view === 'dir' && pathStack.length > 0) {
-      const prev = pathStack[pathStack.length - 1];
-      setPathStack(prev => prev.slice(0, -1));
-      setCurrentPath(prev);
-      void fetchDu(prev);
+    if (path === '/') {
+      // Remove dir param → go back to mount list
+      navigate('/settings/monitor/disk');
     } else {
-      setView('mounts');
-      setCurrentPath('');
-      setPathStack([]);
+      navigate(`/settings/monitor/disk?dir=${encodeURIComponent(path)}`);
     }
-  }, [view, pathStack, fetchDu]);
+  }, [navigate]);
+
+  // Back button
+  const goBack = useCallback(() => {
+    navigate(-1);
+  }, [navigate]);
 
   return (
     <div className="px-4 py-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-2">
         <button
-          onClick={() => {
-            if (view === 'dir' && currentPath) {
-              goBack();
-            } else {
-              navigate('/settings/monitor');
-            }
-          }}
+          onClick={goBack}
           className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
         >
           <ChevronLeftIcon className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
         </button>
         <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-          {view === 'dir' ? currentPath : t.systemDiskDetail}
+          {isDirView ? currentPath : t.systemDiskDetail}
         </h1>
       </div>
 
       {/* Breadcrumb (dir mode) */}
-      {view === 'dir' && currentPath && (
+      {isDirView && (
         <div className="mb-4">
           <Breadcrumb path={currentPath} onNavigate={navigateTo} />
         </div>
@@ -384,12 +356,12 @@ export function DiskDetailPage() {
       )}
 
       {/* Mount List */}
-      {!loading && view === 'mounts' && mountData && (
+      {!loading && !isDirView && mountData && (
         <MountListView data={mountData} t={t} onEnterDir={enterDir} />
       )}
 
       {/* Directory Browser */}
-      {!loading && view === 'dir' && duData && (
+      {!loading && isDirView && duData && (
         <DirectoryBrowserView duData={duData} onNavigate={enterDir} />
       )}
     </div>
