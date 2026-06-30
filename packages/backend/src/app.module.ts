@@ -6,6 +6,7 @@ import { FilesModule } from './files/files.module';
 import { UploadModule } from './upload/upload.module';
 import { FoldersModule } from './folders/folders.module';
 import { ShareModule } from './share/share.module';
+import { SystemModule } from './system/system.module';
 import { UsersModule } from './users/users.module';
 import { AdminModule } from './admin/admin.module';
 
@@ -18,6 +19,7 @@ import { AdminModule } from './admin/admin.module';
     UploadModule,
     FoldersModule,
     ShareModule,
+    SystemModule,
     UsersModule,
     AdminModule,
   ],

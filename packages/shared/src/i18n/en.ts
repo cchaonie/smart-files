@@ -70,6 +70,7 @@ export const en: I18nStrings = {
   shareNotFound: 'Share not found', verificationFailed: 'Verification failed',
   failedToLoad: 'Failed to load', failedToLoadFolders: 'Failed to load folders',
   uploadIntoFolder: 'Upload into this folder',
+  uploadFolder: 'Upload Folder', uploadFiles: 'Upload Files',
   chunkInfo: 'Chunks: {n} MB \u00b7 Pause/resume supported',
   chooseFiles: 'Choose files', searchResults: 'Search results',
   clearSearch: 'Clear search', searching: 'Searching\u2026',
