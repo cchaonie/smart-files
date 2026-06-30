@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence } from 'motion/react'
-import { useSearchParams } from 'react-router-dom'
 import { filesApi, foldersApi } from '../api/files'
 import type { FileItem, Folder } from '../types'
 import { formatBytes, isPreviewable } from '@smart-files/shared/src/utils'
@@ -36,8 +35,13 @@ function storePath(path: { id: string; name: string }[]) {
 
 export function FilesPage() {
   const { t } = useI18n();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const folderIdFromUrl = searchParams.get('folder');
+
+  // Read folder from URL on mount
+  const getFolderIdFromURL = () => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('folder');
+  };
+  const folderIdFromUrl = getFolderIdFromURL();
 
   // On mount: URL param takes precedence → fetch path from API if needed
   const [path, setPath] = useState<{ id: string; name: string }[]>(() => {
@@ -172,7 +176,7 @@ export function FilesPage() {
         // Folder was deleted or invalid — stay at root, clear URL param
         setPath([]);
         setInitialPathDone(true);
-        setSearchParams({}, { replace: true });
+        window.history.replaceState({ path: [] }, '', '/files');
       });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -182,11 +186,33 @@ export function FilesPage() {
     storePath(path);
     const lastId = path.length > 0 ? path[path.length - 1].id : null;
     if (lastId) {
-      setSearchParams({ folder: lastId }, { replace: true });
+      // Use pushState to create proper history entry for folder navigation
+      window.history.pushState({ path }, '', `/files?folder=${lastId}`);
     } else {
-      setSearchParams({}, { replace: true });
+      // Going back to root — replace so back doesn't go to root again
+      window.history.replaceState({ path: [] }, '', '/files');
     }
-  }, [path, initialPathDone, setSearchParams]);
+  }, [path, initialPathDone]);
+
+  // Handle browser back/forward via popstate
+  useEffect(() => {
+    const onPopState = () => {
+      const folderId = getFolderIdFromURL();
+      if (folderId) {
+        foldersApi.getFolderPath(folderId)
+          .then(folderPath => {
+            setPath(folderPath);
+          })
+          .catch(() => {
+            setPath([]);
+          });
+      } else {
+        setPath([]);
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   const loadBrowse = useCallback(async () => {
     setListError(null);
