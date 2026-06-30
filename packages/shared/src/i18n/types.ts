@@ -66,6 +66,7 @@ export interface I18nStrings {
   itemsSelected: string;
   removeFromHistory: string;
   fileAlreadyUploaded: string; fileAlreadyUploading: string; fileAlreadyInQueue: string;
+  uploadFolder: string; uploadFiles: string;
   /* Admin */
   admin: {
     title: string;
