@@ -5,6 +5,7 @@ import { useUpload } from '../context/UploadContext';
 import { ProfileCard } from '../components/ProfileCard';
 import { LanguagePicker } from '../components/LanguagePicker';
 import { ChangePasswordModal } from '../components/ChangePasswordModal';
+import { SystemDashboard } from '../components/SystemDashboard';
 import { GlobeIcon, LockIcon, ArrowRightIcon, CloudArrowUpIcon } from '../components/icons';
 
 export function SettingsPage() {
@@ -25,6 +26,8 @@ export function SettingsPage() {
       <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{t.settings}</h1>
 
       <ProfileCard />
+
+      <SystemDashboard />
 
       <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden divide-y divide-zinc-200 dark:divide-zinc-800 bg-white dark:bg-zinc-900">
         <button

@@ -257,3 +257,11 @@ export function ShieldIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function PokerIcon({ className }: IconProps) {
+  return (
+    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth={2} strokeLinecap='round' strokeLinejoin='round' className={className}>
+      <path d='M12 2 L15 9 L22 9 L16 14 L19 22 L12 17 L5 22 L8 14 L2 9 L9 9 Z' />
+    </svg>
+  );
+}

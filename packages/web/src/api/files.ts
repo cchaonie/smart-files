@@ -91,6 +91,14 @@ export const foldersApi = {
     return response.data;
   },
 
+  batchCreateFolders: async (parentId: string | undefined, paths: string[]): Promise<Record<string, string>> => {
+    const response = await apiClient.post<Record<string, string>>('/folders/tree', {
+      parentId,
+      paths,
+    });
+    return response.data;
+  },
+
   renameFolder: async (id: string, name: string): Promise<Folder> => {
     const response = await apiClient.patch<Folder>(`/folders/${id}`, { name });
     return response.data;

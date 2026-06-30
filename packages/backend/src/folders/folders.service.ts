@@ -122,6 +122,55 @@ export class FoldersService {
     return path;
   }
 
+  /**
+   * Create a folder tree from relative paths under a root parent.
+   * Returns a map of relative path → folderId.
+   *
+   * Example:
+   *   createFolderTree(userId, null, ['photos/2024/vacation', 'photos/2024/birthday'])
+   *   → { 'photos': '<id>', 'photos/2024': '<id>', 'photos/2024/vacation': '<id>', 'photos/2024/birthday': '<id>' }
+   */
+  async createFolderTree(
+    userId: string,
+    parentId: string | null,
+    relativePaths: string[],
+  ): Promise<Record<string, string>> {
+    // Collect all unique ancestor paths (not just the leaf paths)
+    const allPaths = new Set<string>();
+    for (const relPath of relativePaths) {
+      const parts = relPath.split('/').filter(Boolean);
+      for (let i = 1; i <= parts.length; i++) {
+        allPaths.add(parts.slice(0, i).join('/'));
+      }
+    }
+
+    const sortedPaths = [...allPaths].sort((a, b) => a.split('/').length - b.split('/').length);
+    const pathToId: Record<string, string> = {};
+
+    for (const relPath of sortedPaths) {
+      const parts = relPath.split('/');
+      const name = parts[parts.length - 1];
+      const parentRelPath = parts.slice(0, -1).join('/');
+      const parentFolderId = parentRelPath ? pathToId[parentRelPath] : parentId;
+
+      // Check if folder already exists under the same parent
+      const existing = await this.prisma.folder.findFirst({
+        where: { userId, name, parentId: parentFolderId ?? null },
+      });
+
+      if (existing) {
+        pathToId[relPath] = existing.id;
+      } else {
+        const folder = await this.prisma.folder.create({
+          data: { name, userId, parentId: parentFolderId ?? null },
+        });
+        pathToId[relPath] = folder.id;
+      }
+    }
+
+    return pathToId;
+  }
+
   async deleteFolder(userId: string, id: string) {
     const folder = await this.prisma.folder.findFirst({
       where: { id, userId },

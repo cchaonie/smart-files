@@ -11,7 +11,6 @@ export interface FileItem {
   size: string;
   mimeType: string | null;
   folderId: string | null;
-  photoId?: string;
   createdAt: string;
 }
 
@@ -60,50 +59,4 @@ export interface UploadProgress {
   error?: string;
   uri?: string;
   mimeType?: string;
-}
-
-export interface PhotoTag {
-  tag: string;
-  confidence: number | null;
-}
-
-export interface Photo {
-  id: string;
-  thumbnailPath: string;
-  previewPath: string;
-  originalName: string;
-  width: number | null;
-  height: number | null;
-  fileSize: number;
-  mimeType: string;
-  capturedAt: string | null;
-  status: 'PROCESSING' | 'READY' | 'FAILED';
-  tags: PhotoTag[];
-}
-
-export interface Album {
-  id: string;
-  name: string;
-  description: string | null;
-  coverPhotoId: string | null;
-  photoCount: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ShareEntry {
-  userId: string;
-  userName: string | null;
-  role: string;
-}
-
-export interface TagWithCount {
-  tag: string;
-  count: number;
-}
-
-export interface PhotoTimelineResponse {
-  photos: Photo[];
-  nextCursor: string | null;
-  total: number;
 }

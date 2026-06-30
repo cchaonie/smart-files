@@ -66,32 +66,7 @@ export interface I18nStrings {
   itemsSelected: string;
   removeFromHistory: string;
   fileAlreadyUploaded: string; fileAlreadyUploading: string; fileAlreadyInQueue: string;
-  photos: string; noPhotos: string; photoTimeline: string;
-  photoDetail: string; captured: string; dimensions: string;
-  jumpToMonth: string; endOfList: string;
-  searchTags: string; filteringBy: string;
-  noMatchingPhotos: string; clearFilter: string; moreTags: string;
-  addTagPlaceholder: string; tagAdded: string; tagRemoved: string; tagExists: string;
-  /* Photo timeline (mobile) */
-  mobilePhotos: string;
-  mobileNoPhotos: string;
-  mobileCaptured: string;
-  mobileDimensions: string;
-  mobileRetry: string;
-  /* Albums */
-  albums: string;
-  createAlbum: string;
-  albumName: string;
-  albumDescription: string;
-  noAlbums: string;
-  userSearch: string;
-  viewer: string;
-  contributor: string;
-  sharedWith: string;
-  revoke: string;
-  familyTimeline: string;
-  addPhoto: string;
-  removePhoto: string;
+  uploadFolder: string; uploadFiles: string;
   /* Admin */
   admin: {
     title: string;
@@ -119,6 +94,30 @@ export interface I18nStrings {
   updateCheckFailed: string;
   downloadFailed: string;
   currentVersion: string;
+  /* Poker */
+  poker: string;
+  pokerTitle: string;
+  pokerPlayers: string;
+  pokerYourHand: string;
+  pokerCommunity: string;
+  pokerCalculate: string;
+  pokerWinRate: string;
+  pokerTieRate: string;
+  pokerLoseRate: string;
+  pokerSimulations: string;
+  pokerPreFlop: string;
+  pokerFlop: string;
+  pokerTurn: string;
+  pokerRiver: string;
+  pokerShowdown: string;
+  pokerNewGame: string;
+  pokerEndGame: string;
+  pokerSelectHand: string;
+  pokerSelectFlop: string;
+  pokerSelectTurn: string;
+  pokerSelectRiver: string;
+  pokerWaiting: string;
+  pokerResetHand: string;
 }
 
 export interface I18nContextType {

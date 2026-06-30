@@ -9,14 +9,10 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ConfigProvider, useConfig } from './src/context/ConfigContext';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
-import { PhotoUploadProvider, usePhotoUploadContext } from './src/context/PhotoUploadContext';
-import { usePhotoDetection } from './src/hooks/usePhotoDetection';
+import { UploadProvider } from './src/context/UploadContext';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { RegisterScreen } from './src/screens/RegisterScreen';
 import { ServerConfigScreen } from './src/screens/ServerConfigScreen';
-import { PhotoUploadScreen } from './src/screens/PhotoUploadScreen';
-import { PhotoTimelineScreen } from './src/screens/PhotoTimelineScreen';
-import { AlbumsScreen } from './src/screens/AlbumsScreen';
 import { AdminScreen } from './src/screens/AdminScreen';
 import { AppLayout } from './src/components/AppLayout';
 import { FilesScreen } from './src/screens/FilesScreen';
@@ -46,32 +42,13 @@ export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   ServerConfig: undefined;
-  PhotoUpload: undefined;
   MainApp: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-function WrappedMainApp() {
-  const photoDetection = usePhotoDetection();
-  const { user } = useAuth();
-
-  useEffect(() => {
-    if (user && photoDetection.permissionGranted === null) {
-      photoDetection.requestPermission();
-    }
-  }, [user]);
-
-  return (
-    <PhotoUploadProvider onMarkSynced={photoDetection.markSynced} onAssetUploaded={photoDetection.markAssetSynced}>
-      <InnerApp photoDetection={photoDetection} />
-    </PhotoUploadProvider>
-  );
-}
-
-function InnerApp({ photoDetection }: { photoDetection: ReturnType<typeof usePhotoDetection> }) {
+function MainApp() {
   const [activeTab, setActiveTab] = useState<TabKey>('files');
-  const { badgeCount } = usePhotoUploadContext();
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const isMountedRef = useRef(true);
@@ -91,10 +68,6 @@ function InnerApp({ photoDetection }: { photoDetection: ReturnType<typeof usePho
     switch (activeTab) {
       case 'files':
         return <FilesScreen />;
-      case 'photos':
-        return <PhotoTimelineScreen photoDetection={photoDetection} />;
-      case 'albums':
-        return <AlbumsScreen />;
       case 'admin':
         return <AdminScreen />;
       case 'uploads':
@@ -102,12 +75,14 @@ function InnerApp({ photoDetection }: { photoDetection: ReturnType<typeof usePho
       case 'settings':
         return <SettingsScreen />;
     }
-  }, [activeTab, photoDetection]);
+  }, [activeTab]);
 
   return (
-    <AppLayout activeTab={activeTab} onTabChange={setActiveTab} badgeCount={badgeCount} isAdmin={isAdmin}>
-      {renderScreen()}
-    </AppLayout>
+    <UploadProvider>
+      <AppLayout activeTab={activeTab} onTabChange={setActiveTab} isAdmin={isAdmin}>
+        {renderScreen()}
+      </AppLayout>
+    </UploadProvider>
   );
 }
 
@@ -126,12 +101,7 @@ function AppNavigator() {
       >
         {user ? (
           <>
-            <Stack.Screen name="MainApp" component={WrappedMainApp} />
-            <Stack.Screen
-              name="PhotoUpload"
-              component={PhotoUploadScreen}
-              options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
-            />
+            <Stack.Screen name="MainApp" component={MainApp} />
             <Stack.Screen
               name="ServerConfig"
               component={ServerConfigScreen}
