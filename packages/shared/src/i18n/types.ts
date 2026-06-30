@@ -67,6 +67,19 @@ export interface I18nStrings {
   removeFromHistory: string;
   fileAlreadyUploaded: string; fileAlreadyUploading: string; fileAlreadyInQueue: string;
   uploadFolder: string; uploadFiles: string;
+  /* System Monitor */
+  systemMonitor: string;
+  systemCpu: string; systemMemory: string; systemDisk: string; systemCpuTemp: string;
+  systemLoading: string; systemNoData: string; systemRefresh: string;
+  systemCpuCores: string; systemCpuModel: string;
+  /* System Monitor Detail */
+  systemMemoryDetail: string; systemDiskDetail: string;
+  systemMemTotal: string; systemMemUsed: string; systemMemAvailable: string;
+  systemMemBuffers: string; systemMemCached: string; systemMemShared: string;
+  systemMemFree: string;
+  systemMemSwapTotal: string; systemMemSwapUsed: string; systemMemSwapFree: string;
+  systemDiskMounts: string; systemDiskInodes: string; systemDiskTotal: string;
+  systemDiskUsed: string; systemDiskFree: string; systemDiskFilesystem: string;
   /* Admin */
   admin: {
     title: string;

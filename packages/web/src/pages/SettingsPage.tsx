@@ -1,17 +1,18 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useI18n } from '@smart-files/shared/src/i18n';
 import { useUpload } from '../context/UploadContext';
 import { ProfileCard } from '../components/ProfileCard';
 import { LanguagePicker } from '../components/LanguagePicker';
 import { ChangePasswordModal } from '../components/ChangePasswordModal';
-import { SystemDashboard } from '../components/SystemDashboard';
-import { GlobeIcon, LockIcon, ArrowRightIcon, CloudArrowUpIcon } from '../components/icons';
+import { GlobeIcon, LockIcon, ArrowRightIcon, CloudArrowUpIcon, GearIcon } from '../components/icons';
 
 export function SettingsPage() {
   const { t } = useI18n();
   const { logout } = useAuth();
   const { maxParallel, setMaxParallel } = useUpload();
+  const navigate = useNavigate();
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -27,9 +28,16 @@ export function SettingsPage() {
 
       <ProfileCard />
 
-      <SystemDashboard />
-
       <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden divide-y divide-zinc-200 dark:divide-zinc-800 bg-white dark:bg-zinc-900">
+        <button
+          onClick={() => navigate('/settings/monitor')}
+          className="flex items-center gap-3 w-full p-4 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+        >
+          <GearIcon className="w-5 h-5 text-zinc-500" />
+          <span className="flex-1 text-sm text-zinc-900 dark:text-zinc-100">{t.systemMonitor}</span>
+          <ArrowRightIcon className="w-4 h-4 text-zinc-400" />
+        </button>
+
         <button
           onClick={() => setShowLanguagePicker(true)}
           className="flex items-center gap-3 w-full p-4 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
