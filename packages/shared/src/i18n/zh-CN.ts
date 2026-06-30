@@ -70,6 +70,7 @@ export const zhCN: I18nStrings = {
   shareNotFound: '分享链接不存在', verificationFailed: '验证失败',
   failedToLoad: '加载失败', failedToLoadFolders: '加载文件夹失败',
   uploadIntoFolder: '上传到此文件夹',
+  uploadFolder: '上传文件夹', uploadFiles: '上传文件',
   chunkInfo: '分块大小：{n} MB · 支持断点续传',
   chooseFiles: '选择文件', searchResults: '搜索结果',
   clearSearch: '清除搜索', searching: '搜索中…',
