@@ -175,9 +175,7 @@ export class FoldersService {
     const folder = await this.prisma.folder.findFirst({
       where: { id, userId },
       include: {
-        files: {
-          where: { deletedAt: null },
-        },
+        files: true, // include all files (including soft-deleted)
         children: true,
       },
     });
@@ -186,8 +184,18 @@ export class FoldersService {
       throw new NotFoundException('Folder not found');
     }
 
-    if (folder.files.length > 0 || folder.children.length > 0) {
+    // Check for active (non-deleted) files — those must be removed first
+    const activeFiles = folder.files.filter(f => f.deletedAt === null);
+    if (activeFiles.length > 0 || folder.children.length > 0) {
       throw new ConflictException('Folder must be empty before deletion');
+    }
+
+    // Nullify folderId on soft-deleted files to release FK constraint
+    if (folder.files.length > 0) {
+      await this.prisma.file.updateMany({
+        where: { folderId: id },
+        data: { folderId: null },
+      });
     }
 
     await this.prisma.folder.delete({ where: { id } });
