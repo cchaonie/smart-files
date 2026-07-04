@@ -190,15 +190,17 @@ export class FoldersService {
       throw new ConflictException('Folder must be empty before deletion');
     }
 
-    // Nullify folderId on soft-deleted files to release FK constraint
-    if (folder.files.length > 0) {
-      await this.prisma.file.updateMany({
-        where: { folderId: id },
+    // Delete folder in a transaction: first nullify folderId on any
+    // soft-deleted files that still reference this folder (the FK constraint
+    // uses onDelete: Restrict, so the folder can't be deleted while any file
+    // — even a soft-deleted one — still points to it), then remove the folder.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.file.updateMany({
+        where: { folderId: id, deletedAt: { not: null } },
         data: { folderId: null },
       });
-    }
-
-    await this.prisma.folder.delete({ where: { id } });
+      await tx.folder.delete({ where: { id } });
+    });
 
     return { success: true };
   }
