@@ -6,6 +6,9 @@ import { RegisterPage } from './pages/RegisterPage'
 import { FilesPage } from './pages/FilesPage'
 import { UploadsPage } from './pages/UploadsPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { SystemMonitorPage } from './pages/SystemMonitorPage'
+import { MemoryDetailPage } from './pages/MemoryDetailPage'
+import { DiskDetailPage } from './pages/DiskDetailPage'
 import { HomePage } from './pages/HomePage'
 import { SharePage } from './pages/SharePage'
 import { AdminPage } from './pages/AdminPage'
@@ -76,6 +79,9 @@ function App() {
         <Route path="/uploads" element={<UploadsPage />} />
         <Route path="/poker" element={<PokerPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/settings/monitor" element={<SystemMonitorPage />} />
+        <Route path="/settings/monitor/memory" element={<MemoryDetailPage />} />
+        <Route path="/settings/monitor/disk" element={<DiskDetailPage />} />
         <Route path="/admin" element={<AdminPage />} />
       </Route>
     </Routes>

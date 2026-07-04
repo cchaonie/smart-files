@@ -12,6 +12,7 @@ export interface FileItem {
   mimeType: string | null;
   folderId: string | null;
   createdAt: string;
+  photoId?: string | null;
 }
 
 export interface Folder {

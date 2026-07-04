@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, UseGuards, Query, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -38,5 +38,12 @@ export class AdminController {
   @ApiOperation({ summary: 'Get storage usage for a user' })
   getUserUsage(@Param('id') id: string) {
     return this.adminService.getUserUsage(id);
+  }
+
+  @Post('cleanup-uploads')
+  @ApiOperation({ summary: 'Clean up stale/orphaned upload temp directories' })
+  cleanupUploads(@Query('dryRun') dryRun?: string) {
+    const isDryRun = dryRun !== 'false' && dryRun !== '';
+    return this.adminService.cleanupUploads(isDryRun);
   }
 }

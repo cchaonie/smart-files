@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { uploadApi, CHUNK_SIZE } from '../api/upload';
+import { foldersApi } from '../api/files';
 import type { UploadQueueItem, UploadHistoryItem } from '../types';
 
 const ACTIVE_SESSIONS_KEY = 'sf_active_sessions';
@@ -10,6 +11,7 @@ interface UploadContextType {
   history: UploadHistoryItem[];
   badgeCount: number;
   startUpload: (files: File[], folderId?: string, folderName?: string) => void;
+  startFolderUpload: (files: File[], rootFolderId?: string, rootFolderName?: string) => Promise<void>;
   pauseUpload: (id: number) => void;
   resumeUpload: (id: number) => void;
   cancelUpload: (id: number) => void;
@@ -234,6 +236,60 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     setUploads((prev) => [...prev, ...items]);
   }, []);
 
+  const startFolderUpload = useCallback(async (files: File[], rootFolderId?: string, rootFolderName?: string) => {
+    // Collect unique relative folder paths from webkitRelativePath
+    const relPaths = new Set<string>();
+    const fileRelPaths: { file: File; relDir: string }[] = [];
+
+    for (const file of files) {
+      const rel = file.webkitRelativePath;
+      if (!rel) {
+        // Fallback: files without webkitRelativePath go to root folder
+        fileRelPaths.push({ file, relDir: '' });
+        continue;
+      }
+      const parts = rel.split('/');
+      if (parts.length <= 1) {
+        fileRelPaths.push({ file, relDir: '' });
+        continue;
+      }
+      const relDir = parts.slice(0, -1).join('/');
+      relPaths.add(relDir);
+      fileRelPaths.push({ file, relDir });
+    }
+
+    if (relPaths.size === 0) {
+      // No subfolders — just upload all files directly
+      startUpload(files, rootFolderId, rootFolderName);
+      return;
+    }
+
+    // Batch-create all folders
+    let pathToId: Record<string, string> = {};
+    try {
+      pathToId = await foldersApi.batchCreateFolders(rootFolderId, Array.from(relPaths));
+    } catch (e) {
+      console.error('Failed to create folder tree:', e);
+      // Fallback: upload all files to root
+      startUpload(files, rootFolderId, rootFolderName);
+      return;
+    }
+
+    // Group files by their parent folder ID and upload each group
+    const filesByFolder = new Map<string | undefined, File[]>();
+    for (const { file, relDir } of fileRelPaths) {
+      const folderId = relDir ? pathToId[relDir] : rootFolderId;
+      if (!filesByFolder.has(folderId)) {
+        filesByFolder.set(folderId, []);
+      }
+      filesByFolder.get(folderId)!.push(file);
+    }
+
+    for (const [folderId, folderFiles] of filesByFolder) {
+      startUpload(folderFiles, folderId, rootFolderName);
+    }
+  }, [startUpload]);
+
   const pauseUpload = useCallback((id: number) => {
     pausedRef.current.add(id);
     setUploads((prev) => prev.map((u) => (u.id === id ? { ...u, status: 'paused' } : u)));
@@ -338,6 +394,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
         history,
         badgeCount,
         startUpload,
+        startFolderUpload,
         pauseUpload,
         resumeUpload,
         cancelUpload,

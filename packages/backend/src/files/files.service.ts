@@ -277,7 +277,7 @@ export class FilesService {
       where: { userId, deletedAt: { not: null } },
     });
 
-    // Delete physical files first, then DB records
+    // Delete physical files first
     const { unlink } = await import('fs/promises');
     for (const file of files) {
       await unlink(this.resolveFilePath(file, userId)).catch((e) => {
@@ -285,11 +285,10 @@ export class FilesService {
       });
     }
 
-    await this.prisma.file.deleteMany({
-      where: { id: { in: nonPhotoFiles.map((f) => f.id) }, userId, deletedAt: { not: null } },
+    const { count } = await this.prisma.file.deleteMany({
+      where: { userId, deletedAt: { not: null } },
     });
-
-    return { deleted: nonPhotoFiles.length };
+    return { deleted: count };
   }
 
   async renameFile(userId: string, fileId: string, name: string) {
