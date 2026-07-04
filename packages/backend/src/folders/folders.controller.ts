@@ -48,6 +48,15 @@ export class FoldersController {
     return this.foldersService.getFolderPath(user.id, id);
   }
 
+  @Post('tree')
+  @ApiOperation({ summary: 'Batch create folder tree from relative paths' })
+  async createFolderTree(
+    @CurrentUser() user: UserEntity,
+    @Body() body: { parentId?: string; paths: string[] },
+  ) {
+    return this.foldersService.createFolderTree(user.id, body.parentId || null, body.paths);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Delete folder (must be empty)' })
   async deleteFolder(

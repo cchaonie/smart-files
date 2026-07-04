@@ -2,10 +2,16 @@ import { Injectable, BadRequestException, ForbiddenException, NotFoundException 
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  private uploadRoot: string;
+
+  constructor(private prisma: PrismaService) {
+    this.uploadRoot = process.env.UPLOAD_ROOT || './data/storage';
+  }
 
   async listUsers() {
     const users = await this.prisma.user.findMany({
@@ -129,5 +135,149 @@ export class AdminService {
       photoCount,
       totalSize: fileAgg._sum.size ? Number(fileAgg._sum.size) : 0,
     };
+  }
+
+  /**
+   * Clean up stale/orphaned upload tmp directories.
+   * - failed/cancelled sessions → delete
+   * - completed sessions → tmp already cleaned, but orphaned dirs still found → delete
+   * - pending sessions older than 24h → delete
+   * - active pending sessions → skip
+   * - orphaned tmp dirs (no DB record) → delete
+   */
+  async cleanupUploads(dryRun = false) {
+    const tmpRoot = path.join(this.uploadRoot, 'tmp');
+    const results: {
+      deleted: string[],
+      skipped: string[],
+      totalFreedBytes: number,
+      failedSessions: number,
+      orphanedDirs: number,
+    } = {
+      deleted: [],
+      skipped: [],
+      totalFreedBytes: 0,
+      failedSessions: 0,
+      orphanedDirs: 0,
+    };
+
+    let tmpDirsExist = true;
+    try {
+      await fs.access(tmpRoot);
+    } catch {
+      tmpDirsExist = false;
+    }
+
+    if (!tmpDirsExist) {
+      return { ...results, message: 'No tmp directory found' };
+    }
+
+    const now = new Date();
+    const staleThreshold = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24h ago
+
+    // Read all user-level tmp directories
+    const userDirs = await fs.readdir(tmpRoot);
+
+    for (const userId of userDirs) {
+      const userTmpPath = path.join(tmpRoot, userId);
+      const stat = await fs.stat(userTmpPath).catch(() => null);
+      if (!stat || !stat.isDirectory()) continue;
+
+      const sessionDirs = await fs.readdir(userTmpPath);
+
+      for (const sessionId of sessionDirs) {
+        const sessionTmpPath = path.join(userTmpPath, sessionId);
+        const sessionStat = await fs.stat(sessionTmpPath).catch(() => null);
+        if (!sessionStat || !sessionStat.isDirectory()) continue;
+
+        // Check if this is a valid session dir or an older layout (userId/sessionId)
+        // Also support the newer layout: userId/sessionId/chunk-files
+        const session = await this.prisma.uploadSession.findUnique({
+          where: { id: sessionId },
+        }).catch(() => null);
+
+        let shouldDelete = false;
+        let reason = '';
+
+        if (!session) {
+          // Orphaned — no DB record
+          shouldDelete = true;
+          reason = 'orphaned (no session record)';
+          results.orphanedDirs++;
+        } else if (session.status === 'failed') {
+          shouldDelete = true;
+          reason = `failed session`;
+          results.failedSessions++;
+        } else if (session.status === 'pending' && session.createdAt < staleThreshold) {
+          shouldDelete = true;
+          reason = `stale pending (>24h)`;
+        } else if (session.status === 'completed') {
+          // Completed sessions should already have been cleaned, but check
+          shouldDelete = true;
+          reason = `completed (leftover tmp)`;
+        } else if (session.status === 'merging') {
+          // Merging sessions older than 24h are stuck
+          if (session.createdAt < staleThreshold) {
+            shouldDelete = true;
+            reason = `stuck merging (>24h)`;
+          }
+        }
+
+        if (shouldDelete) {
+          // Calculate size
+          let dirSize = 0;
+          try {
+            dirSize = await this.getDirSize(sessionTmpPath);
+          } catch {}
+
+          if (!dryRun) {
+            await fs.rm(sessionTmpPath, { recursive: true, force: true }).catch(() => {});
+          }
+
+          results.deleted.push(`${userId}/${sessionId} (${reason}, ${this.formatBytes(dirSize)})`);
+          results.totalFreedBytes += dirSize;
+
+          // If failed session, also null out the session status (keep record for history)
+          if (!dryRun && session && session.status !== 'completed') {
+            await this.prisma.uploadSession.update({
+              where: { id: sessionId },
+              data: { status: 'cleaned' },
+            }).catch(() => {});
+          }
+        } else {
+          results.skipped.push(`${userId}/${sessionId} (active ${session?.status || 'unknown'})`);
+        }
+      }
+    }
+
+    return {
+      ...results,
+      dryRun,
+      message: dryRun
+        ? `Dry run: would delete ${results.deleted.length} dirs (${this.formatBytes(results.totalFreedBytes)})`
+        : `Cleaned ${results.deleted.length} dirs, freed ${this.formatBytes(results.totalFreedBytes)}`,
+    };
+  }
+
+  private async getDirSize(dirPath: string): Promise<number> {
+    let total = 0;
+    const entries = await fs.readdir(dirPath, { withFileTypes: true }).catch(() => []);
+    for (const entry of entries) {
+      const fullPath = path.join(dirPath, entry.name);
+      if (entry.isDirectory()) {
+        total += await this.getDirSize(fullPath);
+      } else if (entry.isFile()) {
+        const stat = await fs.stat(fullPath).catch(() => null);
+        if (stat) total += stat.size;
+      }
+    }
+    return total;
+  }
+
+  private formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${units[i]}`;
   }
 }
